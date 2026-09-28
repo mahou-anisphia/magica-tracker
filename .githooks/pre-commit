@@ -1,0 +1,14 @@
+#!/bin/sh
+# Rebuild and refuse the commit if dist/index.html is out of date.
+# dist/ is the shipped product and must always match the committed source.
+set -e
+
+pnpm build >/dev/null
+
+if ! git diff --quiet -- dist/index.html; then
+  echo ""
+  echo "pre-commit: dist/index.html was out of date and has been rebuilt."
+  echo "            Review it, then: git add dist/index.html && git commit"
+  echo ""
+  exit 1
+fi

@@ -1,0 +1,29 @@
+{
+  "name": "magica-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A calm, single-file tracker for projects, tasks, resources and a backlog. All data stays in the browser.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "tsc --noEmit && vitest run && vite build && git diff --exit-code -- dist/index.html",
+    "prepare": "git config core.hooksPath .githooks || true"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "preact": "^10.29.8",
+    "valibot": "^1.5.0"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^5.0.2"
+  }
+}
