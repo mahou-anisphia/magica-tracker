@@ -1297,19 +1297,6 @@ textarea.inline-input {
   flex: none;
 }
 
-/* The native input only anchors the picker; the chip is what people see. */
-.due-input {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  border: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .due-chip {
   display: inline-flex;
   align-items: center;
@@ -1384,7 +1371,131 @@ textarea.inline-input {
 
 @media (hover: none) {
   .due-clear {
-    display: none; /* the native picker has its own clear/reset */
+    display: none; /* the picker has its own Clear */
+  }
+}
+
+/* The date picker: a white card in the top layer, so no overflow clips it.
+   DatePicker sets top/bottom/left from the button it belongs to. */
+.date-pop {
+  position: fixed;
+  inset: auto;
+  width: min(284px, calc(100vw - 16px));
+  margin: 0;
+  padding: 12px 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--primary);
+  box-shadow:
+    0 12px 32px rgb(26 53 80 / 0.14),
+    0 2px 6px rgb(26 53 80 / 0.05);
+}
+
+.date-pop:popover-open {
+  animation: rise 140ms ease-out;
+}
+
+.date-pop-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 6px;
+  padding-left: 6px;
+}
+
+.date-pop-month {
+  flex: 1;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.date-pop-grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.date-pop-grid th {
+  padding: 4px 0 6px;
+  color: var(--text);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.date-pop-grid td {
+  padding: 1px;
+  text-align: center;
+}
+
+.date-pop-day {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  max-width: 100%;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color 120ms,
+    color 120ms;
+}
+
+.date-pop-day:focus-visible {
+  border-radius: 999px;
+}
+
+.date-pop-day.outside {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Today: an Iris ring. The chosen day: filled Iris Deep, like Timeline's today. */
+.date-pop-day.today {
+  color: var(--accent-deep);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.date-pop-day[aria-pressed='true'] {
+  background: var(--accent-deep);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .date-pop-day:hover {
+    background: var(--iris-tint);
+    color: var(--accent-deep);
+  }
+
+  .date-pop-day[aria-pressed='true']:hover {
+    background: color-mix(in srgb, var(--accent-deep) 88%, black);
+    color: #fff;
+  }
+}
+
+.date-pop-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+@media (pointer: coarse) {
+  .date-pop-day {
+    width: 40px;
+    height: 40px;
   }
 }
 
