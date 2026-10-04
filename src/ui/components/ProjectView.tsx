@@ -1,14 +1,13 @@
 import { useState } from 'preact/hooks';
 import { isProjectDone } from '../../core/completion';
 import * as ops from '../../core/ops';
-import { orderTasks, projectProgress } from '../../core/progress';
+import { orderTasks } from '../../core/progress';
 import { DueDate } from './DueDate';
 import type { Project } from '../../core/schema';
 import { addTask, deleteProject, setArchived, setProjectDone } from '../actions';
 import { update } from '../store';
 import { CheckIcon } from './icons';
 import { AddInput, EditableText } from './inputs';
-import { EffortMeter } from './Progress';
 import { Resources } from './Resources';
 import { TaskRow } from './TaskRow';
 
@@ -41,7 +40,6 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
             multiline
             onSave={(d) => update((r, n) => ops.setProjectDescription(r, p.id, d, n))}
           />
-          {p.tasks.length > 0 && <EffortMeter progress={projectProgress(p)} />}
         </div>
         <div class="pane-actions">
           <button

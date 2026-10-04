@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { attention } from '../src/core/attention';
+import { allocation } from '../src/core/progress';
 import { normalizeRoot } from '../src/core/completion';
 import { dueByDate } from '../src/core/calendar';
 import { addSample, hasSample, isSampleId, removeSample, sampleData } from '../src/core/sample';
@@ -53,5 +54,11 @@ describe('sample data', () => {
   it('loading twice replaces the first set instead of doubling it', () => {
     const twice = addSample(addSample(root(), NOW), NOW);
     expect(twice.projects).toHaveLength(sampleData(NOW).projects.length);
+  });
+});
+
+describe('sample allocation', () => {
+  it('adds up to a mildly overloaded 140%, so the bar shows overload', () => {
+    expect(allocation(addSample(root(), NOW))).toEqual({ total: 140, tasks: 11 });
   });
 });

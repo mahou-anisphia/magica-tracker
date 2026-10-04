@@ -1,13 +1,11 @@
 import type { JSX } from 'preact';
 import { useRef } from 'preact/hooks';
 import { isExportStale } from '../../core/attention';
-import { relativeDays } from '../../core/format';
+import { dayHeading, relativeDays } from '../../core/format';
 import { localDateStamp } from '../../core/time';
 import { exportNow, loadSample, startImport, wipeSample } from '../actions';
 import { setMode, type Mode } from '../store';
 import { CalendarIcon, ListIcon, SparkIcon } from './icons';
-
-const dateFormat = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 
 /**
  * The top bar: sample data on the left, the Overview/Timeline switch in the
@@ -54,7 +52,7 @@ export function TopBar(props: {
 export function TodayHeading(props: { now: Date }) {
   return (
     <h1 class="today">
-      <time dateTime={localDateStamp(props.now)}>{dateFormat.format(props.now)}</time>
+      <time dateTime={localDateStamp(props.now)}>{dayHeading(props.now)}</time>
     </h1>
   );
 }

@@ -1,18 +1,16 @@
 import { useState } from 'preact/hooks';
 import { dueByDate, monthGrid, type DueItem } from '../../core/calendar';
 import { daysUntil, dueDistance } from '../../core/due';
-import { plural } from '../../core/format';
+import { monthHeading, plural } from '../../core/format';
 import * as ops from '../../core/ops';
-import { projectProgress } from '../../core/progress';
 import type { Root } from '../../core/schema';
 import { localDateStamp } from '../../core/time';
 import { openProject, setProjectDone, toggleTask } from '../actions';
 import { set, update } from '../store';
 import { ChevronIcon, CrossIcon } from './icons';
 import { Modal } from './Modal';
-import { EffortMeter, PriorityChip } from './Progress';
+import { PriorityChip } from './Progress';
 
-const monthTitle = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
 const weekdayShort = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const agendaDay = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 const panelDay = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
@@ -55,7 +53,7 @@ export function Timeline(props: { root: Root; now: Date; day: string | null }) {
     <section class="timeline" aria-labelledby="timeline-h">
       <header class="tl-head">
         <h1 id="timeline-h" class="today" aria-live="polite">
-          {monthTitle.format(new Date(cursor.y, cursor.m, 1))}
+          {monthHeading(new Date(cursor.y, cursor.m, 1))}
         </h1>
         <div class="tl-nav">
           <button type="button" class="icon-btn" aria-label="Previous month" onClick={() => shift(-1)}>
@@ -251,7 +249,7 @@ function DayItem({ item, now, startOpen }: { item: DueItem; now: Date; startOpen
             <>
               <div class="drawer-facts">
                 <PriorityChip priority={task.priority} />
-                {task.effort !== undefined && <span class="pill plain">{task.effort}% effort</span>}
+                {task.effort !== undefined && <span class="pill plain">{task.effort}% allocation</span>}
                 {task.subtasks.length > 0 && (
                   <span class="pill plain">
                     {task.subtasks.filter((s) => s.done).length} / {task.subtasks.length} sub-tasks
@@ -261,7 +259,6 @@ function DayItem({ item, now, startOpen }: { item: DueItem; now: Date; startOpen
               {task.notes && <p class="drawer-notes">{task.notes}</p>}
             </>
           )}
-          {!task && <EffortMeter progress={projectProgress(project)} />}
           <div class="drawer-actions">
             {task && !subtask && (
               <button type="button" class="btn small" onClick={() => void toggleTask(project.id, task, !task.done)}>

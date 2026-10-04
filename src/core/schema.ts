@@ -29,7 +29,10 @@ const Stamp = v.optional(Timestamp, nowIso);
 /** A calendar day with no time or zone, e.g. "2026-10-03". */
 const DueDate = v.optional(v.pipe(v.string(), v.check(isCalendarDate)));
 const PriorityField = v.optional(v.picklist(PRIORITIES));
-/** Share of the project's effort, in whole percent. */
+/**
+ * Allocation: how much of your capacity this task takes while it's open, in
+ * whole percent. Stored as `effort`; all open tasks add up on the dashboard.
+ */
 const Effort = v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(100)));
 const Required = v.pipe(v.string(), v.trim(), v.nonEmpty());
 const Optional = v.optional(v.string());

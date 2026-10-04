@@ -140,7 +140,7 @@ export function setTaskPriority(
   return mapTask(root, projectId, taskId, now, (task) => withOptional(task, 'priority', priority));
 }
 
-/** Effort is a whole percent of the project, 0–100; undefined clears it. */
+/** Allocation (stored as `effort`): a whole percent of your capacity, 0–100; undefined clears it. */
 export function setTaskEffort(root: Root, projectId: string, taskId: string, effort: number | undefined, now: string): Root {
   if (effort !== undefined && !(Number.isInteger(effort) && effort >= 0 && effort <= 100)) return root;
   return mapTask(root, projectId, taskId, now, (task) => {

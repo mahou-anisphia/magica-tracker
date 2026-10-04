@@ -90,7 +90,7 @@ export function TaskRow({ project, task, expanded, now }: Props) {
               </span>
             )}
             {task.effort !== undefined && (
-              <span class="effort" title="Share of the project's effort">
+              <span class="effort" title="Allocation: share of your capacity">
                 {task.effort}%
               </span>
             )}
@@ -175,11 +175,11 @@ export function TaskRow({ project, task, expanded, now }: Props) {
   );
 }
 
-/** Effort as a whole percent of the project; empty clears it. Saved on change. */
+/** Allocation as a whole percent of your capacity; empty clears it. Saved on change. */
 function EffortInput(props: { value: number | undefined; onChange: (v: number | undefined) => void }) {
   return (
     <label class="setting">
-      Effort
+      Allocation
       <span class="effort-field">
         <input
           type="number"

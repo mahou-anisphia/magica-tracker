@@ -2,37 +2,38 @@ import { isInProgress, isProjectDone } from './completion';
 import { daysUntil } from './due';
 import type { Priority, Project, Root, Task } from './schema';
 
-/** How finished a task is, 0–1. Sub-tasks count fractionally. */
-export function taskCompletion(task: Task): number {
-  if (task.done) return 1;
-  if (task.subtasks.length === 0) return 0;
-  return task.subtasks.filter((s) => s.done).length / task.subtasks.length;
+/** The allocation bar runs from 0 to this; past 100% is overload. */
+export const ALLOCATION_SCALE = 200;
+
+/** Tasks that count toward what's on your plate: open, in a project that's neither archived nor done. */
+function* activeOpenTasks(root: Root): Generator<{ project: Project; task: Task }> {
+  for (const project of root.projects) {
+    if (project.archived || isProjectDone(project)) continue;
+    for (const task of project.tasks) if (!task.done) yield { project, task };
+  }
 }
 
-export type ProjectProgress = {
-  /** Sum of the tasks' effort, in percent. Can exceed 100. */
-  allocated: number;
-  /** Effort finished so far, in percent of the whole project. */
-  done: number;
-  /** False when no task has an effort yet; `done` is then by task count. */
-  weighted: boolean;
+export type Allocation = {
+  /** Sum of the open tasks' allocation, in percent of your capacity. Can pass 100. */
+  total: number;
+  /** How many open tasks carry an allocation. */
+  tasks: number;
 };
 
 /**
- * Effort adds up: each task's effort is its share of the project, and the
- * project is as done as the effort finished. 40% done of 80% allocated means
- * a fifth of the project still has no task carrying it.
- * Without any efforts set, every task weighs the same.
+ * One shared number: how much of you is spoken for. Each open task's
+ * allocation (`effort`, a percent of your capacity) adds up across every
+ * active project. Finishing a task, or the project it's in, frees its share.
  */
-export function projectProgress(project: Project): ProjectProgress {
-  const tasks = project.tasks;
-  const allocated = tasks.reduce((n, t) => n + (t.effort ?? 0), 0);
-  if (allocated === 0) {
-    const done = tasks.length ? (100 * tasks.reduce((n, t) => n + taskCompletion(t), 0)) / tasks.length : 0;
-    return { allocated: 0, done: Math.round(done), weighted: false };
+export function allocation(root: Root): Allocation {
+  let total = 0;
+  let tasks = 0;
+  for (const { task } of activeOpenTasks(root)) {
+    if (task.effort === undefined) continue;
+    total += task.effort;
+    tasks++;
   }
-  const done = tasks.reduce((n, t) => n + (t.effort ?? 0) * taskCompletion(t), 0);
-  return { allocated, done: Math.round(done), weighted: true };
+  return { total, tasks };
 }
 
 export type Stats = {
@@ -40,29 +41,27 @@ export type Stats = {
   open: number;
   /** Unfinished tasks with at least one sub-task done. */
   inProgress: number;
-  /** Unfinished projects, tasks and sub-tasks due today through the next 7 days. */
-  dueThisWeek: number;
+  /** Unfinished tasks marked urgent. */
+  urgent: number;
   /** Unfinished projects, tasks and sub-tasks past their deadline. */
   overdue: number;
 };
 
 /** The dashboard's numbers. Archived and done projects don't count. */
 export function stats(root: Root, now: Date): Stats {
-  const s: Stats = { open: 0, inProgress: 0, dueThisWeek: 0, overdue: 0 };
-  const count = (due: string | undefined, done: boolean) => {
-    if (!due || done) return;
-    const d = daysUntil(due, now);
-    if (d < 0) s.overdue++;
-    else if (d <= 7) s.dueThisWeek++;
+  const s: Stats = { open: 0, inProgress: 0, urgent: 0, overdue: 0 };
+  const overdue = (due: string | undefined, done: boolean) => {
+    if (due && !done && daysUntil(due, now) < 0) s.overdue++;
   };
   for (const p of root.projects) {
     if (p.archived || isProjectDone(p)) continue;
-    count(p.due, false);
+    overdue(p.due, false);
     for (const t of p.tasks) {
       if (!t.done) s.open++;
+      if (!t.done && t.priority === 'urgent') s.urgent++;
       if (isInProgress(t)) s.inProgress++;
-      count(t.due, t.done);
-      for (const st of t.subtasks) count(st.due, st.done);
+      overdue(t.due, t.done);
+      for (const st of t.subtasks) overdue(st.due, st.done);
     }
   }
   return s;

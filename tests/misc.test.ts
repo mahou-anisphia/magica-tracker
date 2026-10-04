@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { beforeImportFileName, exportFileName, exportJson } from '../src/core/exportFile';
-import { relativeDays } from '../src/core/format';
+import { dayHeading, monthHeading, relativeDays } from '../src/core/format';
 import { newId } from '../src/core/id';
 import { addBacklogItem, addResource, addSubtask, addTask, createProject, setSubtaskDone } from '../src/core/ops';
 import { emptyRoot } from '../src/core/schema';
@@ -70,5 +70,14 @@ describe('export → import round trip', () => {
     const d = new Date(2026, 8, 28, 9, 30, 12);
     expect(exportFileName(d)).toBe('magica-tracker-2026-09-28.json');
     expect(beforeImportFileName(d)).toBe('magica-tracker-before-import-2026-09-28-093012.json');
+  });
+});
+
+describe('headings', () => {
+  it('read "Sunday, 4 Oct" and "October, 2026"', () => {
+    const d = new Date(2026, 9, 4, 12);
+    expect(dayHeading(d, 'en-US')).toBe('Sunday, 4 Oct');
+    expect(dayHeading(d, 'en-GB')).toBe('Sunday, 4 Oct');
+    expect(monthHeading(d, 'en-US')).toBe('October, 2026');
   });
 });

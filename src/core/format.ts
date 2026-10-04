@@ -14,3 +14,16 @@ export function relativeDays(iso: string, now: Date): string {
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
 }
+
+/** Overview's heading: "Sunday, 4 Oct". */
+export function dayHeading(d: Date, locale?: string): string {
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(d);
+  const month = new Intl.DateTimeFormat(locale, { month: 'short' }).format(d);
+  return `${weekday}, ${d.getDate()} ${month}`;
+}
+
+/** Timeline's heading: "October, 2026". */
+export function monthHeading(d: Date, locale?: string): string {
+  const month = new Intl.DateTimeFormat(locale, { month: 'long' }).format(d);
+  return `${month}, ${d.getFullYear()}`;
+}

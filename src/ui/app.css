@@ -439,25 +439,7 @@ h1.today {
   font-size: clamp(1.6rem, 1.3rem + 1vw, 2rem);
   line-height: 1.2;
   letter-spacing: -0.015em;
-  margin-bottom: 28px;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
   margin-bottom: 36px;
-}
-
-.stat {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
-  padding: 18px 22px 20px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line);
-  background: var(--card);
-  box-shadow: var(--shadow);
 }
 
 .stat-label {
@@ -466,43 +448,173 @@ h1.today {
   color: var(--text);
 }
 
-.stat-value {
-  font-size: 1.875rem;
-  font-weight: 600;
-  line-height: 1.1;
+/*
+ * The shared allocation bar: 0–200% of your capacity. Iris Deep up to 100%,
+ * amber past it, a tick at 100%.
+ */
+.allocation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 20px 24px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.alloc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.alloc-head h2 {
+  margin-right: auto;
+}
+
+.alloc-value {
+  font-size: 1.375rem;
+  font-weight: 500;
   letter-spacing: -0.02em;
   color: var(--primary);
   font-variant-numeric: tabular-nums;
 }
 
-.stat.frost {
-  background: var(--surface);
-  border-color: color-mix(in srgb, var(--border) 45%, var(--surface));
+.allocation.over .alloc-value {
+  color: var(--watch-ink);
 }
 
-.stat.iris {
-  background: var(--iris-tint);
-  border-color: color-mix(in srgb, var(--accent) 22%, var(--iris-tint));
+.alloc-note {
+  font-size: 0.8125rem;
+  color: var(--text);
+  white-space: nowrap;
 }
 
-.stat.iris .stat-label,
-.stat.iris .stat-value {
+.allocation.over .alloc-note {
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: var(--gold-tint);
+  color: var(--watch-ink);
+  font-weight: 500;
+}
+
+.alloc-track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 70%, var(--card));
+  overflow: hidden;
+}
+
+.alloc-fill,
+.alloc-over {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.alloc-fill {
+  left: 0;
+  background: var(--accent-deep);
+}
+
+.alloc-over {
+  background: var(--watch);
+}
+
+.alloc-tick {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--card);
+}
+
+.alloc-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* At a glance: one board, four numbers divided by hairlines, allocation along the bottom. */
+.glance-nums {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+}
+
+.glance-cell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  padding: 22px 26px 20px;
+}
+
+.glance-cell + .glance-cell {
+  border-left: 1px solid var(--line);
+}
+
+.glance-cell dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.glance-cell dd {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.glance-cell.zero dd {
+  color: var(--text);
+}
+
+.glance-cell.iris dd {
   color: var(--accent-deep);
 }
 
-.stat.gold {
-  background: var(--gold-tint);
-  border-color: color-mix(in srgb, var(--watch) 40%, var(--gold-tint));
+.glance-cell.gold dd {
+  color: var(--watch-ink);
 }
 
-.stat.gold .stat-label,
-.stat.gold .stat-value {
-  color: var(--watch-ink);
+.glance-cell.iris dt::before,
+.glance-cell.gold dt::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-deep);
+}
+
+.glance-cell.gold dt::before {
+  background: var(--watch);
+}
+
+.allocation.embedded {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--bg) 40%, var(--card));
+  padding: 18px 26px 16px;
 }
 
 /* Sections on the Overview: a plain label above a white card. */
 .block {
-  margin-bottom: 36px;
+  margin-bottom: 52px;
 }
 
 .block-head {
@@ -510,7 +622,7 @@ h1.today {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .block-head h2 {
@@ -884,72 +996,6 @@ textarea.inline-input {
 
 .project.is-done .pane-title {
   color: var(--text);
-}
-
-/* Effort meter: done (Deep), allocated but not done (Iris tint), unallocated (track). */
-.meter {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  row-gap: 4px;
-  gap: 10px;
-  margin-top: 6px;
-  font-size: 0.8125rem;
-}
-
-.meter-track {
-  position: relative;
-  flex: 0 1 220px;
-  height: 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--surface) 75%, var(--card));
-  overflow: hidden;
-}
-
-.meter-allocated,
-.meter-done {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: 999px;
-}
-
-.meter-allocated {
-  background: color-mix(in srgb, var(--accent) 30%, var(--card));
-}
-
-.meter-done {
-  background: var(--accent-deep);
-}
-
-.meter-value,
-.meter-note {
-  white-space: nowrap;
-}
-
-.meter-value {
-  font-weight: 600;
-  color: var(--primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.meter-note {
-  color: var(--text);
-}
-
-.meter-note.over {
-  padding: 1px 9px;
-  border-radius: 999px;
-  background: var(--gold-tint);
-  color: var(--watch-ink);
-  font-weight: 500;
-}
-
-.meter.compact {
-  margin: 0;
-}
-
-.meter.compact .meter-track {
-  flex-basis: 96px;
 }
 
 .section {
@@ -1906,18 +1952,31 @@ dialog.drawer {
     justify-self: center;
   }
 
-  .stats {
+
+  .glance-nums {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
   }
 
-  .stat {
-    padding: 14px 16px;
+  .glance-cell {
+    padding: 16px 18px;
   }
 
-  .stat-value {
-    font-size: 1.5rem;
+  .glance-cell + .glance-cell {
+    border-left: 0;
   }
+
+  .glance-cell:nth-child(even) {
+    border-left: 1px solid var(--line);
+  }
+
+  .glance-cell:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+
+  .allocation.embedded {
+    padding: 16px 18px 14px;
+  }
+
 }
 
 @media (max-width: 639px) {

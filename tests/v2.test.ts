@@ -3,7 +3,7 @@ import { attention } from '../src/core/attention';
 import { exportJson } from '../src/core/exportFile';
 import { mergeRoots } from '../src/core/merge';
 import { setProjectDone, setTaskEffort, setTaskPriority } from '../src/core/ops';
-import { orderTasks, projectProgress, stats, taskCompletion } from '../src/core/progress';
+import { allocation, orderTasks, stats } from '../src/core/progress';
 import { SCHEMA_VERSION } from '../src/core/schema';
 import { parseRoot, parseRootText } from '../src/core/validate';
 import { T0, T1, T2, project, root, subtask, task } from './fixtures';
@@ -110,54 +110,50 @@ describe('priority and effort', () => {
   });
 });
 
-describe('effort adds up', () => {
-  it('counts sub-task progress fractionally', () => {
-    expect(taskCompletion(task('t', { subtasks: [subtask('a', true), subtask('b'), subtask('c'), subtask('d')] }))).toBe(0.25);
-    expect(taskCompletion(task('t', { done: true }))).toBe(1);
-  });
-
-  it('weights the project by effort', () => {
-    const p = project('p', {
-      tasks: [
-        task('a', { effort: 50, done: true, doneAt: T0 }),
-        task('b', { effort: 20, subtasks: [subtask('x', true), subtask('y')] }),
-        task('c', { effort: 10 }),
-        task('d'),
+describe('allocation adds up across everything', () => {
+  it('sums open tasks in active projects only', () => {
+    const r = root({
+      projects: [
+        project('a', { tasks: [task('a1', { effort: 60 }), task('a2', { effort: 50 }), task('a3'), task('a4', { effort: 30, done: true, doneAt: T0 })] }),
+        project('b', { tasks: [task('b1', { effort: 25 })] }),
+        project('arch', { archived: true, tasks: [task('x', { effort: 40 })] }),
+        project('fin', { doneAt: T0, tasks: [task('y', { effort: 40 })] }),
       ],
     });
-    expect(projectProgress(p)).toEqual({ allocated: 80, done: 60, weighted: true });
+    expect(allocation(r)).toEqual({ total: 135, tasks: 3 });
   });
 
-  it('reports over-allocation as is', () => {
-    const p = project('p', { tasks: [task('a', { effort: 70 }), task('b', { effort: 50 })] });
-    expect(projectProgress(p).allocated).toBe(120);
+  it('finishing a task or its project frees its share', () => {
+    let r = root({ projects: [project('p', { tasks: [task('t', { effort: 70 })] })] });
+    expect(allocation(r).total).toBe(70);
+    expect(allocation(setProjectDone(r, 'p', true, T1)).total).toBe(0);
+    r = root({ projects: [project('p', { tasks: [task('t', { effort: 70, done: true, doneAt: T0 })] })] });
+    expect(allocation(r).total).toBe(0);
   });
 
-  it('falls back to equal weights when no effort is set', () => {
-    const p = project('p', { tasks: [task('a', { done: true, doneAt: T0 }), task('b'), task('c'), task('d')] });
-    expect(projectProgress(p)).toEqual({ allocated: 0, done: 25, weighted: false });
-    expect(projectProgress(project('empty'))).toEqual({ allocated: 0, done: 0, weighted: false });
+  it('is zero with nothing allocated', () => {
+    expect(allocation(root())).toEqual({ total: 0, tasks: 0 });
   });
 });
 
 describe('dashboard numbers', () => {
-  it('counts open, in progress, due this week and overdue, skipping archived and done projects', () => {
+  it('counts open, in progress, urgent and overdue, skipping archived and done projects', () => {
     const r = root({
       projects: [
         project('p', {
           due: '2026-09-27', // overdue
           tasks: [
-            task('a', { due: '2026-09-28' }), // due this week (today)
-            task('b', { due: '2026-10-05', subtasks: [subtask('s', true), subtask('t', false, { due: '2026-09-20' })] }), // week + overdue sub-task
-            task('c', { due: '2026-10-06' }), // 8 days: not this week
-            task('d', { done: true, doneAt: T0, due: '2026-09-01' }), // done: not overdue
+            task('a', { due: '2026-09-28', priority: 'urgent' }), // urgent, due today (not overdue)
+            task('b', { due: '2026-10-05', subtasks: [subtask('s', true), subtask('t', false, { due: '2026-09-20' })] }), // overdue sub-task
+            task('c', { due: '2026-10-06' }),
+            task('d', { done: true, doneAt: T0, due: '2026-09-01', priority: 'urgent' }), // done: neither overdue nor urgent
           ],
         }),
         project('arch', { archived: true, tasks: [task('x', { due: '2026-09-01' })] }),
         project('fin', { doneAt: T0, due: '2026-09-01', tasks: [task('y', { due: '2026-09-01' })] }),
       ],
     });
-    expect(stats(r, NOW)).toEqual({ open: 3, inProgress: 1, dueThisWeek: 2, overdue: 2 });
+    expect(stats(r, NOW)).toEqual({ open: 3, inProgress: 1, urgent: 1, overdue: 2 });
   });
 });
 
