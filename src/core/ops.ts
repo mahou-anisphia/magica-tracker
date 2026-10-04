@@ -1,6 +1,6 @@
 import { normalizeTask } from './completion';
 import { isCalendarDate } from './due';
-import type { BacklogItem, Project, Resource, Root, Subtask, Task } from './schema';
+import { PRIORITIES, type BacklogItem, type Priority, type Project, type Resource, type Root, type Subtask, type Task } from './schema';
 
 /**
  * Every change to the data, as pure functions: (root, …, now) => new root.
@@ -69,6 +69,14 @@ export function setProjectDue(root: Root, projectId: string, due: string | undef
   return mapProject(root, projectId, (p) => ({ ...withOptional(p, 'due', due), updatedAt: now }));
 }
 
+/** Mark a project done (or reopen it). Its tasks are left exactly as they are. */
+export function setProjectDone(root: Root, projectId: string, done: boolean, now: string): Root {
+  return mapProject(root, projectId, (p) => {
+    const { doneAt: _, ...rest } = p;
+    return done ? { ...rest, doneAt: p.doneAt ?? now, updatedAt: now } : { ...rest, updatedAt: now };
+  });
+}
+
 export function deleteProject(root: Root, projectId: string): Root {
   return {
     ...root,
@@ -119,6 +127,26 @@ export function setTaskNotes(root: Root, projectId: string, taskId: string, note
 export function setTaskDue(root: Root, projectId: string, taskId: string, due: string | undefined, now: string): Root {
   if (due && !isCalendarDate(due)) return root;
   return mapTask(root, projectId, taskId, now, (task) => withOptional(task, 'due', due));
+}
+
+export function setTaskPriority(
+  root: Root,
+  projectId: string,
+  taskId: string,
+  priority: Priority | undefined,
+  now: string,
+): Root {
+  if (priority && !PRIORITIES.includes(priority)) return root;
+  return mapTask(root, projectId, taskId, now, (task) => withOptional(task, 'priority', priority));
+}
+
+/** Effort is a whole percent of the project, 0–100; undefined clears it. */
+export function setTaskEffort(root: Root, projectId: string, taskId: string, effort: number | undefined, now: string): Root {
+  if (effort !== undefined && !(Number.isInteger(effort) && effort >= 0 && effort <= 100)) return root;
+  return mapTask(root, projectId, taskId, now, (task) => {
+    const { effort: _, ...rest } = task;
+    return effort === undefined ? rest : { ...rest, effort };
+  });
 }
 
 export function deleteTask(root: Root, projectId: string, taskId: string, now: string): Root {

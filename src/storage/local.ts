@@ -118,7 +118,9 @@ export function writeLastExport(iso: string): void {
 const MODE_KEY = 'magica:v1:mode';
 
 /** A per-browser view preference; not part of the data or its exports. */
-export function readMode(): 'overview' | 'timeline' | null {
+export type StoredMode = 'overview' | 'timeline';
+
+export function readMode(): StoredMode | null {
   try {
     const v = globalThis.localStorage.getItem(MODE_KEY);
     return v === 'overview' || v === 'timeline' ? v : null;
@@ -127,7 +129,7 @@ export function readMode(): 'overview' | 'timeline' | null {
   }
 }
 
-export function writeMode(mode: 'overview' | 'timeline'): void {
+export function writeMode(mode: StoredMode): void {
   try {
     globalThis.localStorage.setItem(MODE_KEY, mode);
   } catch {

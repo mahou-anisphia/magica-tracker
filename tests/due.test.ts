@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { attention } from '../src/core/attention';
 import { dueByDate, monthGrid } from '../src/core/calendar';
 import { daysUntil, DUE_SOON_DAYS, dueDistance, dueLabel, isCalendarDate, isDueSoon } from '../src/core/due';
-import { demote, setProjectDue, setSubtaskDone, setSubtaskDue, setTaskDue } from '../src/core/ops';
+import { demote, setProjectDone, setProjectDue, setSubtaskDone, setSubtaskDue, setTaskDue } from '../src/core/ops';
 import { headerFromUrl, parseResourceInput } from '../src/core/url';
 import { parseRoot } from '../src/core/validate';
 import { T0, T1, getTask, project, root, subtask, task } from './fixtures';
@@ -40,10 +40,12 @@ describe('due dates', () => {
     expect(dueLabel('2026-09-29', NOW, 'en-US')).toBe('Tomorrow');
     expect(dueLabel('2026-10-03', NOW, 'en-US')).toBe('Oct 3');
     expect(dueLabel('2027-01-05', NOW, 'en-US')).toBe('Jan 5, 2027');
-    expect(dueDistance(-1)).toBe('overdue 1 day');
-    expect(dueDistance(-4)).toBe('overdue 4 days');
+    expect(dueDistance(-1)).toBe('1d overdue');
+    expect(dueDistance(-4)).toBe('4d overdue');
     expect(dueDistance(0)).toBe('due today');
-    expect(dueDistance(3)).toBe('due in 3 days');
+    expect(dueDistance(3)).toBe('due in 3d');
+    expect(dueLabel('2026-09-27', NOW, 'en-US')).toBe('1d overdue');
+    expect(dueLabel('2026-09-21', NOW, 'en-US')).toBe('7d overdue');
   });
 
   it('sets and clears due dates on tasks and sub-tasks, bumping updatedAt', () => {
@@ -119,14 +121,12 @@ describe('project deadlines', () => {
     expect('due' in r.projects[0]!).toBe(false);
   });
 
-  it('an approaching project deadline needs attention until every task is done', () => {
-    const open = root({ projects: [project('p', { due: '2026-09-30', tasks: [task('t')] })] });
+  it('an approaching project deadline needs attention until the project is marked done', () => {
+    const open = root({ projects: [project('p', { due: '2026-09-30', tasks: [task('t', { done: true, doneAt: T0 })] })] });
     expect(attention(open, NOW).due).toMatchObject([{ project: { id: 'p' }, days: 2 }]);
     expect(attention(open, NOW).due[0]!.task).toBeUndefined();
-    const finished = root({ projects: [project('p', { due: '2026-09-30', tasks: [task('t', { done: true, doneAt: T0 })] })] });
-    expect(attention(finished, NOW).due).toEqual([]);
-    // No tasks yet is not "finished".
-    expect(attention(root({ projects: [project('p', { due: '2026-09-28' })] }), NOW).due).toHaveLength(1);
+    const marked = setProjectDone(open, 'p', true, T1);
+    expect(attention(marked, NOW).due).toEqual([]);
   });
 
   it('shows on the calendar before its tasks', () => {

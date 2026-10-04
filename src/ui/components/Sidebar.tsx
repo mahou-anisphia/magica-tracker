@@ -1,5 +1,7 @@
 import { useState } from 'preact/hooks';
 import { hasOpenTasks } from '../../core/attention';
+import { isProjectDone } from '../../core/completion';
+import { daysUntil } from '../../core/due';
 import type { Project, Root } from '../../core/schema';
 import { createProject, openBacklog, openProject } from '../actions';
 import type { View } from '../store';
@@ -12,14 +14,20 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
 
   const q = filter.trim().toLowerCase();
   const matches = (p: Project) => !q || p.name.toLowerCase().includes(q);
-  const active = root.projects.filter((p) => !p.archived);
+  const active = root.projects.filter((p) => !p.archived && !isProjectDone(p));
+  const completed = root.projects.filter((p) => !p.archived && isProjectDone(p));
   const archived = root.projects.filter((p) => p.archived);
   const shown = active.filter(matches);
+  const shownCompleted = completed.filter(matches);
   const shownArchived = archived.filter(matches);
+  const today = new Date();
 
   const item = (p: Project) => {
     const current = view.kind === 'project' && view.id === p.id;
     const open = hasOpenTasks(p);
+    const overdue = isProjectDone(p)
+      ? 0
+      : p.tasks.filter((t) => !t.done && t.due && daysUntil(t.due, today) < 0).length;
     return (
       <li key={p.id}>
         <button
@@ -33,6 +41,12 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
             {p.name}
           </span>
           <span class="sr-only">{open ? '(has open tasks)' : '(nothing open)'}</span>
+          {overdue > 0 && (
+            <span class="count overdue" title={`${overdue} overdue`}>
+              {overdue}
+              <span class="sr-only"> overdue</span>
+            </span>
+          )}
         </button>
       </li>
     );
@@ -102,6 +116,13 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
           </button>
         </li>
       </ul>
+
+      {shownCompleted.length > 0 && (
+        <details class="archived-group" open={!!q}>
+          <summary>Completed ({shownCompleted.length})</summary>
+          <ul class="nav-list">{shownCompleted.map(item)}</ul>
+        </details>
+      )}
 
       {shownArchived.length > 0 && (
         <details class="archived-group" open={!!q}>

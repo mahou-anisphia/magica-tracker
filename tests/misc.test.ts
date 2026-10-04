@@ -61,7 +61,7 @@ describe('export → import round trip', () => {
     r = addBacklogItem(r, 'b', 'Look into passkeys', t, { notes: 'later', suggestedProjectId: 'p' });
 
     const file = exportJson(r, '2026-09-28T09:00:00.000Z');
-    expect(JSON.parse(file)).toMatchObject({ schemaVersion: 1, exportedAt: '2026-09-28T09:00:00.000Z' });
+    expect(JSON.parse(file)).toMatchObject({ schemaVersion: 2, exportedAt: '2026-09-28T09:00:00.000Z' });
 
     expect(parseRootText(file)).toStrictEqual({ ok: true, root: r });
   });

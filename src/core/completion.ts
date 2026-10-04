@@ -43,9 +43,9 @@ export function subtaskProgress(task: Task): { done: number; total: number } {
   return { done: task.subtasks.filter((s) => s.done).length, total: task.subtasks.length };
 }
 
-/** Projects have no done flag; for deadlines, a project with every task done is finished. */
+/** A project is done when it has been marked done, whatever its tasks say. */
 export function isProjectDone(p: Project): boolean {
-  return p.tasks.length > 0 && p.tasks.every((t) => t.done);
+  return p.doneAt !== undefined;
 }
 
 export function isInProgress(task: Task): boolean {

@@ -10,7 +10,15 @@ import { isSafeUrl } from './url';
  * missing timestamps get "now", and missing arrays start empty.
  */
 
-export const SCHEMA_VERSION = 1;
+/**
+ * 2 added optional fields only: deadlines (`due`) on projects, tasks and
+ * sub-tasks, task `priority` and `effort`, project `doneAt`, and backlog `updatedAt`. A v1 file
+ * is a valid v2 file; see MIGRATIONS[1].
+ */
+export const SCHEMA_VERSION = 2;
+
+export const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
+export type Priority = (typeof PRIORITIES)[number];
 
 const Id = v.optional(v.pipe(v.string(), v.nonEmpty()), newId);
 const Timestamp = v.pipe(
@@ -20,6 +28,9 @@ const Timestamp = v.pipe(
 const Stamp = v.optional(Timestamp, nowIso);
 /** A calendar day with no time or zone, e.g. "2026-10-03". */
 const DueDate = v.optional(v.pipe(v.string(), v.check(isCalendarDate)));
+const PriorityField = v.optional(v.picklist(PRIORITIES));
+/** Share of the project's effort, in whole percent. */
+const Effort = v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(100)));
 const Required = v.pipe(v.string(), v.trim(), v.nonEmpty());
 const Optional = v.optional(v.string());
 const Url = v.pipe(v.string(), v.trim(), v.check(isSafeUrl));
@@ -46,6 +57,8 @@ export const TaskSchema = v.object({
   done: v.optional(v.boolean(), false),
   doneAt: v.optional(Timestamp),
   due: DueDate,
+  priority: PriorityField,
+  effort: Effort,
   notes: Optional,
   createdAt: Stamp,
   updatedAt: Stamp,
@@ -58,6 +71,8 @@ export const ProjectSchema = v.object({
   name: Required,
   description: Optional,
   archived: v.optional(v.boolean(), false),
+  /** Set when the project is marked done; absent while it is open. */
+  doneAt: v.optional(Timestamp),
   due: DueDate,
   createdAt: Stamp,
   updatedAt: Stamp,

@@ -26,18 +26,21 @@ export type Attention = {
   inProgressProjects: number;
   /** Unfinished projects, tasks and sub-tasks overdue, due today or due soon, most urgent first. */
   due: DueRef[];
-  /** Stalest first. A task already listed as due isn't repeated here. */
+  /** Open tasks marked urgent that aren't already listed for a deadline. */
+  urgent: TaskRef[];
+  /** Stalest first. A task already listed as due or urgent isn't repeated here. */
   stale: StaleRef[];
 };
 
-/** Computed on every render, never stored. Archived projects are ignored. */
+/** Computed on every render, never stored. Archived and done projects are ignored. */
 export function attention(root: Root, now: Date): Attention {
   const inProgress: TaskRef[] = [];
   const due: DueRef[] = [];
+  const urgent: TaskRef[] = [];
   const stale: StaleRef[] = [];
   for (const project of root.projects) {
-    if (project.archived) continue;
-    if (isDueSoon(project.due, isProjectDone(project), now)) {
+    if (project.archived || isProjectDone(project)) continue;
+    if (isDueSoon(project.due, false, now)) {
       due.push({ project, days: daysUntil(project.due!, now) });
     }
     for (const task of project.tasks) {
@@ -49,7 +52,9 @@ export function attention(root: Root, now: Date): Attention {
           due.push({ project, task, subtask, days: daysUntil(subtask.due!, now) });
         }
       }
-      if (!taskDue && isStale(task, now)) stale.push({ project, task, days: daysSince(task.updatedAt, now) });
+      const isUrgent = !taskDue && !task.done && task.priority === 'urgent';
+      if (isUrgent) urgent.push({ project, task });
+      if (!taskDue && !isUrgent && isStale(task, now)) stale.push({ project, task, days: daysSince(task.updatedAt, now) });
     }
   }
   due.sort((a, b) => a.days - b.days);
@@ -58,12 +63,13 @@ export function attention(root: Root, now: Date): Attention {
     inProgress,
     inProgressProjects: new Set(inProgress.map((r) => r.project.id)).size,
     due,
+    urgent,
     stale,
   };
 }
 
 export function isQuiet(a: Attention): boolean {
-  return a.inProgress.length === 0 && a.due.length === 0 && a.stale.length === 0;
+  return a.inProgress.length === 0 && a.due.length === 0 && a.urgent.length === 0 && a.stale.length === 0;
 }
 
 export function isExportStale(lastExportedAt: string | null, now: Date): boolean {

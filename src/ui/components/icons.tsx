@@ -50,10 +50,34 @@ export function SparkIcon(props: { size?: number }) {
   );
 }
 
-export function ChevronIcon(props: { dir: 'left' | 'right' }) {
+export function ChevronIcon(props: { dir: 'left' | 'right' | 'down' }) {
+  const d = { left: 'M10 3 5 8l5 5', right: 'M6 3l5 5-5 5', down: 'M3 6l5 5 5-5' }[props.dir];
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-      <path d={props.dir === 'left' ? 'M10 3 5 8l5 5' : 'M6 3l5 5-5 5'} stroke-linecap="round" stroke-linejoin="round" />
+      <path d={d} stroke-linecap="round" stroke-linejoin="round" />
     </svg>
   );
+}
+
+export function PlusIcon(props: { size?: number }) {
+  const s = props.size ?? 14;
+  return (
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <path d="M8 3v10M3 8h10" stroke-linecap="round" />
+    </svg>
+  );
+}
+
+export function CheckIcon(props: { size?: number }) {
+  const s = props.size ?? 14;
+  return (
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <path d="M3 8.5l3 3 7-7" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  );
+}
+
+/** The brand mark: a small glowing orb. */
+export function Orb() {
+  return <span class="orb" aria-hidden="true" />;
 }

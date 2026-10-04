@@ -34,6 +34,8 @@ export type State = {
   drawerOpen: boolean;
   confirm: ConfirmRequest | null;
   capture: boolean;
+  /** The day open in the Timeline's side panel, as "2026-10-04". */
+  day: string | null;
   importState: ImportState | null;
 };
 
@@ -49,6 +51,7 @@ let state: State = {
   drawerOpen: false,
   confirm: null,
   capture: false,
+  day: null,
   importState: null,
 };
 
@@ -134,7 +137,7 @@ export function init(): void {
 /** Overview or Timeline, remembered per browser. */
 export function setMode(mode: Mode): void {
   if (mode === state.mode) return;
-  set({ mode, drawerOpen: false });
+  set({ mode, drawerOpen: false, day: null });
   writeMode(mode);
 }
 

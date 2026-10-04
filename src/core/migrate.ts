@@ -3,10 +3,19 @@ import { SCHEMA_VERSION } from './schema';
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 /**
- * MIGRATIONS[n] upgrades a version-n object to version n+1.
- * Empty while only v1 exists. When v2 lands, add MIGRATIONS[1].
+ * MIGRATIONS[n] upgrades a version-n object to version n+1. Every step must
+ * accept any valid file of its version, and the result must validate as the
+ * next version. Old data is never rejected for being old.
  */
-export const MIGRATIONS: Record<number, Migration> = {};
+export const MIGRATIONS: Record<number, Migration> = {
+  /**
+   * v1 → v2. v2 only added optional fields (deadlines, priority, effort,
+   * project doneAt, backlog updatedAt), so every v1 file is already a valid v2 shape. The step
+   * exists so the version is explicit: an older build of the tracker refuses a
+   * v2 file instead of silently dropping fields it doesn't know.
+   */
+  1: (raw) => raw,
+};
 
 export class MigrationError extends Error {}
 

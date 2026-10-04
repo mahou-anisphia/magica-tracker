@@ -2,13 +2,14 @@ import { useEffect, useState } from 'preact/hooks';
 import { hasSample } from '../core/sample';
 import type { Root } from '../core/schema';
 import { focusShortcut } from './actions';
-import { Attention } from './components/Attention';
+import { NeedsAttention } from './components/Attention';
 import { BacklogView } from './components/BacklogView';
 import { CaptureDialog, ConfirmDialog, ImportDialog } from './components/Dialogs';
 import { TodayHeading, TopBar } from './components/Header';
 import { Banners, ToastRegion } from './components/Notices';
 import { ProjectView } from './components/ProjectView';
 import { Sidebar } from './components/Sidebar';
+import { StatsRow } from './components/Stats';
 import { Timeline } from './components/Timeline';
 import { getState, set, setMode, useStore, type View } from './store';
 
@@ -41,7 +42,7 @@ function useShortcuts(): void {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
       const s = getState();
-      if (s.confirm || s.capture || s.importState) return; // dialogs own the keyboard
+      if (s.confirm || s.capture || s.importState || s.day) return; // dialogs own the keyboard
 
       if (e.key === 'Escape') {
         const expanded = s.expandedTaskId;
@@ -88,11 +89,12 @@ export function App() {
         <Banners saving={s.saving} notice={s.notice} />
 
         {s.mode === 'timeline' ? (
-          <Timeline root={s.root} now={now} />
+          <Timeline root={s.root} now={now} day={s.day} />
         ) : (
           <>
             <TodayHeading now={now} />
-            <Attention root={s.root} now={now} />
+            <StatsRow root={s.root} now={now} />
+            <NeedsAttention root={s.root} now={now} />
             <div class="layout">
               <button
                 type="button"

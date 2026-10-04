@@ -1,4 +1,4 @@
-import type { BacklogItem, Project, Resource, Root, Subtask, Task } from './schema';
+import type { BacklogItem, Priority, Project, Resource, Root, Subtask, Task } from './schema';
 import { DAY_MS, localDateStamp } from './time';
 
 /**
@@ -68,6 +68,8 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       due?: number;
       doneDaysAgo?: number;
       notes?: string;
+      priority?: Priority;
+      effort?: number;
       subtasks?: Subtask[];
       resources?: Resource[];
     } = {},
@@ -81,6 +83,8 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       done,
       ...(done ? { doneAt: ago(opts.doneDaysAgo ?? 1) } : {}),
       ...(opts.due !== undefined ? { due: inDays(opts.due) } : {}),
+      ...(opts.priority ? { priority: opts.priority } : {}),
+      ...(opts.effort !== undefined ? { effort: opts.effort } : {}),
       ...(opts.notes ? { notes: opts.notes } : {}),
       createdAt: ago(30),
       updatedAt: ago(opts.touched ?? opts.doneDaysAgo ?? 1),
@@ -92,12 +96,13 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
   const project = (
     name: string,
     tasks: Task[],
-    opts: { description?: string; due?: number; archived?: boolean; resources?: Resource[] } = {},
+    opts: { description?: string; due?: number; archived?: boolean; doneDaysAgo?: number; resources?: Resource[] } = {},
   ): Project => ({
     id: id('project'),
     name,
     ...(opts.description ? { description: opts.description } : {}),
     archived: opts.archived ?? false,
+    ...(opts.doneDaysAgo !== undefined ? { doneAt: ago(opts.doneDaysAgo) } : {}),
     ...(opts.due !== undefined ? { due: inDays(opts.due) } : {}),
     createdAt: ago(40),
     updatedAt: ago(1),
@@ -110,6 +115,8 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
     [
       task('Calibrate the astrolabe', {
         touched: 0,
+        priority: 'high',
+        effort: 40,
         subtasks: [
           sub('Polish the brass rete', { doneDaysAgo: 3 }),
           sub('Align the sights with Polaris', { doneDaysAgo: 1 }),
@@ -117,9 +124,9 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
         ],
         resources: [res('Autumn star chart', 'charts/autumn-star-chart', 'The one with the corrected Pleiades.')],
       }),
-      task('Catalogue the falling stars', { touched: 2, due: 0 }),
-      task('Replace the cracked scrying lens', { touched: 10, notes: 'The glassblower in the lower town owes us a favour.' }),
-      task('Sweep stardust from the dome', { doneDaysAgo: 4 }),
+      task('Catalogue the falling stars', { touched: 2, due: 0, effort: 15 }),
+      task('Replace the cracked scrying lens', { touched: 10, effort: 25, priority: 'low', notes: 'The glassblower in the lower town owes us a favour.' }),
+      task('Sweep stardust from the dome', { doneDaysAgo: 4, effort: 20 }),
     ],
     {
       description: 'Charting the lunar tides from the north tower.',
@@ -133,6 +140,8 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
     [
       task('Brew a calming draught', {
         touched: 1,
+        priority: 'urgent',
+        effort: 30,
         subtasks: [
           sub('Gather moonpetal at dusk', { doneDaysAgo: 2 }),
           sub('Steep for three nights', { due: -1 }),
@@ -142,14 +151,17 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       task('Order a dragon-scale crucible', {
         touched: 3,
         due: -2,
+        priority: 'high',
+        effort: 25,
         resources: [res('Crucible supplier', 'suppliers/dragon-scale-crucibles', 'Ask about the heat-warded lids.')],
       }),
       task('Write up the elixir recipes', {
         touched: 14,
+        effort: 20,
         resources: [res('Recipe grimoire, draft', 'grimoire/elixir-recipes-draft')],
       }),
-      task('Inventory the herb cabinet', { doneDaysAgo: 3 }),
-      task('Season the new cauldron', { doneDaysAgo: 6 }),
+      task('Inventory the herb cabinet', { doneDaysAgo: 3, effort: 10 }),
+      task('Season the new cauldron', { doneDaysAgo: 6, effort: 10 }),
     ],
     { description: 'Restocking the apothecary before the winter solstice.', due: 3 },
   );
@@ -157,7 +169,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
   const familiars = project(
     'Familiar Registry',
     [
-      task('Register the new owl', { touched: 2, due: 6, notes: 'Answers to Wren. Prefers mice to biscuits.' }),
+      task('Register the new owl', { touched: 2, due: 6, priority: 'medium', notes: 'Answers to Wren. Prefers mice to biscuits.' }),
       task("Build the cat's reading nook", {
         touched: 4,
         subtasks: [
@@ -177,16 +189,24 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       task('Rebind volume III', {
         touched: 1,
         due: 9,
+        effort: 50,
         resources: [res('Coptic binding guide', 'guides/coptic-binding')],
       }),
-      task('Translate the marginalia', { touched: 8 }),
+      task('Translate the marginalia', { touched: 8, priority: 'urgent', effort: 20 }),
       task('Index the sealed chapter', {
         touched: 2,
         due: 25,
+        effort: 30,
         subtasks: [sub('Break the wax seal, carefully'), sub('Copy the sigils'), sub('Return it to the vault')],
       }),
     ],
     { description: 'Rebinding the old spellbooks from the east library.', due: 30 },
+  );
+
+  const garden = project(
+    'Crystal Garden',
+    [task('Plant the quartz seedlings', { doneDaysAgo: 12, effort: 60 }), task('Build the moonlight trellis', { doneDaysAgo: 9, effort: 40 })],
+    { description: 'Grown, tended, glowing.', doneDaysAgo: 8 },
   );
 
   const wands = project(
@@ -205,7 +225,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
   });
 
   return {
-    projects: [observatory, workshop, familiars, grimoire, wands],
+    projects: [observatory, workshop, familiars, grimoire, garden, wands],
     backlog: [
       idea('Learn to read tea leaves', { notes: 'Start with the chipped blue cup.', daysAgo: 9 }),
       idea('Enchanted irrigation for the herb garden', { suggested: workshop, daysAgo: 5 }),

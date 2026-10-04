@@ -1,88 +1,88 @@
-import { Fragment } from 'preact';
-import { attention, isQuiet } from '../../core/attention';
+import { useState } from 'preact/hooks';
+import { attention } from '../../core/attention';
 import { dueDistance } from '../../core/due';
-import { plural } from '../../core/format';
 import type { Root } from '../../core/schema';
 import { openProject } from '../actions';
 
-const MAX_LISTED = 5;
-const MAX_NAMED = 4;
+/** How many items show before "Show more". */
+const FIRST = 3;
+
+type Item = {
+  key: string;
+  title: string;
+  sub: string;
+  pill: string;
+  tone: 'watch' | 'urgent';
+  open: () => void;
+};
 
 /**
- * What's moving, what's due, what's gone quiet. Computed, never stored.
- * When nothing qualifies the panel isn't shown at all.
+ * What needs you, most pressing first: overdue and approaching deadlines,
+ * then urgent tasks, then tasks gone quiet. Three at a time, so a busy week
+ * doesn't flood the page. Hidden entirely when nothing qualifies.
  */
-export function Attention(props: { root: Root; now: Date }) {
+export function NeedsAttention(props: { root: Root; now: Date }) {
+  const [expanded, setExpanded] = useState(false);
   const a = attention(props.root, props.now);
-  if (isQuiet(a)) return null;
-  const due = a.due.slice(0, MAX_LISTED);
-  const stale = a.stale.slice(0, Math.max(0, MAX_LISTED - due.length));
-  const hidden = a.due.length + a.stale.length - due.length - stale.length;
+
+  const items: Item[] = [
+    ...a.due.map(({ project, task, subtask, days }) => ({
+      key: subtask?.id ?? task?.id ?? `project-${project.id}`,
+      title: subtask?.title ?? task?.title ?? project.name,
+      sub: subtask && task ? `${task.title} · ${project.name}` : task ? project.name : 'Project deadline',
+      pill: dueDistance(days),
+      tone: 'watch' as const,
+      open: () => openProject(project.id, task?.id ?? null),
+    })),
+    ...a.urgent.map(({ project, task }) => ({
+      key: task.id,
+      title: task.title,
+      sub: project.name,
+      pill: 'Urgent',
+      tone: 'urgent' as const,
+      open: () => openProject(project.id, task.id),
+    })),
+    ...a.stale.map(({ project, task, days }) => ({
+      key: task.id,
+      title: task.title,
+      sub: project.name,
+      pill: `untouched ${days}d`,
+      tone: 'watch' as const,
+      open: () => openProject(project.id, task.id),
+    })),
+  ];
+  if (items.length === 0) return null;
+
+  const shown = expanded ? items : items.slice(0, FIRST);
+  const more = items.length - FIRST;
 
   return (
-    <section class="attention" aria-labelledby="attention-h">
-      <h2 id="attention-h" class="eyebrow">
-        Needs attention
-      </h2>
-      <ul>
-        {a.inProgress.length > 0 && (
-          <li>
-            <span class="summary">
-              {plural(a.inProgress.length, 'task')} in progress across {plural(a.inProgressProjects, 'project')}
-            </span>
-            <span class="context">
-              {a.inProgress.slice(0, MAX_NAMED).map(({ project, task }, i) => (
-                <Fragment key={task.id}>
-                  {i > 0 && ', '}
-                  <button
-                    type="button"
-                    class="link-quiet"
-                    title={task.title}
-                    onClick={() => openProject(project.id, task.id)}
-                  >
-                    {task.title}
-                  </button>
-                </Fragment>
-              ))}
-              {a.inProgress.length > MAX_NAMED && `, and ${a.inProgress.length - MAX_NAMED} more`}
-            </span>
-          </li>
-        )}
-        {due.map(({ project, task, subtask, days }) => {
-          let context = 'project deadline';
-          if (subtask && task) context = `${task.title} · ${project.name}`;
-          else if (task) context = project.name;
-          return (
-            <li key={subtask?.id ?? task?.id ?? `project-${project.id}`}>
-              <button
-                type="button"
-                class="link-quiet"
-                title={subtask?.title ?? task?.title ?? project.name}
-                onClick={() => openProject(project.id, task?.id ?? null)}
-              >
-                {subtask?.title ?? task?.title ?? project.name}
-              </button>
-              <span class="watch-pill">{dueDistance(days)}</span>
-              <span class="context" title={context}>
-                {context}
+    <section class="block" aria-labelledby="attention-h">
+      <div class="block-head">
+        <h2 id="attention-h">Needs attention</h2>
+      </div>
+      <ul class="card list">
+        {shown.map((it) => (
+          <li key={it.key}>
+            <button type="button" class="row" onClick={it.open}>
+              <span class={`dot ${it.tone}`} aria-hidden="true" />
+              <span class="row-main">
+                <span class="row-title" title={it.title}>
+                  {it.title}
+                </span>
+                <span class="row-sub" title={it.sub}>
+                  {it.sub}
+                </span>
               </span>
-            </li>
-          );
-        })}
-        {stale.map(({ project, task, days }) => (
-          <li key={task.id}>
-            <button type="button" class="link-quiet" title={task.title} onClick={() => openProject(project.id, task.id)}>
-              {task.title}
+              <span class={`pill ${it.tone}`}>{it.pill}</span>
             </button>
-            <span class="watch-pill">untouched {plural(days, 'day')}</span>
-            <span class="context" title={project.name}>
-              {project.name}
-            </span>
           </li>
         ))}
-        {hidden > 0 && (
+        {more > 0 && (
           <li>
-            <span class="context">and {hidden} more</span>
+            <button type="button" class="row more" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+              {expanded ? 'Show less' : `Show ${more} more`}
+            </button>
           </li>
         )}
       </ul>

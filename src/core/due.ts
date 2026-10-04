@@ -33,20 +33,20 @@ export function isDueSoon(due: string | undefined, done: boolean, now: Date): bo
   return !!due && !done && daysUntil(due, now) <= DUE_SOON_DAYS;
 }
 
-/** "overdue 2 days", "due today", "due tomorrow", "due in 3 days". */
+/** "2d overdue", "due today", "due tomorrow", "due in 3d". */
 export function dueDistance(days: number): string {
-  if (days < 0) return `overdue ${-days} ${days === -1 ? 'day' : 'days'}`;
+  if (days < 0) return `${-days}d overdue`;
   if (days === 0) return 'due today';
   if (days === 1) return 'due tomorrow';
-  return `due in ${days} days`;
+  return `due in ${days}d`;
 }
 
-/** "Today", "Tomorrow", "Yesterday", "Oct 3", or "Oct 3, 2027" outside this year. */
+/** "3d overdue", "Today", "Tomorrow", "Oct 3", or "Oct 3, 2027" outside this year. */
 export function dueLabel(due: string, now: Date, locale?: string): string {
   const n = daysUntil(due, now);
+  if (n < 0) return `${-n}d overdue`;
   if (n === 0) return 'Today';
   if (n === 1) return 'Tomorrow';
-  if (n === -1) return 'Yesterday';
   const date = localDay(due);
   const sameYear = date.getFullYear() === now.getFullYear();
   return new Intl.DateTimeFormat(locale, {

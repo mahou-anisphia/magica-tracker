@@ -1,24 +1,28 @@
 import { useState } from 'preact/hooks';
 import { isProjectDone } from '../../core/completion';
 import * as ops from '../../core/ops';
+import { orderTasks, projectProgress } from '../../core/progress';
 import { DueDate } from './DueDate';
 import type { Project } from '../../core/schema';
-import { addTask, deleteProject, setArchived } from '../actions';
+import { addTask, deleteProject, setArchived, setProjectDone } from '../actions';
 import { update } from '../store';
+import { CheckIcon } from './icons';
 import { AddInput, EditableText } from './inputs';
+import { EffortMeter } from './Progress';
 import { Resources } from './Resources';
 import { TaskRow } from './TaskRow';
 
 export function ProjectView(props: { project: Project; expandedTaskId: string | null; now: Date }) {
   const { project: p, expandedTaskId, now } = props;
-  const open = p.tasks.filter((t) => !t.done);
-  const done = p.tasks.filter((t) => t.done);
+  // Most urgent first: priority, then the nearest deadline.
+  const { open, done } = orderTasks(p.tasks);
+  const projectDone = isProjectDone(p);
   const expandedIsDone = done.some((t) => t.id === expandedTaskId);
   const [showDone, setShowDone] = useState(false);
   const doneVisible = showDone || expandedIsDone;
 
   return (
-    <article aria-labelledby="pane-title">
+    <article aria-labelledby="pane-title" class={projectDone ? 'project is-done' : 'project'}>
       <header class="pane-head">
         <div class="titles">
           <h2 id="pane-title">
@@ -37,11 +41,21 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
             multiline
             onSave={(d) => update((r, n) => ops.setProjectDescription(r, p.id, d, n))}
           />
+          {p.tasks.length > 0 && <EffortMeter progress={projectProgress(p)} />}
         </div>
         <div class="pane-actions">
+          <button
+            type="button"
+            class={projectDone ? 'btn small' : 'btn quiet small'}
+            aria-pressed={projectDone}
+            onClick={() => void setProjectDone(p, !projectDone)}
+          >
+            <CheckIcon />
+            {projectDone ? 'Done · Reopen' : 'Mark done'}
+          </button>
           <DueDate
             value={p.due}
-            done={isProjectDone(p)}
+            done={projectDone}
             now={now}
             of={p.name}
             emptyLabel="Deadline"

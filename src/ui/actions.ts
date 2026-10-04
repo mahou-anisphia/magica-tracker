@@ -25,6 +25,7 @@ export function openProject(projectId: string, taskId: string | null = null): vo
 }
 
 export function openBacklog(): void {
+  setMode('overview');
   set({ view: { kind: 'backlog' }, expandedTaskId: null, drawerOpen: false });
 }
 
@@ -62,6 +63,20 @@ export function setArchived(project: Project, archived: boolean): void {
   } else {
     openProject(project.id);
   }
+}
+
+/** Mark a project done or reopen it. With open tasks left, ask first. */
+export async function setProjectDone(project: Project, done: boolean): Promise<void> {
+  const open = project.tasks.filter((t) => !t.done).length;
+  if (done && open > 0) {
+    const ok = await confirmAction({
+      title: `Mark “${project.name}” done?`,
+      body: `${plural(open, 'task is', 'tasks are')} still open. They stay as they are.`,
+      confirmLabel: 'Mark done',
+    });
+    if (!ok) return;
+  }
+  update((r, now) => ops.setProjectDone(r, project.id, done, now));
 }
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────

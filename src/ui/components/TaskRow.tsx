@@ -3,13 +3,14 @@ import { isStale } from '../../core/attention';
 import { subtaskProgress } from '../../core/completion';
 import { newId } from '../../core/id';
 import * as ops from '../../core/ops';
-import type { Project, Subtask, Task } from '../../core/schema';
+import { PRIORITIES, type Priority, type Project, type Subtask, type Task } from '../../core/schema';
 import { daysSince } from '../../core/time';
 import { deleteTask, demoteTask, toggleTask } from '../actions';
 import { set, update, updateWithUndo } from '../store';
 import { DueDate } from './DueDate';
 import { CrossIcon, PencilIcon } from './icons';
 import { AddInput, EditableText, InlineInput } from './inputs';
+import { PRIORITY_LABEL, PriorityChip } from './Progress';
 import { Resources } from './Resources';
 
 type Props = { project: Project; task: Task; expanded: boolean; now: Date };
@@ -77,6 +78,7 @@ export function TaskRow({ project, task, expanded, now }: Props) {
             }}
           >
             <span class="text">{task.title}</span>
+            <PriorityChip priority={task.priority} />
             {stale && (
               <span class="watch-dot" title={`Untouched ${daysSince(task.updatedAt, now)} days`}>
                 <span class="sr-only">untouched {daysSince(task.updatedAt, now)} days</span>
@@ -85,6 +87,11 @@ export function TaskRow({ project, task, expanded, now }: Props) {
             {progress.total > 0 && (
               <span class="progress" aria-label={`${progress.done} of ${progress.total} sub-tasks done`}>
                 {progress.done} / {progress.total}
+              </span>
+            )}
+            {task.effort !== undefined && (
+              <span class="effort" title="Share of the project's effort">
+                {task.effort}%
               </span>
             )}
           </button>
@@ -100,6 +107,15 @@ export function TaskRow({ project, task, expanded, now }: Props) {
 
       {expanded && (
         <div id={detailId} class="task-detail">
+          <EditableText
+            class="notes"
+            value={task.notes ?? ''}
+            label="Notes"
+            placeholder="Notes…"
+            multiline
+            onSave={(notes) => update((r, n) => ops.setTaskNotes(r, project.id, task.id, notes, n))}
+          />
+
           {task.subtasks.length > 0 && (
             <ul class="subtasks" aria-label="Sub-tasks">
               {task.subtasks.map((s) => (
@@ -116,15 +132,31 @@ export function TaskRow({ project, task, expanded, now }: Props) {
             }}
           />
 
-          <EditableText
-            value={task.notes ?? ''}
-            label="Notes"
-            placeholder="Notes…"
-            multiline
-            onSave={(notes) => update((r, n) => ops.setTaskNotes(r, project.id, task.id, notes, n))}
-          />
-
           <Resources target={{ projectId: project.id, taskId: task.id }} resources={task.resources} />
+
+          <div class="task-settings">
+            <label class="setting">
+              Priority
+              <select
+                value={task.priority ?? ''}
+                onChange={(e) => {
+                  const v = e.currentTarget.value as Priority | '';
+                  update((r, n) => ops.setTaskPriority(r, project.id, task.id, v || undefined, n));
+                }}
+              >
+                <option value="">None</option>
+                {PRIORITIES.slice().reverse().map((p) => (
+                  <option key={p} value={p}>
+                    {PRIORITY_LABEL[p]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <EffortInput
+              value={task.effort}
+              onChange={(effort) => update((r, n) => ops.setTaskEffort(r, project.id, task.id, effort, n))}
+            />
+          </div>
 
           <div class="task-actions">
             <button type="button" class="btn quiet small" onClick={() => setRenaming(true)}>
@@ -140,6 +172,33 @@ export function TaskRow({ project, task, expanded, now }: Props) {
         </div>
       )}
     </li>
+  );
+}
+
+/** Effort as a whole percent of the project; empty clears it. Saved on change. */
+function EffortInput(props: { value: number | undefined; onChange: (v: number | undefined) => void }) {
+  return (
+    <label class="setting">
+      Effort
+      <span class="effort-field">
+        <input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={100}
+          step={5}
+          placeholder="—"
+          value={props.value ?? ''}
+          onChange={(e) => {
+            const raw = e.currentTarget.value.trim();
+            if (raw === '') return props.onChange(undefined);
+            const n = Math.round(Number(raw));
+            if (Number.isFinite(n)) props.onChange(Math.min(100, Math.max(0, n)));
+          }}
+        />
+        %
+      </span>
+    </label>
   );
 }
 

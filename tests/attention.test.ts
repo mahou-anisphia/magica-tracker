@@ -64,7 +64,7 @@ describe('needs attention', () => {
 
   it('is empty for a quiet root', () => {
     const a = attention(root(), NOW);
-    expect(a).toEqual({ inProgress: [], inProgressProjects: 0, due: [], stale: [] });
+    expect(a).toEqual({ inProgress: [], inProgressProjects: 0, due: [], urgent: [], stale: [] });
     expect(isQuiet(a)).toBe(true);
   });
 });

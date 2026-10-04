@@ -1,4 +1,4 @@
-import type { BacklogItem, Project, Root, Subtask, Task } from '../src/core/schema';
+import { SCHEMA_VERSION, type BacklogItem, type Project, type Root, type Subtask, type Task } from '../src/core/schema';
 
 export const T0 = '2026-09-01T09:00:00.000Z';
 export const T1 = '2026-09-02T09:00:00.000Z';
@@ -39,7 +39,7 @@ export function backlogItem(id: string, extra: Partial<BacklogItem> = {}): Backl
 }
 
 export function root(extra: Partial<Root> = {}): Root {
-  return { schemaVersion: 1, updatedAt: T0, projects: [], backlog: [], ...extra };
+  return { schemaVersion: SCHEMA_VERSION, updatedAt: T0, projects: [], backlog: [], ...extra };
 }
 
 export function getTask(r: Root, projectId: string, taskId: string): Task {
