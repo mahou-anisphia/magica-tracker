@@ -51,7 +51,7 @@ export function DueDate(props: {
       ) : (
         <button
           type="button"
-          class={props.emptyLabel ? 'btn quiet small due-add' : 'icon-btn due-add'}
+          class={props.emptyLabel ? 'btn small due-add' : 'icon-btn due-add'}
           onClick={open}
           aria-label={`Set a deadline for “${props.of}”`}
           title="Set deadline"

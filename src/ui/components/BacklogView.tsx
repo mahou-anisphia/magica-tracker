@@ -3,6 +3,7 @@ import * as ops from '../../core/ops';
 import type { BacklogItem, Project, Root } from '../../core/schema';
 import { addBacklogItem, deleteBacklogItem, promote } from '../actions';
 import { update } from '../store';
+import { TrashIcon } from './icons';
 import { AddInput, EditableText } from './inputs';
 
 export function BacklogView(props: { root: Root }) {
@@ -72,14 +73,15 @@ function BacklogRow(props: { item: BacklogItem; projects: Project[] }) {
             </button>
           </div>
         )}
-        <div class="row-actions">
+        <div class="item-actions">
           <button
             type="button"
             class="icon-btn"
             aria-label={`Delete “${item.title}”`}
+            title="Delete"
             onClick={() => deleteBacklogItem(item.id, item.title)}
           >
-            Delete
+            <TrashIcon />
           </button>
         </div>
       </div>

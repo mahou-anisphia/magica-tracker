@@ -8,7 +8,7 @@ import { daysSince } from '../../core/time';
 import { deleteTask, demoteTask, toggleTask } from '../actions';
 import { set, update, updateWithUndo } from '../store';
 import { DueDate } from './DueDate';
-import { CrossIcon, PencilIcon } from './icons';
+import { CrossIcon, PencilIcon, TrashIcon, TrayIcon } from './icons';
 import { AddInput, EditableText, InlineInput } from './inputs';
 import { PRIORITY_LABEL, PriorityChip } from './Progress';
 import { Resources } from './Resources';
@@ -160,13 +160,16 @@ export function TaskRow({ project, task, expanded, now }: Props) {
 
           <div class="task-actions">
             <button type="button" class="btn quiet small" onClick={() => setRenaming(true)}>
+              <PencilIcon />
               Rename
             </button>
             <button type="button" class="btn quiet small" onClick={() => void demoteTask(project.id, task)}>
+              <TrayIcon />
               Send to backlog
             </button>
-            <button type="button" class="btn quiet small" onClick={() => void deleteTask(project.id, task)}>
-              Delete
+            <button type="button" class="btn quiet small danger" onClick={() => void deleteTask(project.id, task)}>
+              <TrashIcon />
+              Delete task
             </button>
           </div>
         </div>
@@ -242,7 +245,7 @@ function SubtaskRow({ project, task, subtask, now }: { project: Project; task: T
         of={subtask.title}
         onChange={(due) => update((r, n) => ops.setSubtaskDue(r, project.id, task.id, subtask.id, due, n))}
       />
-      <div class="sub-actions">
+      <div class="item-actions">
         <button
           type="button"
           class="icon-btn"

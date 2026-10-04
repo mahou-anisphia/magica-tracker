@@ -4,6 +4,9 @@ import * as ops from '../../core/ops';
 import type { Resource } from '../../core/schema';
 import { headerFromUrl, normalizeUrlInput, parseResourceInput, shortUrl } from '../../core/url';
 import { update, updateWithUndo } from '../store';
+import { CrossIcon, ExternalIcon, PencilIcon } from './icons';
+
+let formSeq = 0;
 
 /** Linked documents, then a dashed "+ Add a resource…" row that opens into a small form. */
 export function Resources(props: { target: ops.ResourceTarget; resources: Resource[] }) {
@@ -17,7 +20,7 @@ export function Resources(props: { target: ops.ResourceTarget; resources: Resour
         <ul class="resource-list">
           {resources.map((r) =>
             editingId === r.id ? (
-              <li key={r.id}>
+              <li key={r.id} class="resource-editing">
                 <ResourceForm
                   initial={r}
                   onSubmit={(input) => {
@@ -33,23 +36,32 @@ export function Resources(props: { target: ops.ResourceTarget; resources: Resour
                 <div class="res-body">
                   <a class="res-header" href={r.url} target="_blank" rel="noopener noreferrer">
                     {r.header}
+                    <ExternalIcon />
+                    <span class="sr-only"> (opens in a new tab)</span>
                   </a>
                   <span class="res-url">{shortUrl(r.url)}</span>
                   {r.note && <span class="res-note">{r.note}</span>}
                 </div>
-                <div class="row-actions">
-                  <button type="button" class="icon-btn" aria-label={`Edit ${r.header}`} onClick={() => setEditingId(r.id)}>
-                    Edit
+                <div class="item-actions">
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    aria-label={`Edit ${r.header}`}
+                    title="Edit"
+                    onClick={() => setEditingId(r.id)}
+                  >
+                    <PencilIcon />
                   </button>
                   <button
                     type="button"
                     class="icon-btn"
                     aria-label={`Remove ${r.header}`}
+                    title="Remove"
                     onClick={() =>
                       updateWithUndo(`Removed “${r.header}”`, (root, now) => ops.deleteResource(root, target, r.id, now))
                     }
                   >
-                    ×
+                    <CrossIcon />
                   </button>
                 </div>
               </li>
@@ -79,33 +91,26 @@ export function Resources(props: { target: ops.ResourceTarget; resources: Resour
 }
 
 /**
- * Title, link and an optional note. Enter saves; Escape closes.
- * Adding: the form clears and stays open for the next one, and closes when you
- * leave it empty. Editing: leaving saves if valid, otherwise cancels.
- * A pasted "Title https://…" in the title field is split for you, and a link
- * with no title gets one from its path.
+ * Link, title and an optional note, with Cancel and Add. Enter submits and
+ * Escape cancels. While the title is empty, its placeholder shows the title
+ * the link will get. Pasting "Title https://…" into the link splits it.
+ * Adding keeps the form open for the next one; editing closes on Save.
  */
 function ResourceForm(props: { initial?: Resource; onSubmit: (input: ops.ResourceInput) => void; onClose: () => void }) {
   const editing = !!props.initial;
-  const [header, setHeader] = useState(props.initial?.header ?? '');
+  const [uid] = useState(() => `res-form-${++formSeq}`);
   const [url, setUrl] = useState(props.initial?.url ?? '');
+  const [header, setHeader] = useState(props.initial?.header ?? '');
   const [note, setNote] = useState(props.initial?.note ?? '');
   const [bad, setBad] = useState(false);
-  const titleRef = useRef<HTMLInputElement>(null);
+  const linkRef = useRef<HTMLInputElement>(null);
   const closed = useRef(false);
 
   // autoFocus only applies on page load, not to fields rendered later.
-  useEffect(() => titleRef.current?.focus(), []);
+  useEffect(() => linkRef.current?.focus(), []);
 
-  const resolve = (): ops.ResourceInput | null => {
-    if (!url.trim()) {
-      const parsed = parseResourceInput(header);
-      return parsed ? { ...parsed, note } : null;
-    }
-    const u = normalizeUrlInput(url);
-    if (!u) return null;
-    return { header: header.trim() || headerFromUrl(u), url: u, note };
-  };
+  const normalized = normalizeUrlInput(url);
+  const derivedTitle = normalized ? headerFromUrl(normalized) : '';
 
   const close = () => {
     if (closed.current) return;
@@ -115,29 +120,44 @@ function ResourceForm(props: { initial?: Resource; onSubmit: (input: ops.Resourc
 
   const submit = (e?: Event) => {
     e?.preventDefault();
-    const input = resolve();
-    if (!input) {
+    if (!normalized) {
       setBad(true);
+      linkRef.current?.focus();
       return;
     }
-    props.onSubmit(input);
+    props.onSubmit({ header: header.trim() || derivedTitle, url: normalized, note });
     if (editing) {
       closed.current = true;
       return;
     }
-    setHeader('');
     setUrl('');
+    setHeader('');
     setNote('');
     setBad(false);
-    titleRef.current?.focus();
+    linkRef.current?.focus();
   };
 
-  const empty = !header.trim() && !url.trim() && !note.trim();
+  const onLinkInput = (value: string) => {
+    setBad(false);
+    // "Threat model v2 https://…" pasted whole: split it into title and link.
+    if (/\s/.test(value.trim()) && !header.trim()) {
+      const parsed = parseResourceInput(value);
+      if (parsed && parsed.header !== headerFromUrl(parsed.url)) {
+        setUrl(parsed.url);
+        setHeader(parsed.header);
+        return;
+      }
+    }
+    setUrl(value);
+  };
+
+  const empty = !url.trim() && !header.trim() && !note.trim();
 
   return (
     <form
-      class="add-input resource-form"
+      class="res-form"
       noValidate
+      aria-label={editing ? `Edit ${props.initial!.header}` : 'Add a resource'}
       onSubmit={submit}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
@@ -146,60 +166,71 @@ function ResourceForm(props: { initial?: Resource; onSubmit: (input: ops.Resourc
         }
       }}
       onFocusOut={(e) => {
-        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-        if (editing) {
-          const input = resolve();
-          if (input) props.onSubmit(input);
-          close();
-        } else if (empty) {
-          close();
-        }
+        // Leaving an untouched new form closes it; anything typed stays put.
+        if (editing || e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        if (empty) close();
       }}
     >
-      <input
-        ref={titleRef}
-        type="text"
-        value={header}
-        onInput={(e) => {
-          setHeader(e.currentTarget.value);
-          setBad(false);
-        }}
-        placeholder="Title"
-        aria-label="Resource title"
-        autoComplete="off"
-      />
-      <input
-        type="text"
-        value={url}
-        onInput={(e) => {
-          setUrl(e.currentTarget.value);
-          setBad(false);
-        }}
-        placeholder="Link"
-        aria-label="Resource link"
-        aria-invalid={bad || undefined}
-        inputMode="url"
-        autoComplete="off"
-        autoCapitalize="off"
-        spellcheck={false}
-      />
-      <input
-        type="text"
-        value={note}
-        onInput={(e) => setNote(e.currentTarget.value)}
-        placeholder="Note (optional)"
-        aria-label="Resource note"
-        autoComplete="off"
-      />
-      <div class="resource-form-actions">
-        {bad && (
-          <span class="hint" role="alert">
-            needs a link
+      <div class="res-fields">
+        <label class="res-field res-link" for={`${uid}-link`}>
+          <span class="res-label">Link</span>
+          <input
+            id={`${uid}-link`}
+            ref={linkRef}
+            type="text"
+            inputMode="url"
+            value={url}
+            onInput={(e) => onLinkInput(e.currentTarget.value)}
+            placeholder="docs.example.com/page"
+            aria-label="Resource link"
+            aria-invalid={bad || undefined}
+            aria-describedby={bad ? `${uid}-error` : undefined}
+            autoComplete="off"
+            autoCapitalize="off"
+            spellcheck={false}
+          />
+        </label>
+        <label class="res-field" for={`${uid}-title`}>
+          <span class="res-label">Title</span>
+          <input
+            id={`${uid}-title`}
+            type="text"
+            value={header}
+            onInput={(e) => setHeader(e.currentTarget.value)}
+            placeholder={derivedTitle || 'What is this document?'}
+            aria-label="Resource title"
+            autoComplete="off"
+          />
+        </label>
+        <label class="res-field res-note-field" for={`${uid}-note`}>
+          <span class="res-label">
+            Note <span class="res-optional">optional</span>
           </span>
+          <input
+            id={`${uid}-note`}
+            type="text"
+            value={note}
+            onInput={(e) => setNote(e.currentTarget.value)}
+            placeholder="Why it matters, or where to look"
+            aria-label="Resource note"
+            autoComplete="off"
+          />
+        </label>
+      </div>
+      <div class="res-form-foot">
+        {bad && (
+          <p class="res-error" id={`${uid}-error`} role="alert">
+            Add a link, like docs.example.com/page.
+          </p>
         )}
-        <button type="submit" class="btn small primary">
-          {editing ? 'Save' : 'Add'}
-        </button>
+        <div class="res-form-actions">
+          <button type="button" class="btn quiet small" onClick={close}>
+            Cancel
+          </button>
+          <button type="submit" class="btn primary small">
+            {editing ? 'Save' : 'Add resource'}
+          </button>
+        </div>
       </div>
     </form>
   );

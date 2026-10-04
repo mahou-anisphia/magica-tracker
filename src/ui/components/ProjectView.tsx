@@ -6,7 +6,7 @@ import { DueDate } from './DueDate';
 import type { Project } from '../../core/schema';
 import { addTask, deleteProject, setArchived, setProjectDone } from '../actions';
 import { update } from '../store';
-import { CheckIcon } from './icons';
+import { ArchiveIcon, CheckIcon, TrashIcon } from './icons';
 import { AddInput, EditableText } from './inputs';
 import { Resources } from './Resources';
 import { TaskRow } from './TaskRow';
@@ -44,7 +44,7 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
         <div class="pane-actions">
           <button
             type="button"
-            class={projectDone ? 'btn small' : 'btn quiet small'}
+            class="btn small"
             aria-pressed={projectDone}
             onClick={() => void setProjectDone(p, !projectDone)}
           >
@@ -59,11 +59,18 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
             emptyLabel="Deadline"
             onChange={(due) => update((r, n) => ops.setProjectDue(r, p.id, due, n))}
           />
-          <button type="button" class="btn quiet small" onClick={() => setArchived(p, !p.archived)}>
+          <button type="button" class="btn small" onClick={() => setArchived(p, !p.archived)}>
+            <ArchiveIcon />
             {p.archived ? 'Unarchive' : 'Archive'}
           </button>
-          <button type="button" class="btn quiet small" onClick={() => void deleteProject(p)}>
-            Delete
+          <button
+            type="button"
+            class="btn quiet small danger"
+            aria-label={`Delete project ${p.name}`}
+            title="Delete project"
+            onClick={() => void deleteProject(p)}
+          >
+            <TrashIcon />
           </button>
         </div>
       </header>

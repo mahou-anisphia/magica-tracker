@@ -77,6 +77,45 @@ export function CheckIcon(props: { size?: number }) {
   );
 }
 
+export function TrashIcon(props: { size?: number }) {
+  const s = props.size ?? 14;
+  return (
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+      <path d="M2.5 4.5h11M6.5 4.5V3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  );
+}
+
+export function ArchiveIcon(props: { size?: number }) {
+  const s = props.size ?? 14;
+  return (
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+      <rect x="2" y="2.5" width="12" height="3.5" rx="1" />
+      <path d="M3 6v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6M6.5 9h3" stroke-linecap="round" />
+    </svg>
+  );
+}
+
+/** Send to backlog: a tray with an arrow going in. */
+export function TrayIcon(props: { size?: number }) {
+  const s = props.size ?? 14;
+  return (
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+      <path d="M2 9.5h3l1 2h4l1-2h3M2 9.5V13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9.5M8 2v6M5.5 5.5 8 8l2.5-2.5" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  );
+}
+
+/** Opens in a new tab. */
+export function ExternalIcon(props: { size?: number }) {
+  const s = props.size ?? 12;
+  return (
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v8A1.5 1.5 0 0 0 3.5 14h8a1.5 1.5 0 0 0 1.5-1.5V10M9 2h5v5M14 2 7.5 8.5" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  );
+}
+
 /** The brand mark: a small glowing orb. */
 export function Orb() {
   return <span class="orb" aria-hidden="true" />;
