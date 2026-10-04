@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { hasSample } from '../core/sample';
 import type { Root } from '../core/schema';
 import { focusShortcut } from './actions';
 import { Attention } from './components/Attention';
@@ -82,7 +83,7 @@ export function App() {
 
   return (
     <>
-      <TopBar mode={s.mode} now={now} lastExportedAt={s.lastExportedAt} hasData={hasData} />
+      <TopBar mode={s.mode} now={now} lastExportedAt={s.lastExportedAt} hasData={hasData} hasSample={hasSample(s.root)} />
       <div class="app">
         <Banners saving={s.saving} notice={s.notice} />
 

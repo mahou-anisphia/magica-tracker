@@ -3,14 +3,23 @@ import { useRef } from 'preact/hooks';
 import { isExportStale } from '../../core/attention';
 import { relativeDays } from '../../core/format';
 import { localDateStamp } from '../../core/time';
-import { exportNow, startImport } from '../actions';
+import { exportNow, loadSample, startImport, wipeSample } from '../actions';
 import { setMode, type Mode } from '../store';
-import { CalendarIcon, ListIcon } from './icons';
+import { CalendarIcon, ListIcon, SparkIcon } from './icons';
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 
-/** The top bar: the Overview/Timeline switch, with the backup controls beside it. */
-export function TopBar(props: { mode: Mode; now: Date; lastExportedAt: string | null; hasData: boolean }) {
+/**
+ * The top bar: sample data on the left, the Overview/Timeline switch in the
+ * middle, the backup controls on the right.
+ */
+export function TopBar(props: {
+  mode: Mode;
+  now: Date;
+  lastExportedAt: string | null;
+  hasData: boolean;
+  hasSample: boolean;
+}) {
   const option = (mode: Mode, label: string, icon: JSX.Element) => (
     <button type="button" aria-pressed={props.mode === mode} onClick={() => setMode(mode)}>
       {icon}
@@ -19,6 +28,19 @@ export function TopBar(props: { mode: Mode; now: Date; lastExportedAt: string | 
   );
   return (
     <header class="topbar">
+      <div class="sample">
+        {props.hasSample ? (
+          <button type="button" class="btn quiet small" onClick={() => void wipeSample()}>
+            <SparkIcon />
+            Wipe sample data
+          </button>
+        ) : (
+          <button type="button" class="btn quiet small" onClick={loadSample}>
+            <SparkIcon />
+            Load sample data
+          </button>
+        )}
+      </div>
       <nav class="segmented" aria-label="View">
         {option('overview', 'Overview', <ListIcon />)}
         {option('timeline', 'Timeline', <CalendarIcon />)}

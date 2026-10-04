@@ -3,6 +3,7 @@ import { beforeImportFileName, exportFileName, exportJson } from '../core/export
 import { newId } from '../core/id';
 import { mergeRoots } from '../core/merge';
 import * as ops from '../core/ops';
+import { addSample, isSampleId, removeSample } from '../core/sample';
 import type { Project, Task } from '../core/schema';
 import { parseRootText } from '../core/validate';
 import { writeLastExport } from '../storage/local';
@@ -128,6 +129,35 @@ export function promote(itemId: string, project: Project): void {
 
 export function deleteBacklogItem(itemId: string, title: string): void {
   updateWithUndo(`Deleted “${title}”`, (r) => ops.deleteBacklogItem(r, itemId));
+}
+
+// ─── Sample data ─────────────────────────────────────────────────────────────
+
+export function loadSample(): void {
+  const before = getState().root;
+  update((r) => addSample(r, new Date()));
+  const first = getState().root.projects.find((p) => isSampleId(p.id) && !p.archived);
+  if (first) openProject(first.id);
+  // Undo only if nothing else changed meanwhile, like the other undo toasts.
+  const after = getState().root;
+  toast('Loaded sample data', {
+    label: 'Undo',
+    run: () => {
+      if (getState().root === after) commit(before);
+      set({ toast: null });
+    },
+  });
+}
+
+export async function wipeSample(): Promise<void> {
+  const ok = await confirmAction({
+    title: 'Wipe the sample data?',
+    body: 'This removes every sample project, task and backlog item, including any changes made to them. Your own data stays.',
+    confirmLabel: 'Wipe sample data',
+  });
+  if (!ok) return;
+  update((r) => removeSample(r));
+  set({ view: { kind: 'auto' }, expandedTaskId: null });
 }
 
 // ─── Export / Import ─────────────────────────────────────────────────────────

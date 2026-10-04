@@ -141,9 +141,11 @@ h1.today {
     background-color 120ms;
 }
 
-.btn:hover {
-  border-color: var(--accent);
-  color: var(--accent-deep);
+@media (hover: hover) {
+  .btn:hover {
+    border-color: var(--accent);
+    color: var(--accent-deep);
+  }
 }
 
 .btn.primary {
@@ -152,10 +154,12 @@ h1.today {
   color: var(--bg);
 }
 
-.btn.primary:hover {
-  background: var(--accent-deep);
-  border-color: var(--accent-deep);
-  color: #fff;
+@media (hover: hover) {
+  .btn.primary:hover {
+    background: var(--accent-deep);
+    border-color: var(--accent-deep);
+    color: #fff;
+  }
 }
 
 .btn.quiet {
@@ -164,9 +168,11 @@ h1.today {
   padding: 4px 8px;
 }
 
-.btn.quiet:hover {
-  background: var(--surface);
-  color: var(--accent-deep);
+@media (hover: hover) {
+  .btn.quiet:hover {
+    background: var(--surface);
+    color: var(--accent-deep);
+  }
 }
 
 .btn.small {
@@ -1121,6 +1127,11 @@ dialog::backdrop {
   background: var(--bg);
 }
 
+.topbar .sample {
+  grid-column: 1;
+  justify-self: start;
+}
+
 .topbar .segmented {
   grid-column: 2;
 }
@@ -1135,6 +1146,7 @@ dialog::backdrop {
     justify-items: center;
   }
 
+  .topbar .sample,
   .topbar .segmented,
   .topbar .backup {
     grid-column: 1;
@@ -1142,6 +1154,12 @@ dialog::backdrop {
 
   .topbar .backup {
     justify-content: center;
+  }
+
+  /* Narrow: the view switch first, sample data last. */
+  .topbar .sample {
+    order: 3;
+    justify-self: center;
   }
 }
 
