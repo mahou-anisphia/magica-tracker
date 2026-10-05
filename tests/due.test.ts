@@ -168,6 +168,34 @@ describe('calendar', () => {
       ['Task a', true, false],
     ]);
   });
+
+  it('orders a day most urgent first: project deadline, then priority, sub-tasks taking their task’s', () => {
+    const day = '2026-10-01';
+    const r = root({
+      projects: [
+        project('p', {
+          name: 'Aegis',
+          due: day,
+          tasks: [
+            task('none', { due: day }),
+            task('low', { due: day, priority: 'low' }),
+            task('high', { due: day, priority: 'high', subtasks: [subtask('s', false, { due: day })] }),
+            task('urgent', { due: day, priority: 'urgent', done: true, doneAt: T0 }),
+            task('medium', { due: day, priority: 'medium' }),
+          ],
+        }),
+      ],
+    });
+    expect(dueByDate(r, NOW).get(day)!.map((i) => i.title)).toEqual([
+      'Aegis',
+      'Task high',
+      'Sub s',
+      'Task medium',
+      'Task low',
+      'Task none',
+      'Task urgent',
+    ]);
+  });
 });
 
 describe('one-line resource input', () => {

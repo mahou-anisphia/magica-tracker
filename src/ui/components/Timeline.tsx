@@ -17,6 +17,9 @@ const panelDay = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'nu
 // 2024-01-01 was a Monday.
 const WEEKDAYS = Array.from({ length: 7 }, (_, i) => weekdayShort.format(new Date(2024, 0, 1 + i)));
 
+/** Deadlines shown in a day cell, most urgent first; the rest open with the day. */
+const CELL_ITEMS = 3;
+
 const parseDay = (s: string) => {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y!, m! - 1, d!);
@@ -24,9 +27,10 @@ const parseDay = (s: string) => {
 
 /**
  * Deadlines on a month grid, Monday first, today circled. Unfinished items in
- * Frost, approaching or overdue ones in amber, done ones recede. Clicking a
- * day (or anything on it) opens that day in a side panel. Below 640px the
- * cells show dots and an agenda lists the month.
+ * Frost, approaching or overdue ones in amber, done ones recede. A cell shows
+ * its 3 most urgent deadlines and "+N more", so every week keeps one height.
+ * Clicking a day (or anything on it) opens that day in a side panel with all
+ * of them. Below 640px the cells show dots and an agenda lists the month.
  */
 export function Timeline(props: { root: Root; now: Date; day: string | null }) {
   const { root, now } = props;
@@ -90,6 +94,7 @@ export function Timeline(props: { root: Root; now: Date; day: string | null }) {
                 {week.map((d) => {
                   const list = items.get(d.date) ?? [];
                   const isToday = d.date === today;
+                  const hidden = Math.max(0, list.length - CELL_ITEMS);
                   return (
                     <td
                       key={d.date}
@@ -97,21 +102,36 @@ export function Timeline(props: { root: Root; now: Date; day: string | null }) {
                       aria-current={isToday ? 'date' : undefined}
                       onClick={() => openDay(d.date)}
                     >
-                      <button
-                        type="button"
-                        class="cal-date"
-                        aria-label={`${panelDay.format(parseDay(d.date))}${isToday ? ', today' : ''}: ${plural(list.length, 'deadline')}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDay(d.date);
-                        }}
-                      >
-                        {d.day}
-                      </button>
+                      <div class="cal-day-head">
+                        <button
+                          type="button"
+                          class="cal-date"
+                          aria-label={`${panelDay.format(parseDay(d.date))}${isToday ? ', today' : ''}: ${plural(list.length, 'deadline')}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDay(d.date);
+                          }}
+                        >
+                          {d.day}
+                        </button>
+                        {hidden > 0 && (
+                          <button
+                            type="button"
+                            class="cal-more"
+                            aria-label={`${hidden} more on ${panelDay.format(parseDay(d.date))}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDay(d.date);
+                            }}
+                          >
+                            +{hidden} more
+                          </button>
+                        )}
+                      </div>
                       {list.length > 0 && (
                         <>
                           <ul class="cal-items">
-                            {list.map((it) => (
+                            {list.slice(0, CELL_ITEMS).map((it) => (
                               <li key={itemKey(it)}>
                                 <button
                                   type="button"
@@ -128,7 +148,7 @@ export function Timeline(props: { root: Root; now: Date; day: string | null }) {
                             ))}
                           </ul>
                           <span class="cal-dots" aria-hidden="true">
-                            {list.slice(0, 3).map((it) => (
+                            {list.slice(0, CELL_ITEMS).map((it) => (
                               <i key={itemKey(it)} class={itemClass(it)} />
                             ))}
                           </span>

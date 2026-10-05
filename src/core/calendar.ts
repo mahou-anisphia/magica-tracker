@@ -1,5 +1,6 @@
 import { isProjectDone } from './completion';
 import { isDueSoon } from './due';
+import { PRIORITY_RANK } from './progress';
 import type { Project, Root, Subtask, Task } from './schema';
 import { localDateStamp } from './time';
 
@@ -41,7 +42,9 @@ export type DueItem = {
 
 /**
  * Everything with a due date, grouped by day. Archived projects are left out.
- * Within a day: unfinished first, then projects, tasks, sub-tasks.
+ * Within a day, most urgent first: unfinished before done, then project
+ * deadlines, then by priority (a sub-task counts as its task's), then tasks
+ * before sub-tasks, then the order added.
  */
 export function dueByDate(root: Root, now: Date): Map<string, DueItem[]> {
   const byDate = new Map<string, DueItem[]>();
@@ -74,9 +77,16 @@ export function dueByDate(root: Root, now: Date): Map<string, DueItem[]> {
     }
   }
   for (const list of byDate.values()) {
-    list.sort((a, b) => Number(a.done) - Number(b.done) || depth(a) - depth(b));
+    // Stable sort: equal items keep the order added.
+    list.sort((a, b) => Number(a.done) - Number(b.done) || urgency(b) - urgency(a) || depth(a) - depth(b));
   }
   return byDate;
+}
+
+/** A project's own deadline above any task, then the task's priority (0 for none). */
+function urgency(item: DueItem): number {
+  if (!item.task) return 5;
+  return item.task.priority ? PRIORITY_RANK[item.task.priority] : 0;
 }
 
 /** 0 project, 1 task, 2 sub-task. */
