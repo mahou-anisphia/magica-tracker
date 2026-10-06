@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitest/config';
 import preact from '@preact/preset-vite';
+import tailwindcss from '@tailwindcss/vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 
 // Any tooling in development; one self-contained dist/index.html in the output.
 export default defineConfig({
-  plugins: [preact(), viteSingleFile()],
+  plugins: [preact(), tailwindcss(), viteSingleFile()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,

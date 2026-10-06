@@ -1,0 +1,389 @@
+/*
+ * Magica Tracker: Inter, white cards on Mist, Iris for interaction, Gold for
+ * what's worth watching. Light only, on purpose: no dark variants.
+ *
+ * Tailwind v4, configured here rather than in a JS config. Styling lives in
+ * the components as utility classes. This file only holds:
+ *   1. the theme (palette, type scale, radii, shadows, breakpoints),
+ *   2. element defaults (base layer),
+ *   3. the few primitives every view shares: .btn, .icon-btn, .pill.
+ * See CLAUDE.md for the conventions.
+ *
+ * source("..") limits class scanning to src/. Without it Tailwind would also
+ * read the committed dist/index.html and the build would depend on itself.
+ */
+@import 'tailwindcss' source('..');
+
+/*
+ * Inter, bundled (Latin subset, variable weight) so the page looks the same
+ * everywhere and still makes no network requests. Vite inlines it as data.
+ */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/*
+ * Every number in a utility is a pixel: p-18 is 18px, text-13 is 13px
+ * (0.8125rem), rounded-10 is 10px. The default palette, type scale, radii and
+ * breakpoints are cleared so only the design's own values exist.
+ */
+@theme {
+  --spacing: 1px;
+
+  /* Palette (plan §2). */
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-mist: #f2f6fa; /* page background */
+  --color-frost: #dde8f2; /* surfaces, chips */
+  --color-ash: #b8c8d8; /* borders of empty marks */
+  --color-steel: #7a9ab5; /* metadata and done items, never body text */
+  --color-slate: #4a6a84; /* body text */
+  --color-deep: #1a3550; /* headings, titles */
+  --color-gold: #f0c060; /* worth watching */
+  --color-burnished: #c8902a; /* marks and borders on Gold */
+  --color-iris: #7f77dd; /* interaction */
+  --color-iris-deep: #534ab7;
+
+  /* Derived for the card layout. */
+  --color-card: #ffffff;
+  --color-line: #dde6ef; /* card borders and row dividers */
+  --color-iris-tint: #efeefc;
+  --color-gold-tint: #fcf3df;
+  --color-gold-ink: #7a5412; /* text on Gold tints: 6.1:1 on gold-tint */
+
+  /* Washes: <colour>-NN is NN% of that colour over a white card. */
+  --color-mist-40: color-mix(in srgb, var(--color-mist) 40%, var(--color-card));
+  --color-mist-55: color-mix(in srgb, var(--color-mist) 55%, var(--color-card));
+  --color-mist-60: color-mix(in srgb, var(--color-mist) 60%, var(--color-card));
+  --color-mist-70: color-mix(in srgb, var(--color-mist) 70%, var(--color-card));
+  --color-mist-80: color-mix(in srgb, var(--color-mist) 80%, var(--color-card));
+  --color-frost-55: color-mix(in srgb, var(--color-frost) 55%, var(--color-card));
+  --color-frost-70: color-mix(in srgb, var(--color-frost) 70%, var(--color-card));
+  --color-iris-tint-45: color-mix(in srgb, var(--color-iris-tint) 45%, var(--color-card));
+  /* One-off mixes. */
+  --color-iris-deeper: color-mix(in srgb, var(--color-iris-deep) 88%, black); /* primary button hover */
+  --color-iris-pressed: color-mix(in srgb, var(--color-iris) 30%, var(--color-iris-tint)); /* pressed toggle border */
+  --color-iris-line: color-mix(in srgb, var(--color-iris) 45%, var(--color-line)); /* open form border */
+
+  /* Plain CSS defaults to ease; Tailwind's would be ease-in-out. */
+  --default-transition-timing-function: ease;
+
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Type: sizes only. Line height is inherited (1.5) unless a utility sets it. */
+  --text-*: initial;
+  --text-11: 0.6875rem;
+  --text-12: 0.75rem;
+  --text-13: 0.8125rem;
+  --text-14: 0.875rem;
+  --text-15: 0.9375rem;
+  --text-16: 1rem;
+  --text-17: 1.0625rem;
+  --text-18: 1.125rem;
+  --text-22: 1.375rem;
+  --text-24: 1.5rem;
+  --text-28: 1.75rem;
+  --text-heading: clamp(1.6rem, 1.3rem + 1vw, 2rem); /* the date or month at the top of a view */
+
+  --radius-*: initial;
+  --radius-2: 2px;
+  --radius-7: 7px;
+  --radius-8: 8px;
+  --radius-9: 9px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-14: 14px; /* cards */
+  --radius-16: 16px;
+  --radius-18: 18px;
+
+  --shadow-card: 0 1px 2px rgb(26 53 80 / 0.04), 0 1px 1px rgb(26 53 80 / 0.03);
+  --shadow-segment: 0 1px 3px rgb(26 53 80 / 0.12);
+  --shadow-toast: 0 8px 28px rgb(26 53 80 / 0.22);
+  --shadow-pop: 0 12px 32px rgb(26 53 80 / 0.14), 0 2px 6px rgb(26 53 80 / 0.05);
+  --shadow-dialog: 0 24px 64px rgb(26 53 80 / 0.24);
+  --shadow-drawer: -16px 0 48px rgb(26 53 80 / 0.16);
+
+  /*
+   * Narrow layouts are written max-first: max-lg (< 800px) is the phone and
+   * small-tablet layout, max-md (< 720px) stacks the top bar and the glance
+   * board, max-sm (< 640px) turns the calendar into dots and an agenda.
+   */
+  --breakpoint-*: initial;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 720px;
+  --breakpoint-lg: 800px;
+
+  --animate-rise: rise 180ms ease-out;
+  --animate-pop: rise 140ms ease-out;
+  --animate-slide-in: slide-in 200ms ease-out;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      transform: translateX(24px);
+      opacity: 0;
+    }
+  }
+}
+
+/* ─── Element defaults ──────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    color-scheme: light;
+    /* The smallest tap target. Grows to 44px on narrow screens (max-lg). */
+    --tap: 34px;
+    /* Side padding of the page and the top bar. */
+    --gutter: clamp(16px, 4vw, 32px);
+  }
+
+  @media (width < 800px) {
+    :root {
+      --tap: 44px;
+    }
+  }
+
+  html {
+    background: var(--color-mist);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-mist);
+    color: var(--color-slate);
+    font-family: var(--font-sans);
+    font-size: var(--text-15);
+    line-height: 1.5;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    /* A long unbroken word or URL may break anywhere rather than widen its row. */
+    overflow-wrap: anywhere;
+  }
+
+  a {
+    color: var(--color-iris-deep);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-iris);
+    outline-offset: 2px;
+    border-radius: var(--radius-8);
+  }
+
+  input[type='checkbox'] {
+    accent-color: var(--color-iris-deep);
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    flex: none;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--color-deep);
+    font-weight: 600;
+  }
+
+  /* Phones: 16px fields, so iOS doesn't zoom in on focus. A field that sets
+     its own size keeps it unless it also says max-lg:text-16. */
+  @media (width < 800px) {
+    input,
+    select,
+    textarea {
+      font-size: var(--text-16);
+    }
+  }
+
+  /* Preflight fades placeholders from currentColor; keep the browser's own. */
+  input::placeholder,
+  textarea::placeholder {
+    color: revert;
+    opacity: revert;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+}
+
+/*
+ * ─── Shared primitives ─────────────────────────────────────────────────────
+ * Used by every view and the shell, so they are classes rather than repeated
+ * utility strings. Modifiers are compound (.btn.btn-quiet) on purpose, so a
+ * modifier always beats the base whatever the order. Utilities on the element
+ * still win over all of this, so call sites can adjust spacing or colour.
+ */
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: var(--tap);
+    padding: 4px 14px;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-10);
+    background: var(--color-card);
+    color: var(--color-deep);
+    font-size: var(--text-14);
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      border-color 120ms,
+      color 120ms,
+      background-color 120ms;
+  }
+
+  .btn.btn-primary {
+    background: var(--color-iris-deep);
+    border-color: var(--color-iris-deep);
+    color: #fff;
+  }
+
+  .btn.btn-quiet {
+    border-color: transparent;
+    background: transparent;
+    color: var(--color-slate);
+    padding: 4px 10px;
+  }
+
+  .btn.btn-small {
+    font-size: var(--text-13);
+    min-height: 30px;
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  @media (hover: hover) {
+    .btn:hover:not(:disabled) {
+      border-color: var(--color-iris);
+      color: var(--color-iris-deep);
+    }
+
+    .btn.btn-primary:hover:not(:disabled) {
+      background: var(--color-iris-deeper);
+      color: #fff;
+    }
+
+    .btn.btn-quiet:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--color-frost) 60%, transparent);
+      border-color: transparent;
+    }
+  }
+
+  /* Destructive actions stay quiet until reached, then warn in amber. */
+  .btn.btn-danger {
+    color: var(--color-slate);
+  }
+
+  .btn.btn-danger:focus-visible {
+    color: var(--color-gold-ink);
+  }
+
+  @media (hover: hover) {
+    .btn.btn-danger:hover:not(:disabled) {
+      background: var(--color-gold-tint);
+      border-color: transparent;
+      color: var(--color-gold-ink);
+    }
+  }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: var(--radius-8);
+    background: transparent;
+    color: var(--color-slate);
+    font-size: var(--text-13);
+    cursor: pointer;
+  }
+
+  @media (hover: hover) {
+    .icon-btn:hover {
+      color: var(--color-iris-deep);
+      background: color-mix(in srgb, var(--color-frost) 55%, transparent);
+    }
+  }
+
+  @media (width < 800px) {
+    .icon-btn,
+    .btn.btn-small {
+      min-width: 44px;
+      min-height: 44px;
+    }
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: none;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--color-frost);
+    color: var(--color-slate);
+    font-size: var(--text-12);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .pill.pill-watch {
+    background: var(--color-gold-tint);
+    color: var(--color-gold-ink);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-gold) 45%, transparent);
+  }
+
+  .pill.pill-urgent {
+    background: var(--color-iris-deep);
+    color: #fff;
+  }
+
+  .pill.pill-high {
+    background: var(--color-iris-tint);
+    color: var(--color-iris-deep);
+  }
+
+  .pill.pill-plain {
+    background: var(--color-frost);
+    color: var(--color-slate);
+  }
+
+  .pill.pill-low {
+    background: transparent;
+    color: var(--color-slate);
+    box-shadow: inset 0 0 0 1px var(--color-line);
+  }
+}

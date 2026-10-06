@@ -1,8 +1,9 @@
 import { useState } from 'preact/hooks';
-import { attention } from '../../core/attention';
-import { dueDistance } from '../../core/due';
-import type { Root } from '../../core/schema';
-import { openProject } from '../actions';
+import { attention } from '../../../core/attention';
+import { dueDistance } from '../../../core/due';
+import type { Root } from '../../../core/schema';
+import { openProject } from '../../actions';
+import { OverviewBlock } from './OverviewBlock';
 
 /** How many items show before "Show more". */
 const FIRST = 3;
@@ -15,6 +16,10 @@ type Item = {
   tone: 'watch' | 'urgent';
   open: () => void;
 };
+
+const ROW = 'flex w-full cursor-pointer items-center bg-transparent text-left hover:bg-mist-70';
+const DOT: Record<Item['tone'], string> = { watch: 'border-gold bg-gold', urgent: 'border-iris-deep bg-iris-deep' };
+const PILL: Record<Item['tone'], string> = { watch: 'pill-watch', urgent: 'pill-urgent' };
 
 /**
  * What needs you, most pressing first: overdue and approaching deadlines,
@@ -57,35 +62,37 @@ export function NeedsAttention(props: { root: Root; now: Date }) {
   const more = items.length - FIRST;
 
   return (
-    <section class="block" aria-labelledby="attention-h">
-      <div class="block-head">
-        <h2 id="attention-h">Needs attention</h2>
-      </div>
-      <ul class="card list">
+    <OverviewBlock id="attention-h" title="Needs attention">
+      <ul class="overflow-hidden rounded-14 border border-line bg-card shadow-card [&>li+li]:border-t [&>li+li]:border-line">
         {shown.map((it) => (
           <li key={it.key}>
-            <button type="button" class="row" onClick={it.open}>
-              <span class={`dot ${it.tone}`} aria-hidden="true" />
-              <span class="row-main">
-                <span class="row-title" title={it.title}>
+            <button type="button" class={`group ${ROW} min-h-64 gap-14 px-20 py-12`} onClick={it.open}>
+              <span class={`size-8 flex-none rounded-full border-[1.5px] ${DOT[it.tone]}`} aria-hidden="true" />
+              <span class="grid min-w-0 flex-1 grid-cols-1 gap-1">
+                <span class="truncate font-medium text-deep group-hover:text-iris-deep" title={it.title}>
                   {it.title}
                 </span>
-                <span class="row-sub" title={it.sub}>
+                <span class="truncate text-13 text-slate" title={it.sub}>
                   {it.sub}
                 </span>
               </span>
-              <span class={`pill ${it.tone}`}>{it.pill}</span>
+              <span class={`pill ${PILL[it.tone]}`}>{it.pill}</span>
             </button>
           </li>
         ))}
         {more > 0 && (
           <li>
-            <button type="button" class="row more" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+            <button
+              type="button"
+              class={`${ROW} min-h-46 justify-center gap-14 px-20 py-12 text-14 font-medium text-iris-deep`}
+              aria-expanded={expanded}
+              onClick={() => setExpanded(!expanded)}
+            >
               {expanded ? 'Show less' : `Show ${more} more`}
             </button>
           </li>
         )}
       </ul>
-    </section>
+    </OverviewBlock>
   );
 }
