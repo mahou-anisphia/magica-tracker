@@ -1,9 +1,9 @@
 import type { RefObject } from 'preact';
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { monthGrid } from '../../core/calendar';
-import { monthHeading } from '../../core/format';
-import { localDateStamp } from '../../core/time';
-import { ChevronIcon } from './icons';
+import { monthGrid } from '../../../core/calendar';
+import { monthHeading } from '../../../core/format';
+import { localDateStamp } from '../../../core/time';
+import { ChevronIcon } from '../../components/icons';
 
 const weekdayShort = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const fullDay = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -19,6 +19,14 @@ const parseDay = (s: string) => {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y!, m! - 1, d!);
 };
+
+/** Today: an Iris ring. The chosen day: filled Iris Deep, like Timeline's today. */
+function dayClass(opts: { chosen: boolean; today: boolean; inMonth: boolean }): string {
+  if (opts.chosen) return 'bg-iris-deep font-semibold text-white hover:bg-iris-deeper';
+  if (opts.today) return 'font-semibold text-iris-deep inset-ring-[1.5px] inset-ring-iris hover:bg-iris-tint';
+  const tone = opts.inMonth ? 'font-medium text-deep' : 'font-normal text-steel';
+  return `${tone} hover:bg-iris-tint hover:text-iris-deep`;
+}
 
 const addDays = (s: string, n: number) => {
   const d = parseDay(s);
@@ -129,7 +137,9 @@ export function DatePicker(props: {
       ref={pop}
       id={props.id}
       popover="auto"
-      class="date-pop"
+      // A white card in the top layer, so no overflow clips it. place() sets
+      // top/bottom/left from the button it belongs to.
+      class="fixed inset-auto m-0 w-[min(284px,calc(100vw-16px))] rounded-14 border border-line bg-card px-12 pt-12 pb-8 text-deep shadow-pop open:animate-pop"
       role="dialog"
       aria-label={`Deadline for “${props.of}”`}
       onBeforeToggle={(e) => {
@@ -149,8 +159,8 @@ export function DatePicker(props: {
     >
       {open && (
         <>
-          <div class="date-pop-head">
-            <span class="date-pop-month" aria-live="polite">
+          <div class="mb-6 flex items-center gap-2 pl-6">
+            <span class="flex-1 text-15 font-semibold" aria-live="polite">
               {monthHeading(shown)}
             </span>
             <button
@@ -165,11 +175,11 @@ export function DatePicker(props: {
               <ChevronIcon dir="right" />
             </button>
           </div>
-          <table class="date-pop-grid">
+          <table class="w-full table-fixed border-collapse">
             <thead>
               <tr>
                 {WEEKDAYS.map((w) => (
-                  <th key={w} scope="col">
+                  <th key={w} scope="col" class="pt-4 pb-6 text-center text-11 font-medium text-slate">
                     {w}
                   </th>
                 ))}
@@ -179,10 +189,10 @@ export function DatePicker(props: {
               {weeks.map((week) => (
                 <tr key={week[0]!.date}>
                   {week.map((d) => (
-                    <td key={d.date}>
+                    <td key={d.date} class="p-1 text-center">
                       <button
                         type="button"
-                        class={`date-pop-day ${d.inMonth ? '' : 'outside'} ${d.date === today ? 'today' : ''}`}
+                        class={`inline-grid h-34 w-34 max-w-full cursor-pointer place-items-center rounded-full p-0 text-13 tabular-nums transition-[background-color,color] duration-120 pointer-coarse:h-40 pointer-coarse:w-40 ${dayClass({ chosen: d.date === props.value, today: d.date === today, inMonth: d.inMonth })}`}
                         data-date={d.date}
                         tabIndex={d.date === active ? 0 : -1}
                         aria-pressed={d.date === props.value}
@@ -198,12 +208,12 @@ export function DatePicker(props: {
               ))}
             </tbody>
           </table>
-          <div class="date-pop-foot">
-            <button type="button" class="btn quiet small" onClick={() => pick(today)}>
+          <div class="mt-6 flex justify-between border-t border-line pt-6">
+            <button type="button" class="btn btn-quiet btn-small" onClick={() => pick(today)}>
               Today
             </button>
             {props.value && (
-              <button type="button" class="btn quiet small" onClick={() => pick(undefined)}>
+              <button type="button" class="btn btn-quiet btn-small" onClick={() => pick(undefined)}>
                 Clear
               </button>
             )}

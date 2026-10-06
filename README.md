@@ -37,9 +37,14 @@ pnpm check       # typecheck + tests + build + fail if dist/ is out of date
 src/core/      pure rules, no DOM: schema (Valibot), completion, staleness,
                merge, migrate, validation, ops, url/time helpers
 src/storage/   localStorage adapter: load, debounced save, cross-tab sync
-src/ui/        Preact components, store (commit()), tokens.css, app.css
+src/ui/        Preact UI: store (commit()), actions, styles.css (Tailwind CSS v4)
+  shell/       top bar, banners, dialogs, toast: around every view
+  views/       one folder per view (overview/, timeline/) with the components only it uses
+  components/  components shared across views
 tests/         Vitest specs for src/core
 ```
+
+UI conventions (folders, Tailwind setup) are written up in `CLAUDE.md`.
 
 Every change goes through `commit()` in `src/ui/store.ts`. It applies the completion rule, re-renders, and saves after 300 ms.
 

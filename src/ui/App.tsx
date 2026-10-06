@@ -1,25 +1,15 @@
 import { useEffect, useState } from 'preact/hooks';
 import { hasSample } from '../core/sample';
-import type { Root } from '../core/schema';
 import { focusShortcut } from './actions';
-import { NeedsAttention } from './components/Attention';
-import { BacklogView } from './components/BacklogView';
-import { CaptureDialog, ConfirmDialog, ImportDialog } from './components/Dialogs';
-import { TodayHeading, TopBar } from './components/Header';
-import { Banners, ToastRegion } from './components/Notices';
-import { ProjectView } from './components/ProjectView';
-import { Sidebar } from './components/Sidebar';
-import { StatsRow } from './components/Stats';
-import { Timeline } from './components/Timeline';
-import { getState, set, setMode, useStore, type View } from './store';
-
-/** A missing or deleted project falls back to the first active one. */
-function resolveView(view: View, root: Root): View {
-  if (view.kind === 'backlog') return view;
-  if (view.kind === 'project' && root.projects.some((p) => p.id === view.id)) return view;
-  const first = root.projects.find((p) => !p.archived);
-  return first ? { kind: 'project', id: first.id } : { kind: 'auto' };
-}
+import { Banners } from './shell/Banners';
+import { CaptureDialog } from './shell/CaptureDialog';
+import { ConfirmDialog } from './shell/ConfirmDialog';
+import { ImportDialog } from './shell/ImportDialog';
+import { ToastRegion } from './shell/ToastRegion';
+import { TopBar } from './shell/TopBar';
+import { getState, set, setMode, useStore } from './store';
+import { OverviewView } from './views/overview/OverviewView';
+import { TimelineView } from './views/timeline/TimelineView';
 
 /** Re-render each minute so the date, deadlines and "n days ago" stay true. */
 function useNow(): Date {
@@ -72,50 +62,30 @@ function useShortcuts(): void {
   }, []);
 }
 
+/** The shell around both views: top bar, banners, dialogs and the toast. */
 export function App() {
   const s = useStore();
   const now = useNow();
   useShortcuts();
 
-  const view = resolveView(s.view, s.root);
-  const project = view.kind === 'project' ? s.root.projects.find((p) => p.id === view.id) : undefined;
   const hasData = s.root.projects.length > 0 || s.root.backlog.length > 0;
-  const where = view.kind === 'backlog' ? 'Backlog' : (project?.name ?? 'Projects');
 
   return (
     <>
       <TopBar mode={s.mode} now={now} lastExportedAt={s.lastExportedAt} hasData={hasData} hasSample={hasSample(s.root)} />
-      <div class="app">
+      <div class="mx-auto max-w-1160 pt-36 pr-[max(var(--gutter),env(safe-area-inset-right,0px))] pb-96 pl-[max(var(--gutter),env(safe-area-inset-left,0px))]">
         <Banners saving={s.saving} notice={s.notice} />
 
         {s.mode === 'timeline' ? (
-          <Timeline root={s.root} now={now} day={s.day} />
+          <TimelineView root={s.root} now={now} day={s.day} />
         ) : (
-          <>
-            <TodayHeading now={now} />
-            <StatsRow root={s.root} now={now} />
-            <NeedsAttention root={s.root} now={now} />
-            <div class="layout">
-              <button
-                type="button"
-                class="drawer-toggle"
-                aria-expanded={s.drawerOpen}
-                aria-controls="sidebar"
-                onClick={() => set({ drawerOpen: !s.drawerOpen })}
-              >
-                <span class="where">{where}</span>
-                <span aria-hidden="true">{s.drawerOpen ? '▴' : '▾'}</span>
-              </button>
-              <Sidebar root={s.root} view={view} open={s.drawerOpen} />
-
-              <main class="main">
-                {view.kind === 'backlog' && <BacklogView root={s.root} />}
-                {project && (
-                  <ProjectView key={project.id} project={project} expandedTaskId={s.expandedTaskId} now={now} />
-                )}
-              </main>
-            </div>
-          </>
+          <OverviewView
+            root={s.root}
+            view={s.view}
+            now={now}
+            expandedTaskId={s.expandedTaskId}
+            drawerOpen={s.drawerOpen}
+          />
         )}
 
         <ConfirmDialog request={s.confirm} />
