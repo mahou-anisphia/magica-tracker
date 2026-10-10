@@ -5,7 +5,7 @@ export function PaneSection(props: { id: string; title: string; class?: string; 
   return (
     <section class={props.class} aria-labelledby={props.id}>
       <div class="mb-10 flex items-center justify-between gap-8">
-        <h3 id={props.id} class="text-13 font-medium text-slate">
+        <h3 id={props.id} class="text-13 font-medium text-body">
           {props.title}
         </h3>
       </div>

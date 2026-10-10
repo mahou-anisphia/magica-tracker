@@ -14,12 +14,12 @@ const CURRENT = 'border-line bg-card font-medium shadow-card';
 
 /** A row in the list. Completed and archived ones stay muted, even when open. */
 function navItemClass(current: boolean, muted = false): string {
-  const color = muted ? 'text-steel' : current ? 'text-deep' : 'text-slate hover:text-iris-deep';
+  const color = muted ? 'text-faint' : current ? 'text-ink' : 'text-body hover:text-primary-ink';
   return `${NAV_ITEM} ${current ? CURRENT : 'border-transparent bg-transparent'} ${color}`;
 }
 
 const SUMMARY =
-  "cursor-pointer list-none px-12 py-4 text-13 text-slate before:content-['▸_'] group-open:before:content-['▾_'] [&::-webkit-details-marker]:hidden";
+  "cursor-pointer list-none px-12 py-4 text-13 text-body before:content-['▸_'] group-open:before:content-['▾_'] [&::-webkit-details-marker]:hidden";
 
 export function Sidebar(props: { root: Root; view: View; open: boolean }) {
   const { root, view } = props;
@@ -51,7 +51,7 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
           onClick={() => openProject(p.id)}
         >
           <span
-            class={`size-8 flex-none rounded-full border-[1.5px] ${open ? 'border-deep bg-deep' : 'border-ash'}`}
+            class={`size-8 flex-none rounded-full border-[1.5px] ${open ? 'border-ink bg-ink' : 'border-line-strong'}`}
             title={open ? 'Has open tasks' : 'Nothing open'}
           />
           <span class="min-w-0 flex-1 truncate" title={p.name}>
@@ -60,7 +60,7 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
           <span class="sr-only">{open ? '(has open tasks)' : '(nothing open)'}</span>
           {overdue > 0 && (
             <span
-              class="min-w-22 rounded-full bg-gold-tint px-7 text-center text-12 font-semibold text-gold-ink tabular-nums"
+              class="min-w-22 rounded-full bg-watch-tint px-7 text-center text-12 font-semibold text-watch-ink tabular-nums"
               title={`${overdue} overdue`}
             >
               {overdue}
@@ -78,11 +78,11 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
       class={`sticky top-20 grid grid-cols-1 gap-10 max-lg:static max-lg:-mt-8 max-lg:rounded-14 max-lg:border max-lg:border-line max-lg:bg-card max-lg:p-12 ${props.open ? '' : 'max-lg:hidden'}`}
       aria-label="Projects and backlog"
     >
-      <h2 class="text-13 font-medium text-slate">Projects</h2>
+      <h2 class="text-13 font-medium text-body">Projects</h2>
       {root.projects.length > 0 && (
         <input
           type="search"
-          class="min-h-(--tap) w-full rounded-10 border border-line bg-card px-12 py-4 text-14 placeholder:text-steel max-lg:text-16"
+          class="min-h-(--tap) w-full rounded-10 border border-line bg-card px-12 py-4 text-14 placeholder:text-faint max-lg:text-16"
           placeholder="Filter projects   /"
           aria-label="Filter projects"
           data-shortcut="filter"
@@ -136,7 +136,7 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
             onClick={openBacklog}
           >
             <span class="min-w-0 flex-1 truncate">Backlog</span>
-            <span class="text-13 text-slate tabular-nums">{root.backlog.length}</span>
+            <span class="text-13 text-body tabular-nums">{root.backlog.length}</span>
           </button>
         </li>
       </ul>

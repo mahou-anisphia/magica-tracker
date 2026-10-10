@@ -2,9 +2,9 @@ import type { DueItem } from '../../../core/calendar';
 import { itemTone, where } from './dueItem';
 
 const TONE = {
-  done: 'bg-mist-70 font-normal text-steel',
-  watch: 'bg-gold-tint font-medium text-gold-ink',
-  open: 'bg-frost font-medium text-deep',
+  done: 'bg-page-70 font-normal text-faint',
+  watch: 'bg-watch-tint font-medium text-watch-ink',
+  open: 'bg-chip font-medium text-ink',
 };
 
 // A project's own deadline: led by the same dot the sidebar uses.
@@ -20,7 +20,7 @@ export function CalendarItem(props: { item: DueItem; agenda?: boolean; onClick: 
   return (
     <button
       type="button"
-      class={`flex w-full min-w-0 cursor-pointer items-center gap-6 text-left hover:inset-ring hover:inset-ring-iris ${size} ${TONE[itemTone(it)]} ${it.task ? '' : PROJECT_DOT}`}
+      class={`flex w-full min-w-0 cursor-pointer items-center gap-6 text-left hover:inset-ring hover:inset-ring-accent ${size} ${TONE[itemTone(it)]} ${it.task ? '' : PROJECT_DOT}`}
       title={props.agenda ? undefined : `${it.title} — ${where(it)}`}
       onClick={props.onClick}
     >

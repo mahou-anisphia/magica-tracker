@@ -40,7 +40,7 @@ export function OverviewView(props: {
       <div class="grid grid-cols-[236px_minmax(0,1fr)] items-start gap-40 max-lg:grid-cols-1 max-lg:gap-16">
         <button
           type="button"
-          class="hidden w-full cursor-pointer items-center justify-between gap-10 rounded-12 border border-line bg-card px-16 font-medium text-deep max-lg:flex max-lg:min-h-44"
+          class="hidden w-full cursor-pointer items-center justify-between gap-10 rounded-12 border border-line bg-card px-16 font-medium text-ink max-lg:flex max-lg:min-h-44"
           aria-expanded={drawerOpen}
           aria-controls="sidebar"
           onClick={() => set({ drawerOpen: !drawerOpen })}

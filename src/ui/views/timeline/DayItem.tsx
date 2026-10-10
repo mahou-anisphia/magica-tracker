@@ -20,16 +20,16 @@ export function DayItem({ item, now, startOpen }: { item: DueItem; now: Date; st
     <li class="border-b border-line">
       <button
         type="button"
-        class="flex min-h-68 w-full cursor-pointer items-center gap-12 bg-transparent py-12 pr-18 pl-24 text-left hover:bg-mist-70"
+        class="flex min-h-68 w-full cursor-pointer items-center gap-12 bg-transparent py-12 pr-18 pl-24 text-left hover:bg-page-70"
         aria-expanded={open}
         aria-controls={detailId}
         onClick={() => setOpen(!open)}
       >
         <span class="grid min-w-0 flex-1 grid-cols-1 gap-1">
-          <span class={`truncate font-medium ${item.done ? 'text-steel' : 'text-deep'}`} title={item.title}>
+          <span class={`truncate font-medium ${item.done ? 'text-faint' : 'text-ink'}`} title={item.title}>
             {item.title}
           </span>
-          <span class="truncate text-13 text-slate" title={where(item)}>
+          <span class="truncate text-13 text-body" title={where(item)}>
             {where(item)}
           </span>
         </span>
@@ -38,7 +38,7 @@ export function DayItem({ item, now, startOpen }: { item: DueItem; now: Date; st
         ) : (
           <PriorityChip priority={task?.priority} />
         )}
-        <span class={`inline-flex text-slate transition-transform ${open ? 'rotate-180' : ''}`}>
+        <span class={`inline-flex text-body transition-transform ${open ? 'rotate-180' : ''}`}>
           <ChevronIcon dir="down" />
         </span>
       </button>
@@ -56,7 +56,7 @@ export function DayItem({ item, now, startOpen }: { item: DueItem; now: Date; st
                 )}
               </div>
               {task.notes && (
-                <p class="rounded-10 bg-mist px-14 py-10 text-14 whitespace-pre-wrap text-deep">{task.notes}</p>
+                <p class="rounded-10 bg-page px-14 py-10 text-14 whitespace-pre-wrap text-ink">{task.notes}</p>
               )}
             </>
           )}

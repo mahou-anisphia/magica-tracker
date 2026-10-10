@@ -12,7 +12,7 @@ const CHIP =
  * Touch screens don't get it: the picker has its own Clear.
  */
 const CLEAR =
-  'pointer-events-none absolute -top-7 -right-7 grid size-18 cursor-pointer place-items-center rounded-full border border-line bg-card p-0 text-12 leading-none text-slate opacity-0 transition-opacity duration-120 group-focus-within/due:pointer-events-auto group-focus-within/due:opacity-100 group-hover/due:pointer-events-auto group-hover/due:opacity-100 hover:border-iris hover:text-iris-deep [@media(hover:none)]:hidden';
+  'pointer-events-none absolute -top-7 -right-7 grid size-18 cursor-pointer place-items-center rounded-full border border-line bg-card p-0 text-12 leading-none text-body opacity-0 transition-opacity duration-120 group-focus-within/due:pointer-events-auto group-focus-within/due:opacity-100 group-hover/due:pointer-events-auto group-hover/due:opacity-100 hover:border-accent hover:text-primary-ink [@media(hover:none)]:hidden';
 
 /**
  * A deadline chip that opens a small calendar. With no date it is a quiet,
@@ -37,10 +37,10 @@ export function DueDate(props: {
   // Set: a chip, amber when approaching. Empty: a quiet button that brightens
   // while its row (a parent with group/row) is hovered.
   const cls = value
-    ? `${CHIP} ${done ? 'bg-transparent text-steel' : watch ? 'bg-gold-tint text-gold-ink inset-ring inset-ring-gold/45' : 'bg-frost text-slate'}`
+    ? `${CHIP} ${done ? 'bg-transparent text-faint' : watch ? 'bg-watch-tint text-watch-ink inset-ring inset-ring-watch/45' : 'bg-chip text-body'}`
     : props.emptyLabel
-      ? 'btn btn-small focus-visible:text-slate'
-      : 'icon-btn text-steel group-hover/row:text-slate focus-visible:text-slate';
+      ? 'btn btn-small focus-visible:text-body'
+      : 'icon-btn text-faint group-hover/row:text-body focus-visible:text-body';
   return (
     <span class="group/due relative inline-flex flex-none items-center">
       <button

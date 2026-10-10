@@ -34,7 +34,7 @@ export function SubtaskRow({ project, task, subtask, now }: { project: Project; 
   return (
     <li class={ROW}>
       <label
-        class={`flex min-w-0 flex-1 cursor-pointer items-center gap-12 ${subtask.done ? 'text-steel' : 'text-deep'}`}
+        class={`flex min-w-0 flex-1 cursor-pointer items-center gap-12 ${subtask.done ? 'text-faint' : 'text-ink'}`}
         for={cbId}
       >
         <input

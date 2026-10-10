@@ -6,11 +6,11 @@ import { headerFromUrl, normalizeUrlInput, parseResourceInput } from '../../../c
 let formSeq = 0;
 
 const FIELD = 'grid grid-cols-1 gap-5';
-const LABEL = 'text-12 font-medium text-slate';
+const LABEL = 'text-12 font-medium text-body';
 const INPUT =
-  'min-h-36 min-w-0 rounded-9 border bg-card px-12 py-4 text-15 text-deep outline-none transition-[border-color,box-shadow] duration-120 placeholder:text-steel max-lg:text-16';
-const INPUT_OK = 'border-line focus:border-iris focus:ring-3 focus:ring-iris/16';
-const INPUT_BAD = 'border-burnished ring-3 ring-gold/25';
+  'min-h-36 min-w-0 rounded-9 border bg-card px-12 py-4 text-15 text-ink outline-none transition-[border-color,box-shadow] duration-120 placeholder:text-faint max-lg:text-16';
+const INPUT_OK = 'border-line focus:border-accent focus:ring-3 focus:ring-accent/16';
+const INPUT_BAD = 'border-watch-mark ring-3 ring-watch/25';
 
 /**
  * Link, title and an optional note, with Cancel and Add. Enter submits and
@@ -78,7 +78,7 @@ export function ResourceForm(props: { initial?: Resource; onSubmit: (input: ops.
   return (
     <form
       // Editing replaces the row it sits in, so it drops the card's own frame.
-      class={`grid grid-cols-1 gap-14 px-18 pt-16 pb-14 max-lg:p-14 ${editing ? 'bg-iris-tint-45' : 'rounded-12 border border-iris-line bg-card ring-3 ring-iris/10'}`}
+      class={`grid grid-cols-1 gap-14 px-18 pt-16 pb-14 max-lg:p-14 ${editing ? 'bg-primary-tint-45' : 'rounded-12 border border-accent-line bg-card ring-3 ring-accent/10'}`}
       noValidate
       aria-label={editing ? `Edit ${props.initial!.header}` : 'Add a resource'}
       onSubmit={submit}
@@ -129,7 +129,7 @@ export function ResourceForm(props: { initial?: Resource; onSubmit: (input: ops.
         </label>
         <label class={`${FIELD} col-span-full`} for={`${uid}-note`}>
           <span class={LABEL}>
-            Note <span class="font-normal text-steel">optional</span>
+            Note <span class="font-normal text-faint">optional</span>
           </span>
           <input
             id={`${uid}-note`}
@@ -145,7 +145,7 @@ export function ResourceForm(props: { initial?: Resource; onSubmit: (input: ops.
       </div>
       <div class="flex flex-wrap items-center gap-x-12 gap-y-8">
         {bad && (
-          <p class="text-13 text-gold-ink" id={`${uid}-error`} role="alert">
+          <p class="text-13 text-watch-ink" id={`${uid}-error`} role="alert">
             Add a link, like docs.example.com/page.
           </p>
         )}

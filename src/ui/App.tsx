@@ -72,7 +72,14 @@ export function App() {
 
   return (
     <>
-      <TopBar mode={s.mode} now={now} lastExportedAt={s.lastExportedAt} hasData={hasData} hasSample={hasSample(s.root)} />
+      <TopBar
+        mode={s.mode}
+        now={now}
+        lastExportedAt={s.lastExportedAt}
+        hasData={hasData}
+        hasSample={hasSample(s.root)}
+        theme={s.theme}
+      />
       <div class="mx-auto max-w-1160 pt-36 pr-[max(var(--gutter),env(safe-area-inset-right,0px))] pb-96 pl-[max(var(--gutter),env(safe-area-inset-left,0px))]">
         <Banners saving={s.saving} notice={s.notice} />
 

@@ -17,7 +17,7 @@ export function BacklogRow(props: { item: BacklogItem; projects: Project[] }) {
   return (
     <li class="grid grid-cols-1 gap-4 px-18 py-14">
       <EditableText
-        class="font-medium text-deep"
+        class="font-medium text-ink"
         value={item.title}
         label="Title"
         required
@@ -35,7 +35,7 @@ export function BacklogRow(props: { item: BacklogItem; projects: Project[] }) {
         {targetProject && (
           <div class="mr-auto flex items-center gap-6">
             <select
-              class="min-h-30 max-w-200 rounded-8 border border-line bg-card px-10 py-2 text-13 text-deep max-lg:min-h-44 max-lg:text-16"
+              class="min-h-30 max-w-200 rounded-8 border border-line bg-card px-10 py-2 text-13 text-ink max-lg:min-h-44 max-lg:text-16"
               aria-label={`Project to promote “${item.title}” into`}
               value={targetProject.id}
               onChange={(e) => setTarget(e.currentTarget.value)}

@@ -137,6 +137,32 @@ export function writeMode(mode: StoredMode): void {
   }
 }
 
+const THEME_KEY = 'magica:v1:theme';
+
+/**
+ * The theme choice, per browser like the view mode. `light` and `dark` are the
+ * palettes the choice resolves to, so index.html can set the right one before
+ * the first paint without knowing the theme list. Shape-checked by the caller.
+ */
+export type StoredTheme = { theme: string; appearance: string; light: string; dark: string };
+
+export function readTheme(): Partial<StoredTheme> | null {
+  try {
+    const v = JSON.parse(globalThis.localStorage.getItem(THEME_KEY) ?? 'null');
+    return v && typeof v === 'object' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeTheme(theme: StoredTheme): void {
+  try {
+    globalThis.localStorage.setItem(THEME_KEY, JSON.stringify(theme));
+  } catch {
+    // Only a convenience.
+  }
+}
+
 export type ExternalChange = { kind: 'data'; root: Root } | { kind: 'lastExport'; value: string | null };
 
 /**

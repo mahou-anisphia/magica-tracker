@@ -4,6 +4,7 @@ import { monthGrid } from '../../../core/calendar';
 import { monthHeading } from '../../../core/format';
 import { localDateStamp } from '../../../core/time';
 import { ChevronIcon } from '../../components/icons';
+import { placePopover, useFollowAnchor } from '../../components/placePopover';
 
 const weekdayShort = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const fullDay = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -12,20 +13,18 @@ const WEEKDAYS = Array.from({ length: 7 }, (_, i) => weekdayShort.format(new Dat
 
 /** Estimated tallest picker (six weeks), for choosing above or below. */
 const MAX_HEIGHT = 360;
-const GAP = 6;
-const EDGE = 8;
 
 const parseDay = (s: string) => {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y!, m! - 1, d!);
 };
 
-/** Today: an Iris ring. The chosen day: filled Iris Deep, like Timeline's today. */
+/** Today: an accent ring. The chosen day: filled primary, like Timeline's today. */
 function dayClass(opts: { chosen: boolean; today: boolean; inMonth: boolean }): string {
-  if (opts.chosen) return 'bg-iris-deep font-semibold text-white hover:bg-iris-deeper';
-  if (opts.today) return 'font-semibold text-iris-deep inset-ring-[1.5px] inset-ring-iris hover:bg-iris-tint';
-  const tone = opts.inMonth ? 'font-medium text-deep' : 'font-normal text-steel';
-  return `${tone} hover:bg-iris-tint hover:text-iris-deep`;
+  if (opts.chosen) return 'bg-primary font-semibold text-on-primary hover:bg-primary-hover';
+  if (opts.today) return 'font-semibold text-primary-ink inset-ring-[1.5px] inset-ring-accent hover:bg-primary-tint';
+  const tone = opts.inMonth ? 'font-medium text-ink' : 'font-normal text-faint';
+  return `${tone} hover:bg-primary-tint hover:text-primary-ink`;
 }
 
 const addDays = (s: string, n: number) => {
@@ -63,29 +62,8 @@ export function DatePicker(props: {
   const today = localDateStamp(props.now);
 
   // Below the button, right edges aligned; above when there's more room there.
-  const place = () => {
-    const el = pop.current;
-    const a = props.anchor.current;
-    if (!el || !a) return;
-    const r = a.getBoundingClientRect();
-    const width = Math.min(284, innerWidth - EDGE * 2);
-    const left = Math.min(Math.max(r.right - width, EDGE), innerWidth - width - EDGE);
-    const below = innerHeight - r.bottom;
-    const up = below < MAX_HEIGHT && r.top > below;
-    el.style.left = `${left}px`;
-    el.style.top = up ? 'auto' : `${r.bottom + GAP}px`;
-    el.style.bottom = up ? `${innerHeight - r.top + GAP}px` : 'auto';
-  };
-
-  useLayoutEffect(() => {
-    if (!open) return;
-    addEventListener('resize', place);
-    addEventListener('scroll', place, true); // capture: any scrolling ancestor
-    return () => {
-      removeEventListener('resize', place);
-      removeEventListener('scroll', place, true);
-    };
-  }, [open]);
+  const place = () => placePopover(pop.current, props.anchor.current, { width: 284, maxHeight: MAX_HEIGHT, align: 'end' });
+  useFollowAnchor(open, place);
 
   useLayoutEffect(() => {
     if (!focusActive.current) return;
@@ -139,7 +117,7 @@ export function DatePicker(props: {
       popover="auto"
       // A white card in the top layer, so no overflow clips it. place() sets
       // top/bottom/left from the button it belongs to.
-      class="fixed inset-auto m-0 w-[min(284px,calc(100vw-16px))] rounded-14 border border-line bg-card px-12 pt-12 pb-8 text-deep shadow-pop open:animate-pop"
+      class="fixed inset-auto m-0 w-[min(284px,calc(100vw-16px))] rounded-14 border border-line bg-card px-12 pt-12 pb-8 text-ink shadow-pop open:animate-pop"
       role="dialog"
       aria-label={`Deadline for “${props.of}”`}
       onBeforeToggle={(e) => {
@@ -179,7 +157,7 @@ export function DatePicker(props: {
             <thead>
               <tr>
                 {WEEKDAYS.map((w) => (
-                  <th key={w} scope="col" class="pt-4 pb-6 text-center text-11 font-medium text-slate">
+                  <th key={w} scope="col" class="pt-4 pb-6 text-center text-11 font-medium text-body">
                     {w}
                   </th>
                 ))}

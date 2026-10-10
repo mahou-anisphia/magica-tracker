@@ -32,7 +32,7 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
         <div class="grid min-w-0 flex-[1_1_300px] grid-cols-1 gap-6">
           <h2 id="pane-title">
             <EditableText
-              class={`text-24 leading-[1.25] font-semibold tracking-[-0.015em] ${projectDone ? 'text-slate' : 'text-deep'}`}
+              class={`text-24 leading-[1.25] font-semibold tracking-[-0.015em] ${projectDone ? 'text-body' : 'text-ink'}`}
               value={p.name}
               label="Project name"
               required
@@ -50,7 +50,7 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
         <div class="flex flex-wrap items-center gap-8">
           <button
             type="button"
-            class="btn btn-small aria-pressed:border-iris-pressed aria-pressed:bg-iris-tint aria-pressed:text-iris-deep"
+            class="btn btn-small aria-pressed:border-primary-pressed aria-pressed:bg-primary-tint aria-pressed:text-primary-ink"
             aria-pressed={projectDone}
             onClick={() => void setProjectDone(p, !projectDone)}
           >
@@ -102,7 +102,7 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
           <div class="mt-16">
             <button
               type="button"
-              class="inline-flex min-h-(--tap) cursor-pointer items-center gap-6 bg-transparent px-4 text-14 font-medium text-slate before:text-[0.8rem] before:transition-transform before:content-['▸'] aria-expanded:before:rotate-90"
+              class="inline-flex min-h-(--tap) cursor-pointer items-center gap-6 bg-transparent px-4 text-14 font-medium text-body before:text-[0.8rem] before:transition-transform before:content-['▸'] aria-expanded:before:rotate-90"
               aria-expanded={doneVisible}
               aria-controls="done-list"
               onClick={() => setShowDone(!doneVisible)}

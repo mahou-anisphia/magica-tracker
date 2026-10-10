@@ -6,17 +6,17 @@ import { OverviewBlock } from './OverviewBlock';
 type Tone = 'plain' | 'iris' | 'gold';
 
 const VALUE: Record<Tone | 'zero', string> = {
-  zero: 'text-slate',
-  plain: 'text-deep',
-  iris: 'text-iris-deep',
-  gold: 'text-gold-ink',
+  zero: 'text-body',
+  plain: 'text-ink',
+  iris: 'text-primary-ink',
+  gold: 'text-watch-ink',
 };
 
 const MARK: Record<Tone | 'zero', string> = {
   zero: '',
   plain: '',
-  iris: "before:size-7 before:rounded-full before:bg-iris-deep before:content-['']",
-  gold: "before:size-7 before:rounded-full before:bg-gold before:content-['']",
+  iris: "before:size-7 before:rounded-full before:bg-primary-strong before:content-['']",
+  gold: "before:size-7 before:rounded-full before:bg-watch before:content-['']",
 };
 
 /**
@@ -44,7 +44,7 @@ export function StatsRow(props: { root: Root; now: Date }) {
             const lines = `${i > 0 ? 'border-l' : ''} ${i % 2 === 0 ? 'max-md:border-l-0' : ''} ${i >= 2 ? 'max-md:border-t' : ''}`;
             return (
               <div key={it.label} class={`grid grid-cols-1 gap-6 border-line px-26 pt-22 pb-20 max-md:px-18 max-md:py-16 ${lines}`}>
-                <dt class={`flex items-center gap-8 text-13 font-medium text-slate ${MARK[tone]}`}>{it.label}</dt>
+                <dt class={`flex items-center gap-8 text-13 font-medium text-body ${MARK[tone]}`}>{it.label}</dt>
                 <dd class={`m-0 text-28 leading-[1.15] font-medium tracking-[-0.02em] tabular-nums ${VALUE[tone]}`}>
                   {it.value}
                 </dd>

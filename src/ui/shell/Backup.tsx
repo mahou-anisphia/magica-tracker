@@ -18,13 +18,13 @@ export function Backup(props: { now: Date; lastExportedAt: string | null; hasDat
     <div class="col-3 flex flex-wrap items-center justify-end gap-8 max-md:col-1 max-md:justify-center">
       {watch ? (
         <span
-          class="inline-flex items-center gap-6 rounded-full bg-gold-tint px-10 py-2 text-12 font-medium whitespace-nowrap text-gold-ink inset-ring inset-ring-gold/45 before:size-7 before:flex-none before:rounded-full before:bg-burnished before:content-['']"
+          class="inline-flex items-center gap-6 rounded-full bg-watch-tint px-10 py-2 text-12 font-medium whitespace-nowrap text-watch-ink inset-ring inset-ring-watch/45 before:size-7 before:flex-none before:rounded-full before:bg-watch-mark before:content-['']"
           title="Export is the only backup of this data"
         >
           {exported}
         </span>
       ) : (
-        exported && <span class="mr-4 text-13 text-slate">{exported}</span>
+        exported && <span class="mr-4 text-13 text-body">{exported}</span>
       )}
       <button type="button" class="btn btn-small" onClick={exportNow}>
         Export

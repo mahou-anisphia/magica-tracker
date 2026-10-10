@@ -24,8 +24,10 @@ src/ui/
   App.tsx            the shell around both views: keyboard shortcuts, the clock, view switch
   store.ts           state + commit(); actions.ts: everything that changes it
   styles.css         Tailwind entry: theme tokens, element defaults, shared primitives
+  themes.css         one block of colour-role values per palette (themes)
+  themes.ts          the theme list, the saved choice, and putting the palette on <html>
   components/        GLOBAL: only components used by more than one view (or a view and the shell)
-    icons.tsx  Modal.tsx  PriorityChip.tsx
+    icons.tsx  Modal.tsx  PriorityChip.tsx  placePopover.ts
   shell/             app frame rendered once by App in every view: top bar, banners, dialogs, toast
   views/
     overview/        the Overview page: OverviewView.tsx + every component only it uses
@@ -56,7 +58,8 @@ src/ui/
 
 Tailwind is set up CSS-first in `src/ui/styles.css` (no `tailwind.config.js`),
 via the `@tailwindcss/vite` plugin. Styles live in the components as utility
-classes. There is no other stylesheet.
+classes. The only other stylesheet is `themes.css`, which holds colour values
+and nothing else.
 
 ### Decisions
 
@@ -65,44 +68,69 @@ classes. There is no other stylesheet.
    (`text-13` is 0.8125rem = 13px) and set no line height; radii too
    (`rounded-10`). This kept the migration from hand-written CSS pixel-exact.
 2. **Closed theme.** Tailwind's default palette, type scale, radii and
-   breakpoints are cleared. Only the design's own values exist:
-   - colours are the palette names from the README: `mist`, `frost`, `ash`,
-     `steel`, `slate`, `deep`, `gold`, `burnished`, `iris`, `iris-deep`, plus
-     `card`, `line`, `iris-tint`, `gold-tint`, `gold-ink`;
-   - washes: `mist-55` means 55% Mist over a white card (not opacity). Plain
-     opacity still works as usual: `bg-frost/60`.
-   Add a token to `@theme` rather than repeating an arbitrary value.
-3. **Max-first breakpoints.** The desktop layout is the default; narrow screens
+   breakpoints are cleared. Only the design's own values exist. Add a token to
+   `@theme` rather than repeating an arbitrary value.
+3. **Colours are roles, never hues**, because every theme gives them different
+   values. Pick by what the thing is, not what colour you want:
+   | Role | Use |
+   | --- | --- |
+   | `page`, `card` | page background; cards, panels, fields |
+   | `chip` | chips, tracks, soft fills |
+   | `line`, `line-strong` | hairlines and card borders; empty marks, dashed borders |
+   | `ink`, `body`, `faint` | titles and headings; labels and secondary text; metadata and done items only |
+   | `primary` + `on-primary` | filled emphasis (primary button, urgent pill, today) and the text on it |
+   | `primary-ink` | coloured text and icons on a card: links, hovers, counts |
+   | `primary-strong` | bars, dots, thin marks, checkboxes |
+   | `primary-tint` | pale fill: selected, high priority, pressed |
+   | `accent` | focus ring, focused and hovered borders |
+   | `watch`, `watch-mark`, `watch-tint`, `watch-ink` | worth watching (the theme's highlight): fill, small marks, pill/banner fill, text on that fill |
+   | `shadow`, `scrim` | shadow colour; behind dialogs |
+
+   `primary` and `primary-ink` differ on purpose: pale primaries (Euphie,
+   March 7th, Peach milk) can't be text on white. Never use `on-primary` off a
+   `primary` fill, or `watch` as text. Washes: `page-55` means 55% `page` over
+   `card` (not opacity); plain opacity still works (`bg-chip/60`). No literal
+   colours in components (`text-white`, `#fff`): a dark theme breaks them.
+4. **Themes are palettes on `<html data-palette>`.** `styles.css` holds the
+   default (Euphie light) and derives some roles by mixing others.
+   `themes.css` overrides roles per palette. A theme with both modes has
+   `<id>-light` and `<id>-dark` palettes; a one-mode theme is just `<id>`. To
+   add a theme: a block in `themes.css` (with `color-scheme: dark` if dark), an
+   entry in `THEMES` in `themes.ts`, then check that text keeps 4.5:1 on its
+   background. The theme's own highlight colour goes in the `watch` roles. The
+   inline script in `index.html` sets the saved palette before the first paint
+   and must keep matching `themes.ts`'s storage shape and default.
+5. **Max-first breakpoints.** The desktop layout is the default; narrow screens
    override it: `max-lg:` (< 800px, phone layout, 44px tap targets),
    `max-md:` (< 720px, stacked top bar, 2×2 glance board), `max-sm:`
    (< 640px, calendar dots and agenda).
-4. **Three shared primitives are classes, not utility strings:** `.btn`
+6. **Three shared primitives are classes, not utility strings:** `.btn`
    (`btn-primary`, `btn-quiet`, `btn-small`, `btn-danger`), `.icon-btn`, and
    `.pill` (`pill-watch`, `pill-urgent`, `pill-high`, `pill-plain`,
    `pill-low`). They are in `@layer components`, so any utility on the element
    still wins over them. Don't add more: a style used by one view belongs in
    that view's TSX, and repeated strings are a reason to extract a component
    (`RowAction`, `CalendarItem`, `OverviewBlock`) or a local constant.
-5. **No conflicting utilities on one element.** Tailwind orders utilities by
+7. **No conflicting utilities on one element.** Tailwind orders utilities by
    its own rules, not by their order in `class`, so `text-deep text-steel`
    is a coin toss. Pick one in TSX (`done ? 'text-steel' : 'text-deep'`).
    Components that take a `class` keep the parts a caller may replace in a
    separate prop (`EditableText`/`InlineInput` take `box` for margin, padding,
    border, radius and background). No `tailwind-merge`, no `!important`.
-6. **State goes through variants where HTML already has it**:
-   `aria-pressed:`, `aria-expanded:`, `aria-[current=page]:` style off the
+8. **State goes through variants where HTML already has it**:
+   `aria-pressed:`, `aria-expanded:`, `aria-[current=page]:`, `has-checked:` style off the
    attributes the component sets for accessibility anyway; `data-empty:` marks
    an empty `EditableText`; `group/row` + `group-hover/row:` brighten a
    child while its row is hovered.
-7. **`hover:` only applies on devices that can hover** (Tailwind v4's
+9. **`hover:` only applies on devices that can hover** (Tailwind v4's
    default), the same as the old `@media (hover: hover)` blocks.
-8. **Scanning is limited to `src/`** (`@import 'tailwindcss' source('..')`).
+10. **Scanning is limited to `src/`** (`@import 'tailwindcss' source('..')`).
    Otherwise Tailwind would read the committed `dist/index.html` and the build
    would depend on its own previous output. Class names must appear whole in
    the source: never build them by concatenation (`` `pill-${x}` `` is fine only
    for `@layer components` classes, which are always emitted; prefer a lookup
    object like `PriorityChip`'s `TONE`).
-9. **Element defaults** (body type, focus ring, checkbox, heading colour, the
+11. **Element defaults** (body type, focus ring, checkbox, heading colour, the
    16px phone font size for fields, reduced motion) are in `@layer base`.
    Keep `:root` custom properties there too: `--tap` (smallest tap target,
    34px, 44px below 800px) and `--gutter` (page side padding), used as
@@ -110,7 +138,9 @@ classes. There is no other stylesheet.
 
 ## Checking visual changes
 
-A pure refactor must not change pixels. The Tailwind migration was checked by
+A pure refactor must not change pixels. Magica classic holds the original
+palette value for value, so with it selected the app must match screenshots
+taken before themes existed (hide the Theme button when comparing). The Tailwind migration was checked by
 screenshotting about 100 states (three widths; hovers, focus, editing, dialogs,
 Timeline) with Playwright against a build of the previous commit and diffing
 them. All of them matched. Do the same for future style refactors. Chromium is

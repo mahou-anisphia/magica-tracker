@@ -1,10 +1,10 @@
 /*
- * Magica Tracker: Inter, white cards on Mist, Iris for interaction, Gold for
- * what's worth watching. Light only, on purpose: no dark variants.
+ * Magica Tracker: Inter, cards on a soft page, one colour for interaction and
+ * one highlight for what's worth watching. Themes (themes.css) choose them.
  *
  * Tailwind v4, configured here rather than in a JS config. Styling lives in
  * the components as utility classes. This file only holds:
- *   1. the theme (palette, type scale, radii, shadows, breakpoints),
+ *   1. the theme (colour roles, type scale, radii, shadows, breakpoints),
  *   2. element defaults (base layer),
  *   3. the few primitives every view shares: .btn, .icon-btn, .pill.
  * See CLAUDE.md for the conventions.
@@ -13,6 +13,7 @@
  * read the committed dist/index.html and the build would depend on itself.
  */
 @import 'tailwindcss' source('..');
+@import './themes.css';
 
 /*
  * Inter, bundled (Latin subset, variable weight) so the page looks the same
@@ -32,45 +33,59 @@
  * Every number in a utility is a pixel: p-18 is 18px, text-13 is 13px
  * (0.8125rem), rounded-10 is 10px. The default palette, type scale, radii and
  * breakpoints are cleared so only the design's own values exist.
+ *
+ * Colours are roles, not hues: a theme (themes.css) swaps their values on
+ * <html data-palette="…">. The values here are the default theme, Euphie
+ * light. Roles marked "derived" are mixed from the others, so a palette only
+ * sets them when the mix isn't right for it. `static`: emit every colour, so
+ * the derived ones and the ones only palettes use always exist.
  */
-@theme {
+@theme static {
   --spacing: 1px;
 
-  /* Palette (plan §2). */
   --color-*: initial;
-  --color-white: #ffffff;
-  --color-black: #000000;
-  --color-mist: #f2f6fa; /* page background */
-  --color-frost: #dde8f2; /* surfaces, chips */
-  --color-ash: #b8c8d8; /* borders of empty marks */
-  --color-steel: #7a9ab5; /* metadata and done items, never body text */
-  --color-slate: #4a6a84; /* body text */
-  --color-deep: #1a3550; /* headings, titles */
-  --color-gold: #f0c060; /* worth watching */
-  --color-burnished: #c8902a; /* marks and borders on Gold */
-  --color-iris: #7f77dd; /* interaction */
-  --color-iris-deep: #534ab7;
 
-  /* Derived for the card layout. */
-  --color-card: #ffffff;
-  --color-line: #dde6ef; /* card borders and row dividers */
-  --color-iris-tint: #efeefc;
-  --color-gold-tint: #fcf3df;
-  --color-gold-ink: #7a5412; /* text on Gold tints: 6.1:1 on gold-tint */
+  /* Surfaces and text. */
+  --color-page: #f6f8fb; /* page background */
+  --color-card: #fdfeff; /* cards, panels, fields */
+  --color-chip: color-mix(in srgb, var(--color-primary) 35%, var(--color-card)); /* derived: chips, tracks, soft fills */
+  --color-line: #d8e4ee; /* card borders and row dividers */
+  --color-line-strong: color-mix(in srgb, var(--color-line) 75%, var(--color-body)); /* derived: empty marks, dashed borders */
+  --color-faint: color-mix(in srgb, var(--color-body) 72%, var(--color-card)); /* derived: metadata, done items, never body text */
+  --color-body: #5f6a85; /* labels and secondary text */
+  --color-ink: #2f3a5c; /* headings, titles, the toast */
 
-  /* Washes: <colour>-NN is NN% of that colour over a white card. */
-  --color-mist-40: color-mix(in srgb, var(--color-mist) 40%, var(--color-card));
-  --color-mist-55: color-mix(in srgb, var(--color-mist) 55%, var(--color-card));
-  --color-mist-60: color-mix(in srgb, var(--color-mist) 60%, var(--color-card));
-  --color-mist-70: color-mix(in srgb, var(--color-mist) 70%, var(--color-card));
-  --color-mist-80: color-mix(in srgb, var(--color-mist) 80%, var(--color-card));
-  --color-frost-55: color-mix(in srgb, var(--color-frost) 55%, var(--color-card));
-  --color-frost-70: color-mix(in srgb, var(--color-frost) 70%, var(--color-card));
-  --color-iris-tint-45: color-mix(in srgb, var(--color-iris-tint) 45%, var(--color-card));
+  /* Interaction. */
+  --color-primary: #a9c9e2; /* filled: primary button, urgent pill, today */
+  --color-on-primary: #1f3050; /* text on primary */
+  --color-primary-hover: color-mix(in srgb, var(--color-primary) 85%, var(--color-ink)); /* derived */
+  --color-primary-ink: #7e4fa0; /* coloured text and icons on cards: links, hovers, counts */
+  --color-primary-strong: #7fa9cc; /* bars, dots and thin marks */
+  --color-primary-tint: #ebddf5; /* pale fill: selected, high priority, pressed */
+  --color-accent: #b27ad0; /* focus ring, focused and hovered borders */
+
+  /* Worth watching: deadlines, overload, stale. The theme's highlight colour. */
+  --color-watch: #f3d778; /* dots, the overload bar */
+  --color-watch-mark: #c9a23a; /* small dots and borders that must show on light grounds */
+  --color-watch-tint: color-mix(in srgb, var(--color-watch) 22%, var(--color-card)); /* derived: pill and banner fill */
+  --color-watch-ink: #6e5214; /* text on watch-tint */
+
+  /* Depth. */
+  --color-shadow: var(--color-ink);
+  --color-scrim: color-mix(in srgb, var(--color-ink) 22%, transparent); /* behind dialogs */
+
+  /* Washes: <role>-NN is NN% of that role over a card. */
+  --color-page-40: color-mix(in srgb, var(--color-page) 40%, var(--color-card));
+  --color-page-55: color-mix(in srgb, var(--color-page) 55%, var(--color-card));
+  --color-page-60: color-mix(in srgb, var(--color-page) 60%, var(--color-card));
+  --color-page-70: color-mix(in srgb, var(--color-page) 70%, var(--color-card));
+  --color-page-80: color-mix(in srgb, var(--color-page) 80%, var(--color-card));
+  --color-chip-55: color-mix(in srgb, var(--color-chip) 55%, var(--color-card));
+  --color-chip-70: color-mix(in srgb, var(--color-chip) 70%, var(--color-card));
+  --color-primary-tint-45: color-mix(in srgb, var(--color-primary-tint) 45%, var(--color-card));
   /* One-off mixes. */
-  --color-iris-deeper: color-mix(in srgb, var(--color-iris-deep) 88%, black); /* primary button hover */
-  --color-iris-pressed: color-mix(in srgb, var(--color-iris) 30%, var(--color-iris-tint)); /* pressed toggle border */
-  --color-iris-line: color-mix(in srgb, var(--color-iris) 45%, var(--color-line)); /* open form border */
+  --color-primary-pressed: color-mix(in srgb, var(--color-accent) 30%, var(--color-primary-tint)); /* pressed toggle border */
+  --color-accent-line: color-mix(in srgb, var(--color-accent) 45%, var(--color-line)); /* open form border */
 
   /* Plain CSS defaults to ease; Tailwind's would be ease-in-out. */
   --default-transition-timing-function: ease;
@@ -103,12 +118,12 @@
   --radius-16: 16px;
   --radius-18: 18px;
 
-  --shadow-card: 0 1px 2px rgb(26 53 80 / 0.04), 0 1px 1px rgb(26 53 80 / 0.03);
-  --shadow-segment: 0 1px 3px rgb(26 53 80 / 0.12);
-  --shadow-toast: 0 8px 28px rgb(26 53 80 / 0.22);
-  --shadow-pop: 0 12px 32px rgb(26 53 80 / 0.14), 0 2px 6px rgb(26 53 80 / 0.05);
-  --shadow-dialog: 0 24px 64px rgb(26 53 80 / 0.24);
-  --shadow-drawer: -16px 0 48px rgb(26 53 80 / 0.16);
+  --shadow-card: 0 1px 2px color-mix(in srgb, var(--color-shadow) 4%, transparent), 0 1px 1px color-mix(in srgb, var(--color-shadow) 3%, transparent);
+  --shadow-segment: 0 1px 3px color-mix(in srgb, var(--color-shadow) 12%, transparent);
+  --shadow-toast: 0 8px 28px color-mix(in srgb, var(--color-shadow) 22%, transparent);
+  --shadow-pop: 0 12px 32px color-mix(in srgb, var(--color-shadow) 14%, transparent), 0 2px 6px color-mix(in srgb, var(--color-shadow) 5%, transparent);
+  --shadow-dialog: 0 24px 64px color-mix(in srgb, var(--color-shadow) 24%, transparent);
+  --shadow-drawer: -16px 0 48px color-mix(in srgb, var(--color-shadow) 16%, transparent);
 
   /*
    * Narrow layouts are written max-first: max-lg (< 800px) is the phone and
@@ -143,7 +158,6 @@
 
 @layer base {
   :root {
-    color-scheme: light;
     /* The smallest tap target. Grows to 44px on narrow screens (max-lg). */
     --tap: 34px;
     /* Side padding of the page and the top bar. */
@@ -157,14 +171,14 @@
   }
 
   html {
-    background: var(--color-mist);
+    background: var(--color-page);
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     margin: 0;
-    background: var(--color-mist);
-    color: var(--color-slate);
+    background: var(--color-page);
+    color: var(--color-body);
     font-family: var(--font-sans);
     font-size: var(--text-15);
     line-height: 1.5;
@@ -175,20 +189,20 @@
   }
 
   a {
-    color: var(--color-iris-deep);
+    color: var(--color-primary-ink);
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-iris);
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
     border-radius: var(--radius-8);
   }
 
   input[type='checkbox'] {
-    accent-color: var(--color-iris-deep);
+    accent-color: var(--color-primary-strong);
     width: 18px;
     height: 18px;
     margin: 0;
@@ -199,7 +213,7 @@
   h1,
   h2,
   h3 {
-    color: var(--color-deep);
+    color: var(--color-ink);
     font-weight: 600;
   }
 
@@ -248,7 +262,7 @@
     border: 1px solid var(--color-line);
     border-radius: var(--radius-10);
     background: var(--color-card);
-    color: var(--color-deep);
+    color: var(--color-ink);
     font-size: var(--text-14);
     font-weight: 500;
     cursor: pointer;
@@ -260,15 +274,15 @@
   }
 
   .btn.btn-primary {
-    background: var(--color-iris-deep);
-    border-color: var(--color-iris-deep);
-    color: #fff;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
   }
 
   .btn.btn-quiet {
     border-color: transparent;
     background: transparent;
-    color: var(--color-slate);
+    color: var(--color-body);
     padding: 4px 10px;
   }
 
@@ -284,35 +298,35 @@
 
   @media (hover: hover) {
     .btn:hover:not(:disabled) {
-      border-color: var(--color-iris);
-      color: var(--color-iris-deep);
+      border-color: var(--color-accent);
+      color: var(--color-primary-ink);
     }
 
     .btn.btn-primary:hover:not(:disabled) {
-      background: var(--color-iris-deeper);
-      color: #fff;
+      background: var(--color-primary-hover);
+      color: var(--color-on-primary);
     }
 
     .btn.btn-quiet:hover:not(:disabled) {
-      background: color-mix(in srgb, var(--color-frost) 60%, transparent);
+      background: color-mix(in srgb, var(--color-chip) 60%, transparent);
       border-color: transparent;
     }
   }
 
   /* Destructive actions stay quiet until reached, then warn in amber. */
   .btn.btn-danger {
-    color: var(--color-slate);
+    color: var(--color-body);
   }
 
   .btn.btn-danger:focus-visible {
-    color: var(--color-gold-ink);
+    color: var(--color-watch-ink);
   }
 
   @media (hover: hover) {
     .btn.btn-danger:hover:not(:disabled) {
-      background: var(--color-gold-tint);
+      background: var(--color-watch-tint);
       border-color: transparent;
-      color: var(--color-gold-ink);
+      color: var(--color-watch-ink);
     }
   }
 
@@ -326,15 +340,15 @@
     border: 0;
     border-radius: var(--radius-8);
     background: transparent;
-    color: var(--color-slate);
+    color: var(--color-body);
     font-size: var(--text-13);
     cursor: pointer;
   }
 
   @media (hover: hover) {
     .icon-btn:hover {
-      color: var(--color-iris-deep);
-      background: color-mix(in srgb, var(--color-frost) 55%, transparent);
+      color: var(--color-primary-ink);
+      background: color-mix(in srgb, var(--color-chip) 55%, transparent);
     }
   }
 
@@ -353,37 +367,37 @@
     flex: none;
     padding: 2px 10px;
     border-radius: 999px;
-    background: var(--color-frost);
-    color: var(--color-slate);
+    background: var(--color-chip);
+    color: var(--color-body);
     font-size: var(--text-12);
     font-weight: 500;
     white-space: nowrap;
   }
 
   .pill.pill-watch {
-    background: var(--color-gold-tint);
-    color: var(--color-gold-ink);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-gold) 45%, transparent);
+    background: var(--color-watch-tint);
+    color: var(--color-watch-ink);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-watch) 45%, transparent);
   }
 
   .pill.pill-urgent {
-    background: var(--color-iris-deep);
-    color: #fff;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
   }
 
   .pill.pill-high {
-    background: var(--color-iris-tint);
-    color: var(--color-iris-deep);
+    background: var(--color-primary-tint);
+    color: var(--color-primary-ink);
   }
 
   .pill.pill-plain {
-    background: var(--color-frost);
-    color: var(--color-slate);
+    background: var(--color-chip);
+    color: var(--color-body);
   }
 
   .pill.pill-low {
     background: transparent;
-    color: var(--color-slate);
+    color: var(--color-body);
     box-shadow: inset 0 0 0 1px var(--color-line);
   }
 }

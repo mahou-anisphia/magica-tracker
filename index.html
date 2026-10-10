@@ -3,9 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="light" />
-    <meta name="theme-color" content="#F2F6FA" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F6F8FB" />
     <title>Magica Tracker</title>
+    <script>
+      // The saved theme's palette, set before the first paint so a dark theme
+      // never flashes light. src/ui/themes.ts owns the choice and re-applies it;
+      // with nothing saved, this mirrors its default: Euphie, following the system.
+      try {
+        var t = JSON.parse(localStorage.getItem('magica:v1:theme') || 'null') || {};
+        var dark = matchMedia('(prefers-color-scheme: dark)').matches;
+        var mode = t.appearance === 'light' || t.appearance === 'dark' ? t.appearance : dark ? 'dark' : 'light';
+        var p = t[mode] || 'euphie-' + mode;
+        if (/^[a-z0-9-]+$/.test(p)) document.documentElement.dataset.palette = p;
+      } catch (e) {}
+    </script>
     <!-- Inline icon so the browser never goes looking for /favicon.ico. -->
     <link
       rel="icon"

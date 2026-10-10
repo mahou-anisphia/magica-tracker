@@ -7,7 +7,7 @@ export function Banners(props: { saving: boolean; notice: string | null }) {
   return (
     <>
       {!props.saving && (
-        <div class={`${BANNER} border border-gold bg-gold-tint text-gold-ink`} role="status">
+        <div class={`${BANNER} border border-watch bg-watch-tint text-watch-ink`} role="status">
           <p class="flex-[1_1_240px]">
             <strong>Not saving — export before closing.</strong>
           </p>
@@ -17,7 +17,7 @@ export function Banners(props: { saving: boolean; notice: string | null }) {
         </div>
       )}
       {props.notice && (
-        <div class={`${BANNER} border border-line bg-card text-deep`} role="status">
+        <div class={`${BANNER} border border-line bg-card text-ink`} role="status">
           <p class="flex-[1_1_240px]">{props.notice}</p>
           <button type="button" class="btn btn-quiet btn-small" onClick={() => set({ notice: null })}>
             Dismiss

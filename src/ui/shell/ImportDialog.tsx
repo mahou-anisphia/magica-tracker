@@ -14,7 +14,7 @@ export function ImportDialog(props: { state: ImportState | null; current: Root }
           <h2 id="import-h" class="text-18">
             Couldn’t import “{s.fileName}”
           </h2>
-          <p class="rounded-10 bg-gold-tint px-12 py-8 text-13 text-gold-ink" role="alert">
+          <p class="rounded-10 bg-watch-tint px-12 py-8 text-13 text-watch-ink" role="alert">
             {s.error}
           </p>
           <p>Nothing was changed.</p>
