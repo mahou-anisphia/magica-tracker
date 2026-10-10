@@ -28,7 +28,7 @@ export function TaskRow({ project, task, expanded, now }: Props) {
   const toggleExpand = () => set({ expandedTaskId: expanded ? null : task.id });
 
   return (
-    <li id={`task-${task.id}`} class={expanded ? 'bg-mist-55' : ''}>
+    <li id={`task-${task.id}`} class={expanded ? 'bg-page-55' : ''}>
       {/* group/row: an empty deadline button brightens while the row is hovered. */}
       <div class="group/row flex min-h-54 items-center gap-10 pr-14 pl-18 max-lg:min-h-52 max-lg:pr-8 max-lg:pl-12">
         <label class="-ml-5 inline-flex size-28 flex-none cursor-pointer items-center justify-center max-lg:-mr-8 max-lg:-ml-13 max-lg:size-44">
@@ -45,8 +45,8 @@ export function TaskRow({ project, task, expanded, now }: Props) {
           <InlineInput
             value={task.title}
             label="Task title"
-            box="mx-0 my-8 rounded-8 border border-iris bg-card px-8 py-2"
-            class="text-deep"
+            box="mx-0 my-8 rounded-8 border border-accent bg-card px-8 py-2"
+            class="text-ink"
             onCancel={() => setRenaming(false)}
             onSave={(title) => {
               setRenaming(false);
@@ -56,7 +56,7 @@ export function TaskRow({ project, task, expanded, now }: Props) {
         ) : (
           <button
             type="button"
-            class={`group/title flex min-w-0 flex-1 cursor-pointer items-center gap-10 bg-transparent px-4 py-10 text-left max-lg:min-h-44 max-lg:flex-wrap max-lg:gap-y-4 ${task.done ? 'font-normal text-steel' : 'font-medium text-deep'}`}
+            class={`group/title flex min-w-0 flex-1 cursor-pointer items-center gap-10 bg-transparent px-4 py-10 text-left max-lg:min-h-44 max-lg:flex-wrap max-lg:gap-y-4 ${task.done ? 'font-normal text-faint' : 'font-medium text-ink'}`}
             data-task-row={task.id}
             aria-expanded={expanded}
             aria-controls={detailId}
@@ -73,23 +73,23 @@ export function TaskRow({ project, task, expanded, now }: Props) {
             }}
           >
             {/* Narrow: the title gets the full width; its chips go on a line beneath. */}
-            <span class="min-w-0 flex-1 group-hover/title:text-iris-deep max-lg:basis-full">{task.title}</span>
+            <span class="min-w-0 flex-1 group-hover/title:text-primary-ink max-lg:basis-full">{task.title}</span>
             <PriorityChip priority={task.priority} />
             {stale && (
-              <span class="inline-block size-7 flex-none rounded-full bg-burnished" title={`Untouched ${daysSince(task.updatedAt, now)} days`}>
+              <span class="inline-block size-7 flex-none rounded-full bg-watch-mark" title={`Untouched ${daysSince(task.updatedAt, now)} days`}>
                 <span class="sr-only">untouched {daysSince(task.updatedAt, now)} days</span>
               </span>
             )}
             {progress.total > 0 && (
               <span
-                class={`text-13 tabular-nums ${task.done ? 'font-normal text-steel' : 'font-medium text-slate'}`}
+                class={`text-13 tabular-nums ${task.done ? 'font-normal text-faint' : 'font-medium text-body'}`}
                 aria-label={`${progress.done} of ${progress.total} sub-tasks done`}>
                 {progress.done} / {progress.total}
               </span>
             )}
             {task.effort !== undefined && (
               <span
-                class="rounded-full bg-iris-tint px-8 py-1 text-12 font-medium text-iris-deep tabular-nums"
+                class="rounded-full bg-primary-tint px-8 py-1 text-12 font-medium text-primary-ink tabular-nums"
                 title="Allocation: share of your capacity"
               >
                 {task.effort}%
@@ -111,7 +111,7 @@ export function TaskRow({ project, task, expanded, now }: Props) {
           {/* Notes sit at the top of a task, like a note pinned to it. */}
           <EditableText
             box="m-0 rounded-10 border border-line bg-card px-14 py-10"
-            class="text-deep"
+            class="text-ink"
             value={task.notes ?? ''}
             label="Notes"
             placeholder="Notes…"
@@ -138,10 +138,10 @@ export function TaskRow({ project, task, expanded, now }: Props) {
           <Resources target={{ projectId: project.id, taskId: task.id }} resources={task.resources} />
 
           <div class="flex flex-wrap items-center gap-x-20 gap-y-8">
-            <label class="inline-flex items-center gap-8 text-13 font-medium text-slate">
+            <label class="inline-flex items-center gap-8 text-13 font-medium text-body">
               Priority
               <select
-                class="min-h-30 rounded-8 border border-line bg-card px-10 py-2 text-14 text-deep max-lg:min-h-44 max-lg:text-16"
+                class="min-h-30 rounded-8 border border-line bg-card px-10 py-2 text-14 text-ink max-lg:min-h-44 max-lg:text-16"
                 value={task.priority ?? ''}
                 onChange={(e) => {
                   const v = e.currentTarget.value as Priority | '';

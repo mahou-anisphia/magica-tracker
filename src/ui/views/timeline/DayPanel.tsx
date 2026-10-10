@@ -17,7 +17,7 @@ export function DayPanel(props: { date: string | null; items: DueItem[]; now: Da
               <h2 id="day-h" class="text-17">
                 {panelDay.format(parseDay(date))}
               </h2>
-              <p class="text-13 text-slate">{items.length ? plural(items.length, 'deadline') : 'No deadlines'}</p>
+              <p class="text-13 text-body">{items.length ? plural(items.length, 'deadline') : 'No deadlines'}</p>
             </div>
             <button type="button" class="icon-btn" aria-label="Close" onClick={props.onClose}>
               <CrossIcon />

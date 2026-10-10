@@ -33,10 +33,10 @@ export function Resources(props: { target: ops.ResourceTarget; resources: Resour
               </li>
             ) : (
               <li key={r.id} class="flex items-start gap-12 py-12 pr-14 pl-18">
-                <span class="mt-[0.5em] size-8 flex-none rounded-2 bg-iris" aria-hidden="true" />
+                <span class="mt-[0.5em] size-8 flex-none rounded-2 bg-accent" aria-hidden="true" />
                 <div class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-10">
                   <a
-                    class="inline-flex items-center gap-6 font-medium text-deep no-underline hover:text-iris-deep hover:underline [&_svg]:flex-none [&_svg]:text-steel"
+                    class="inline-flex items-center gap-6 font-medium text-ink no-underline hover:text-primary-ink hover:underline [&_svg]:flex-none [&_svg]:text-faint"
                     href={r.url}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -45,8 +45,8 @@ export function Resources(props: { target: ops.ResourceTarget; resources: Resour
                     <ExternalIcon />
                     <span class="sr-only"> (opens in a new tab)</span>
                   </a>
-                  <span class="text-13 text-slate">{shortUrl(r.url)}</span>
-                  {r.note && <span class="basis-full text-13 text-slate">{r.note}</span>}
+                  <span class="text-13 text-body">{shortUrl(r.url)}</span>
+                  {r.note && <span class="basis-full text-13 text-body">{r.note}</span>}
                 </div>
                 <RowActions>
                   <RowAction label={`Edit ${r.header}`} title="Edit" onClick={() => setEditingId(r.id)}>
@@ -79,10 +79,10 @@ export function Resources(props: { target: ops.ResourceTarget; resources: Resour
       ) : (
         <button
           type="button"
-          class={`${ADD_FIELD} ${ADD_BORDER} min-h-[calc(var(--tap)+8px)] w-full cursor-pointer text-left text-slate hover:border-iris hover:text-iris-deep`}
+          class={`${ADD_FIELD} ${ADD_BORDER} min-h-[calc(var(--tap)+8px)] w-full cursor-pointer text-left text-body hover:border-accent hover:text-primary-ink`}
           onClick={() => setAdding(true)}
         >
-          <span class="text-[1.05rem] leading-none text-slate" aria-hidden="true">
+          <span class="text-[1.05rem] leading-none text-body" aria-hidden="true">
             +
           </span>
           Add a resource…

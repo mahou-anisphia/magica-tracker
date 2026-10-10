@@ -12,13 +12,13 @@ export function ToastRegion(props: { toast: Toast | null }) {
       {t && (
         <div
           key={t.id}
-          class={`pointer-events-auto flex animate-rise items-center gap-12 rounded-full bg-deep py-8 pl-18 text-14 text-mist shadow-toast ${t.action ? 'pr-8' : 'pr-18'}`}
+          class={`pointer-events-auto flex animate-rise items-center gap-12 rounded-full bg-ink py-8 pl-18 text-14 text-page shadow-toast ${t.action ? 'pr-8' : 'pr-18'}`}
         >
           <span>{t.text}</span>
           {t.action && (
             <button
               type="button"
-              class="btn btn-small min-h-28 rounded-full border-transparent bg-transparent text-frost hover:border-transparent hover:bg-white/12 hover:text-white max-lg:min-h-44"
+              class="btn btn-small min-h-28 rounded-full border-transparent bg-transparent text-chip hover:border-transparent hover:bg-card/12 hover:text-card max-lg:min-h-44"
               onClick={t.action.run}
             >
               {t.action.label}

@@ -10,7 +10,7 @@ export function BacklogView(props: { root: Root }) {
   return (
     <article aria-labelledby="pane-title">
       <header class="mb-24 flex flex-wrap items-start justify-between gap-x-20 gap-y-10">
-        <h2 id="pane-title" class="text-24 leading-[1.25] font-semibold tracking-[-0.015em] text-deep">
+        <h2 id="pane-title" class="text-24 leading-[1.25] font-semibold tracking-[-0.015em] text-ink">
           Backlog
         </h2>
       </header>

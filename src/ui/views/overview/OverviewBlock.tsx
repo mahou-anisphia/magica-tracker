@@ -5,7 +5,7 @@ export function OverviewBlock(props: { id: string; title: string; children: Comp
   return (
     <section class="mb-52" aria-labelledby={props.id}>
       <div class="mb-12 flex items-baseline justify-between gap-12">
-        <h2 id={props.id} class="text-15 font-medium text-slate">
+        <h2 id={props.id} class="text-15 font-medium text-body">
           {props.title}
         </h2>
       </div>

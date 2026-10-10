@@ -1,0 +1,211 @@
+/*
+ * Themes. Each block sets the colour roles from styles.css for one palette on
+ * <html data-palette="…">; anything a block leaves out keeps its default (the
+ * Euphie light value, or the derived mix). src/ui/themes.ts lists the themes,
+ * their modes and swatches, and sets the attribute.
+ *
+ * The theme's highlight colour is always the "watch" role: what's overdue,
+ * approaching, untouched or over-allocated. The colours come from the theme
+ * notes; values that differ (text-safe shades, tints) were darkened or mixed
+ * so text keeps at least 4.5:1 on its background.
+ */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  /* Euphie, dark */
+  :root[data-palette='euphie-dark'] {
+    color-scheme: dark;
+    --color-page: #1e2742;
+    --color-card: #28325a;
+    --color-line: #3b476c;
+    --color-body: #b5bfd0;
+    --color-ink: #f2f6fa;
+    --color-primary: #9cc3e6;
+    --color-on-primary: #14203d;
+    --color-primary-ink: #d4a8ea;
+    --color-primary-strong: #9cc3e6;
+    --color-primary-tint: color-mix(in srgb, var(--color-accent) 18%, var(--color-card));
+    --color-accent: #c792e0;
+    --color-chip: color-mix(in srgb, var(--color-primary) 16%, var(--color-card));
+    --color-watch: #f3d778;
+    --color-watch-mark: #f3d778;
+    --color-watch-ink: #f3d778;
+    --color-watch-tint: color-mix(in srgb, var(--color-watch) 14%, var(--color-card));
+    --color-shadow: #000000;
+    --color-scrim: rgb(8 12 26 / 0.55);
+  }
+
+  /* March 7th, light: pink primary, icy blue highlight */
+  :root[data-palette='march-7th-light'] {
+    --color-page: #fff3f8;
+    --color-card: #fffafc;
+    --color-line: #f3d3e1;
+    --color-body: #74658a;
+    --color-ink: #3a2f4a;
+    --color-primary: #f29ab8;
+    --color-on-primary: #4a1230;
+    --color-primary-ink: #a83a68;
+    --color-primary-strong: #e07aa0;
+    --color-primary-tint: color-mix(in srgb, var(--color-primary) 20%, var(--color-card));
+    --color-accent: #c95a87;
+    --color-chip: color-mix(in srgb, var(--color-primary) 16%, var(--color-card));
+    --color-watch: #7cc8ee;
+    --color-watch-mark: #3e9ccb;
+    --color-watch-ink: #135a80;
+    --color-watch-tint: color-mix(in srgb, #bfe6f7 60%, var(--color-card));
+  }
+
+  /* March 7th, dark */
+  :root[data-palette='march-7th-dark'] {
+    color-scheme: dark;
+    --color-page: #1c2340;
+    --color-card: #262e52;
+    --color-line: #3c4a7a;
+    --color-body: #b4b8d8;
+    --color-ink: #fdeff5;
+    --color-primary: #f6a8c6;
+    --color-on-primary: #3a1028;
+    --color-primary-ink: #f8b9d2;
+    --color-primary-strong: #f6a8c6;
+    --color-primary-tint: color-mix(in srgb, var(--color-primary) 18%, var(--color-card));
+    --color-accent: #f6a8c6;
+    --color-chip: color-mix(in srgb, var(--color-primary) 12%, var(--color-card));
+    --color-watch: #a6e3f7;
+    --color-watch-mark: #a6e3f7;
+    --color-watch-ink: #a6e3f7;
+    --color-watch-tint: color-mix(in srgb, var(--color-watch) 14%, var(--color-card));
+    --color-shadow: #000000;
+    --color-scrim: rgb(8 10 24 / 0.55);
+  }
+
+  /* Firefly, light: teal on cream, a faint yellow highlight */
+  :root[data-palette='firefly-light'] {
+    --color-page: #f4f5d8;
+    --color-card: #fafbea;
+    --color-line: #c5dcd3;
+    --color-body: #456f74;
+    --color-ink: #1f4a52;
+    --color-primary: #3a7f86;
+    --color-on-primary: #fafffd;
+    --color-primary-ink: #2f6c73;
+    --color-primary-strong: #3a7f86;
+    --color-primary-tint: color-mix(in srgb, #aecdc7 45%, var(--color-card));
+    --color-accent: #3a7f86;
+    --color-chip: color-mix(in srgb, #aecdc7 40%, var(--color-card));
+    --color-watch: #e8d88a;
+    --color-watch-mark: #b39b2e;
+    --color-watch-ink: #6b5a12;
+    --color-watch-tint: color-mix(in srgb, var(--color-watch) 32%, var(--color-card));
+  }
+
+  /* Firefly, dark */
+  :root[data-palette='firefly-dark'] {
+    color-scheme: dark;
+    --color-page: #173439;
+    --color-card: #204249;
+    --color-line: #2d626a;
+    --color-body: #aecdc7;
+    --color-ink: #f0f1c7;
+    --color-primary: #8fbdb5;
+    --color-on-primary: #0e2a2e;
+    --color-primary-ink: #a9d3cb;
+    --color-primary-strong: #8fbdb5;
+    --color-primary-tint: color-mix(in srgb, var(--color-primary) 18%, var(--color-card));
+    --color-accent: #8fbdb5;
+    --color-chip: color-mix(in srgb, var(--color-primary) 14%, var(--color-card));
+    --color-watch: #e8d88a;
+    --color-watch-mark: #e8d88a;
+    --color-watch-ink: #e8d88a;
+    --color-watch-tint: color-mix(in srgb, var(--color-watch) 14%, var(--color-card));
+    --color-shadow: #000000;
+    --color-scrim: rgb(4 16 18 / 0.55);
+  }
+
+  /* Lavender haze (light only): violet primary, blush highlight */
+  :root[data-palette='lavender-haze'] {
+    --color-page: #f4effa;
+    --color-card: #fbf8fe;
+    --color-line: #ddd3ec;
+    --color-body: #6f6589;
+    --color-ink: #3b3355;
+    --color-primary: #9b8ac4;
+    --color-on-primary: #1f1836;
+    --color-primary-ink: #64529a;
+    --color-primary-strong: #7d6bb0;
+    --color-primary-tint: color-mix(in srgb, #d9ccf0 55%, var(--color-card));
+    --color-accent: #7d6bb0;
+    --color-chip: color-mix(in srgb, #d9ccf0 45%, var(--color-card));
+    --color-watch: #f2b5c4;
+    --color-watch-mark: #d27a93;
+    --color-watch-ink: #8a3550;
+    --color-watch-tint: color-mix(in srgb, var(--color-watch) 30%, var(--color-card));
+  }
+
+  /* Peach milk (light only): peach primary, periwinkle highlight */
+  :root[data-palette='peach-milk'] {
+    --color-page: #fff4ea;
+    --color-card: #fffbf6;
+    --color-line: #f0d9c6;
+    --color-body: #806960;
+    --color-ink: #4a3a36;
+    --color-primary: #e8a598;
+    --color-on-primary: #3a1a14;
+    --color-primary-ink: #9e4c39;
+    --color-primary-strong: #d98473;
+    --color-primary-tint: color-mix(in srgb, #f7d9b8 50%, var(--color-card));
+    --color-accent: #c8705e;
+    --color-chip: color-mix(in srgb, #f7d9b8 55%, var(--color-card));
+    --color-watch: #a9b8d9;
+    --color-watch-mark: #6f84b8;
+    --color-watch-ink: #3e5288;
+    --color-watch-tint: color-mix(in srgb, var(--color-watch) 28%, var(--color-card));
+  }
+
+  /* Moonlit cloud (dark only): lilac primary, apricot highlight */
+  :root[data-palette='moonlit-cloud'] {
+    color-scheme: dark;
+    --color-page: #232743;
+    --color-card: #2d3252;
+    --color-line: #434975;
+    --color-body: #a9a7c8;
+    --color-ink: #ede7f6;
+    --color-primary: #b8a9e8;
+    --color-on-primary: #1e1a3a;
+    --color-primary-ink: #cbc0f2;
+    --color-primary-strong: #b8a9e8;
+    --color-primary-tint: color-mix(in srgb, var(--color-primary) 18%, var(--color-card));
+    --color-accent: #b8a9e8;
+    --color-chip: color-mix(in srgb, #6e7fb5 28%, var(--color-card));
+    --color-watch: #f5c6a5;
+    --color-watch-mark: #f5c6a5;
+    --color-watch-ink: #f5c6a5;
+    --color-watch-tint: color-mix(in srgb, var(--color-watch) 14%, var(--color-card));
+    --color-shadow: #000000;
+    --color-scrim: rgb(10 10 28 / 0.55);
+  }
+
+  /* Magica classic (light only): the original palette, value for value */
+  :root[data-palette='magica'] {
+    --color-page: #f2f6fa;
+    --color-card: #ffffff;
+    --color-chip: #dde8f2;
+    --color-line: #dde6ef;
+    --color-line-strong: #b8c8d8;
+    --color-faint: #7a9ab5;
+    --color-body: #4a6a84;
+    --color-ink: #1a3550;
+    --color-primary: #534ab7;
+    --color-on-primary: #ffffff;
+    --color-primary-hover: color-mix(in srgb, var(--color-primary) 88%, #000000);
+    --color-primary-ink: #534ab7;
+    --color-primary-strong: #534ab7;
+    --color-primary-tint: #efeefc;
+    --color-accent: #7f77dd;
+    --color-watch: #f0c060;
+    --color-watch-mark: #c8902a;
+    --color-watch-tint: #fcf3df;
+    --color-watch-ink: #7a5412;
+  }
+}

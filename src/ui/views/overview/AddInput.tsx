@@ -3,7 +3,7 @@ import { useState } from 'preact/hooks';
 /** The dashed "+ Add …" field look, shared with the "Add a resource…" trigger. */
 export const ADD_FIELD =
   'flex items-center gap-8 rounded-12 border bg-card/45 px-14 py-2 transition-[border-color,background-color] duration-120 focus-within:bg-card';
-export const ADD_BORDER = 'border-dashed border-ash/80 focus-within:border-solid focus-within:border-iris';
+export const ADD_BORDER = 'border-dashed border-line-strong/80 focus-within:border-solid focus-within:border-accent';
 
 /**
  * An always-visible "+ Add …" field. Enter adds and keeps focus for the next
@@ -41,15 +41,15 @@ export function AddInput(props: {
   };
   return (
     <form
-      class={`${ADD_FIELD} ${invalid ? 'border-solid border-burnished' : ADD_BORDER} ${props.class ?? ''}`}
+      class={`${ADD_FIELD} ${invalid ? 'border-solid border-watch-mark' : ADD_BORDER} ${props.class ?? ''}`}
       onSubmit={submit}
     >
-      <span class="text-[1.05rem] leading-none text-slate" aria-hidden="true">
+      <span class="text-[1.05rem] leading-none text-body" aria-hidden="true">
         +
       </span>
       <input
         type="text"
-        class="min-h-[calc(var(--tap)+4px)] min-w-0 flex-1 bg-transparent px-2 py-1 outline-none placeholder:text-slate placeholder:opacity-75"
+        class="min-h-[calc(var(--tap)+4px)] min-w-0 flex-1 bg-transparent px-2 py-1 outline-none placeholder:text-body placeholder:opacity-75"
         value={value}
         onInput={(e) => {
           setValue(e.currentTarget.value);
@@ -64,7 +64,7 @@ export function AddInput(props: {
         autoComplete="off"
       />
       {invalid && props.invalidHint && (
-        <span class="flex-none rounded-full bg-gold-tint px-9 py-1 text-12 font-medium text-gold-ink" role="alert">
+        <span class="flex-none rounded-full bg-watch-tint px-9 py-1 text-12 font-medium text-watch-ink" role="alert">
           {props.invalidHint}
         </span>
       )}

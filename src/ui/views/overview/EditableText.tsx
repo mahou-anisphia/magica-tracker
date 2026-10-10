@@ -44,7 +44,7 @@ export function EditableText(props: {
     <button
       type="button"
       // data-empty wins over a colour in `class`: the placeholder is always muted.
-      class={`block w-full cursor-text text-left whitespace-pre-wrap data-empty:text-steel ${props.box ?? BOX} ${props.class ?? ''}`}
+      class={`block w-full cursor-text text-left whitespace-pre-wrap data-empty:text-faint ${props.box ?? BOX} ${props.class ?? ''}`}
       data-empty={empty || undefined}
       onClick={() => setEditing(true)}
       aria-label={empty ? props.placeholder : `${props.label}: ${props.value}. Click to edit.`}

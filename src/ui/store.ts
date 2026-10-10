@@ -3,6 +3,7 @@ import { normalizeRoot } from '../core/completion';
 import { emptyRoot, type Root } from '../core/schema';
 import { nowIso } from '../core/time';
 import { createSaver, load, onExternalChange, readLastExport, readMode, writeMode } from '../storage/local';
+import { applyTheme, DEFAULT_THEME, onSystemAppearanceChange, readThemeChoice, saveThemeChoice, type ThemeChoice } from './themes';
 
 export type View = { kind: 'project'; id: string } | { kind: 'backlog' } | { kind: 'auto' };
 
@@ -24,6 +25,8 @@ export type Mode = 'overview' | 'timeline';
 export type State = {
   root: Root;
   mode: Mode;
+  /** The colour theme, per browser. */
+  theme: ThemeChoice;
   /** False while writes are failing or storage is unavailable: shows the banner. */
   saving: boolean;
   notice: string | null;
@@ -42,6 +45,7 @@ export type State = {
 let state: State = {
   root: emptyRoot(),
   mode: 'overview',
+  theme: DEFAULT_THEME,
   saving: true,
   notice: null,
   lastExportedAt: null,
@@ -111,10 +115,13 @@ export function init(): void {
   set({
     root: loaded.root,
     mode: readMode() ?? 'overview',
+    theme: readThemeChoice(),
     saving: loaded.canSave,
     notice: loaded.notice ?? null,
     lastExportedAt: readLastExport(),
   });
+  applyTheme(state.theme);
+  onSystemAppearanceChange(() => applyTheme(state.theme));
 
   onExternalChange((change) => {
     if (change.kind === 'lastExport') {
@@ -139,6 +146,13 @@ export function setMode(mode: Mode): void {
   if (mode === state.mode) return;
   set({ mode, drawerOpen: false, day: null });
   writeMode(mode);
+}
+
+/** The colour theme and light/dark choice, remembered per browser. */
+export function setTheme(theme: ThemeChoice): void {
+  set({ theme });
+  saveThemeChoice(theme);
+  applyTheme(theme);
 }
 
 // ─── Toasts & confirmations ──────────────────────────────────────────────────

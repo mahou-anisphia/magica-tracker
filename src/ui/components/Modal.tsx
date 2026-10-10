@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 
-const DIALOG = 'p-0 bg-card text-slate backdrop:bg-[rgb(26_53_80/0.22)] backdrop:backdrop-blur-[3px]';
+const DIALOG = 'p-0 bg-card text-body backdrop:bg-scrim backdrop:backdrop-blur-[3px]';
 const CENTERED = 'm-auto w-[min(460px,calc(100vw-32px))] rounded-18 border border-line shadow-dialog';
 // A white sheet from the right over the blurred page.
 const DRAWER =

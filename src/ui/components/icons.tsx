@@ -116,6 +116,19 @@ export function ExternalIcon(props: { size?: number }) {
   );
 }
 
+/** Theme: a painter's palette. */
+export function PaletteIcon(props: { size?: number }) {
+  const s = props.size ?? 14;
+  return (
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+      <path d="M8 2a6 6 0 1 0 0 12c.9 0 1.4-.6 1.4-1.3 0-.4-.2-.7-.4-1-.3-.3-.4-.6-.4-1 0-.7.6-1.2 1.3-1.2h1.4A2.7 2.7 0 0 0 14 6.8C14 4.1 11.3 2 8 2z" stroke-linejoin="round" />
+      <circle cx="5" cy="7.5" r=".8" fill="currentColor" stroke="none" />
+      <circle cx="7.5" cy="5" r=".8" fill="currentColor" stroke="none" />
+      <circle cx="10.5" cy="5.5" r=".8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 /** The brand mark: a small glowing orb. */
 export function Orb() {
   return <span class="orb" aria-hidden="true" />;

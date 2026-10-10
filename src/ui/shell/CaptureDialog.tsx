@@ -26,11 +26,11 @@ export function CaptureDialog(props: { open: boolean }) {
           close();
         }}
       >
-        <label class="grid grid-cols-1 gap-4 text-13 text-slate">
+        <label class="grid grid-cols-1 gap-4 text-13 text-body">
           <span class="sr-only">Idea or task</span>
           <input
             type="text"
-            class="min-h-38 rounded-10 border border-line bg-card px-12 py-4 text-15 text-deep focus:border-iris focus:ring-3 focus:ring-iris/18 focus:outline-none max-lg:text-16"
+            class="min-h-38 rounded-10 border border-line bg-card px-12 py-4 text-15 text-ink focus:border-accent focus:ring-3 focus:ring-accent/18 focus:outline-none max-lg:text-16"
             value={title}
             onInput={(e) => setTitle(e.currentTarget.value)}
             placeholder="An idea or task for later…"

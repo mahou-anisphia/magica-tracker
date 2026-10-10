@@ -9,7 +9,7 @@ export function RowAction(props: { label: string; title: string; onClick: () => 
   return (
     <button
       type="button"
-      class="icon-btn text-steel hover:text-iris-deep focus-visible:text-iris-deep"
+      class="icon-btn text-faint hover:text-primary-ink focus-visible:text-primary-ink"
       aria-label={props.label}
       title={props.title}
       onClick={props.onClick}

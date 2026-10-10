@@ -11,7 +11,7 @@ export function itemKey(it: DueItem): string {
   return it.subtask?.id ?? it.task?.id ?? `project-${it.project.id}`;
 }
 
-/** Done items recede; approaching or overdue ones are amber; the rest sit in Frost. */
+/** Done items recede; approaching or overdue ones take the highlight; the rest sit on a chip. */
 export function itemTone(it: DueItem): 'done' | 'watch' | 'open' {
   if (it.done) return 'done';
   return it.watch ? 'watch' : 'open';
