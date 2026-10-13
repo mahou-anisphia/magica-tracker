@@ -131,7 +131,7 @@ export function Orb() {
       <button
         type="button"
         class={`${FAB_SPOT} z-20 inline-flex size-56 cursor-pointer items-center justify-center rounded-full border border-line bg-card text-ink shadow-toast`}
-        aria-label="Menu: Overview, search, settings, Observatory and Team"
+        aria-label="Menu: Overview, search, settings, Observatory, Team and Board"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={start}

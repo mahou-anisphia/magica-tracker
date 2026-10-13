@@ -1,5 +1,5 @@
 import type { JSX } from 'preact';
-import { GearIcon, TeamIcon, TelescopeIcon } from '../components/icons';
+import { BoardIcon, GearIcon, TeamIcon, TelescopeIcon } from '../components/icons';
 import { go } from '../store';
 
 /** Something the orb can do, with the one-line explanation it shows beside it. */
@@ -23,7 +23,8 @@ export type OrbSection = {
 
 /**
  * The orb's sections, in the order they stack above it (the last sits nearest
- * the orb). Each action opens its screen and points at the part to use there.
+ * the orb, and is the one open when the orb opens: the Board, used most).
+ * Each action opens its screen and points at the part to use there.
  * The search palette lists the same actions.
  */
 export function orbSections(): OrbSection[] {
@@ -119,6 +120,35 @@ export function orbSections(): OrbSection[] {
           title: 'Importing their files',
           text: 'Bring in the files people exported. Each is matched to a person and kept read-only.',
           run: () => go('team', { key: 'team-import', hint: 'Start here' }),
+        },
+      ],
+    },
+    {
+      id: 'board',
+      label: 'Board',
+      icon: () => <BoardIcon size={22} />,
+      open: () => go('board'),
+      actions: [
+        {
+          id: 'board-waiting',
+          label: 'What’s waiting',
+          title: 'What you’re waiting on',
+          text: 'Every task waiting on a person, a meeting or evidence, with how long it has waited.',
+          run: () => go('board', { key: 'board-waiting', hint: 'Chase these' }),
+        },
+        {
+          id: 'board-due',
+          label: 'Due soon',
+          title: 'Today at a glance',
+          text: 'What’s overdue, due in the next three days, urgent, and waiting.',
+          run: () => go('board', { key: 'board-strip' }),
+        },
+        {
+          id: 'board-move',
+          label: 'Move a task along',
+          title: 'Moving a task',
+          text: 'Drag a card to another column, or open it and pick To do, Working, Waiting or Done.',
+          run: () => go('board', { key: 'board-lanes', hint: 'Drag a card, or open it' }),
         },
       ],
     },
