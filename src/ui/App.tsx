@@ -61,10 +61,10 @@ function useShortcuts(): void {
       } else if (e.key === 'b') {
         e.preventDefault();
         set({ capture: true });
-      } else if (e.key === 't') {
+      } else if (e.key === 't' && (s.mode === 'overview' || s.mode === 'timeline')) {
         e.preventDefault();
         setMode(s.mode === 'timeline' ? 'overview' : 'timeline');
-      } else if (e.key === '/') {
+      } else if (e.key === '/' && (s.mode === 'overview' || s.mode === 'timeline')) {
         e.preventDefault();
         setMode('overview');
         set({ drawerOpen: true });
@@ -89,17 +89,24 @@ export function App() {
   // "View as" needs a member with a file; without one, Team is where to get it.
   const member = s.mode === 'member' ? s.team.members.find((m) => m.id === s.memberId && m.snapshot) : undefined;
   const mode = s.mode === 'member' && !member ? 'team' : s.mode;
+  // The top bar belongs to the everyday views. The orb's screens have their own
+  // way back ("Your tracker"), so a view switch there would only jump you home.
+  const everyday = mode === 'overview' || mode === 'timeline';
 
   return (
     <>
-      <TopBar
-        mode={s.mode}
-        now={now}
-        lastExportedAt={s.lastExportedAt}
-        hasData={hasData}
-        hasSample={hasSample(s.root)}
-      />
-      <div class="mx-auto max-w-1160 pt-36 pr-[max(var(--gutter),env(safe-area-inset-right,0px))] pb-96 pl-[max(var(--gutter),env(safe-area-inset-left,0px))]">
+      {everyday && (
+        <TopBar
+          mode={s.mode}
+          now={now}
+          lastExportedAt={s.lastExportedAt}
+          hasData={hasData}
+          hasSample={hasSample(s.root)}
+        />
+      )}
+      <div
+        class={`mx-auto max-w-1160 ${everyday ? 'pt-36' : 'pt-[calc(36px+env(safe-area-inset-top,0px))]'} pr-[max(var(--gutter),env(safe-area-inset-right,0px))] pb-96 pl-[max(var(--gutter),env(safe-area-inset-left,0px))]`}
+      >
         <Banners saving={s.saving} notice={s.notice} />
 
         {mode === 'settings' ? (

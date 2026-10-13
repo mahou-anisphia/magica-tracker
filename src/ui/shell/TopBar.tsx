@@ -8,6 +8,7 @@ import { Backup } from './Backup';
  * The top bar: sample data on the left, the Overview/Timeline switch in the
  * middle, the backup controls on the right. Below 720px it stacks: the view
  * switch first, sample data last. The theme lives in Settings, through the orb.
+ * Shown on Overview and Timeline only; the orb's screens have their own way back.
  */
 export function TopBar(props: {
   mode: Mode;

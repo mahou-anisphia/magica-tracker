@@ -29,8 +29,8 @@ src/ui/
   components/        GLOBAL: only components used by more than one view (or a view and the shell)
     icons.tsx  Modal.tsx  PriorityChip.tsx  AllocationBar.tsx  Avatar.tsx
     Panel.tsx  ViewHeader.tsx  BackLink.tsx  highlight.tsx
-  shell/             app frame rendered once by App in every view: top bar, banners, dialogs,
-                     toast, the orb (Orb.tsx, orbMenu.tsx) and the search palette
+  shell/             app frame rendered once by App: top bar (everyday views only), banners,
+                     dialogs, toast, the orb (Orb.tsx, orbMenu.tsx) and the search palette
   views/
     overview/        the Overview page: OverviewView.tsx + every component only it uses
     timeline/        the Timeline page: TimelineView.tsx + every component only it uses
@@ -52,7 +52,8 @@ src/ui/
    `components/` in the same change, and move it back if that stops being true.
 3. **The shell is not a view.** Top bar, banners, the confirm/capture/import
    dialogs and the toast are rendered once by `App` around whichever view is
-   showing, so they live in `shell/`, not in `components/`.
+   showing, so they live in `shell/`, not in `components/`. The top bar is the
+   everyday views' frame: `App` shows it on Overview and Timeline only.
 4. **One component per file**, the file named after the component. Small
    non-component helpers shared within a folder get their own file too
    (`controlledCheck.ts`, `timeline/dueItem.ts`).
@@ -63,6 +64,8 @@ src/ui/
    switch and are remembered (`setMode`). Settings, Team, Observatory and View
    as are reached with `go(mode, highlight?)` from the orb or the palette, and
    start with `ViewHeader` (the "Your tracker" back link, a title, a line).
+   They have no top bar, and the view-switching keys (`t`, `/`) do nothing
+   there: a switch that sends you home from inside a screen is confusing.
 7. **Orb actions point at what to use.** Every orb section and action is
    declared once in `shell/orbMenu.tsx`; the palette lists the same ones. An
    action calls `go(mode, { key, hint })`. The target gives itself away with
