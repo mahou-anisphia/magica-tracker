@@ -7,7 +7,8 @@ import { daysSince } from './time';
  * The Board: every active project as a lane, its tasks in columns by status,
  * in the project's own order (which dragging a card sets).
  * Done shows only the last few days, so it shows progress without growing
- * forever. Lanes that need you sort first.
+ * forever. Lanes follow the project order (dragging a lane sets it); `needs`
+ * marks the ones with something overdue or urgent (now) or due soon.
  */
 
 /** How long a done task stays in the Done column. */
@@ -25,7 +26,6 @@ export type BoardCounts = {
   longestWait: number;
 };
 
-const RANK = { now: 0, soon: 1, later: 2 } as const;
 
 export function board(root: Root, now: Date): { lanes: BoardLane[]; counts: BoardCounts } {
   const counts: BoardCounts = { overdue: 0, dueSoon: 0, urgent: 0, waiting: 0, longestWait: 0 };
@@ -56,7 +56,5 @@ export function board(root: Root, now: Date): { lanes: BoardLane[]; counts: Boar
     cells.done.sort((a, b) => Date.parse(b.doneAt ?? '') - Date.parse(a.doneAt ?? ''));
     lanes.push({ project, cells, needs });
   }
-  // Array.prototype.sort is stable: projects keep their own order within a rank.
-  lanes.sort((a, b) => RANK[a.needs] - RANK[b.needs]);
   return { lanes, counts };
 }

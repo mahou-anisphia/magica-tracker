@@ -31,6 +31,7 @@ src/ui/
     Panel.tsx  ViewHeader.tsx  BackLink.tsx  highlight.tsx
     MonthCalendar.tsx  CalendarItem.tsx  dueItem.ts   (your Timeline and View as)
     Segmented.tsx  StatusChip.tsx  GlanceNumbers.tsx  LabelledBlock.tsx
+    useReorder.ts   (drag to reorder a vertical list: Board lanes, the project list)
   shell/             app frame rendered once by App: top bar (everyday views only), banners,
                      dialogs, toast, the orb (Orb.tsx, orbMenu.tsx) and the search palette
   views/

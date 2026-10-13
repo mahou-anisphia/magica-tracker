@@ -56,6 +56,11 @@ export async function deleteProject(project: Project): Promise<void> {
   set({ view: { kind: 'auto' } });
 }
 
+/** A dragged list of projects (Board lanes, the project list) in its new order. */
+export function reorderProjects(ids: string[]): void {
+  update((r) => ops.reorderProjects(r, ids));
+}
+
 export function setArchived(project: Project, archived: boolean): void {
   update((r, now) => ops.setProjectArchived(r, project.id, archived, now));
   if (archived) {

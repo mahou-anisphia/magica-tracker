@@ -19,7 +19,6 @@ import { InlineInput } from './InlineInput';
 import { Resources } from './Resources';
 import { SubtaskRow } from './SubtaskRow';
 import { TaskMoreDetails } from './TaskMoreDetails';
-import { TaskStatus } from './TaskStatus';
 
 type Props = { project: Project; task: Task; expanded: boolean; now: Date };
 
@@ -114,7 +113,6 @@ export function TaskRow({ project, task, expanded, now }: Props) {
 
       {expanded && (
         <div id={detailId} class="grid grid-cols-1 gap-14 pt-4 pr-22 pb-18 pl-54 max-lg:pr-14 max-lg:pb-16 max-lg:pl-14">
-          <TaskStatus project={project} task={task} />
           {/* Notes sit at the top of a task, like a note pinned to it. */}
           <EditableText
             box="m-0 rounded-10 border border-line bg-card px-14 py-10"

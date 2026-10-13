@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { board } from '../src/core/board';
-import { moveTaskTo } from '../src/core/ops';
+import { moveTaskTo, reorderProjects } from '../src/core/ops';
 import { project, root, task } from './fixtures';
 
 const NOW = new Date(2026, 9, 13, 12);
@@ -27,20 +27,31 @@ describe('board', () => {
   });
   const { lanes, counts } = board(r, NOW);
 
-  it('makes a lane per active project with something on it, the ones that need you first', () => {
+  it('makes a lane per active project with something on it, in project order, marking what needs you', () => {
     expect(lanes.map((l) => [l.project.id, l.needs])).toEqual([
-      ['hot', 'now'],
-      ['soon', 'soon'],
       ['calm', 'later'],
+      ['soon', 'soon'],
+      ['hot', 'now'],
     ]);
   });
 
+  it('reorders the projects that were showing, leaving the others where they were', () => {
+    const order = (x: ReturnType<typeof root>) => x.projects.map((p) => p.id);
+    // Lanes showing: calm, soon, hot. Drag hot to the top.
+    const m = reorderProjects(r, ['hot', 'calm', 'soon']);
+    expect(order(m)).toEqual(['hot', 'calm', 'soon', 'empty', 'old', 'fin']);
+    expect(board(m, NOW).lanes.map((l) => l.project.id)).toEqual(['hot', 'calm', 'soon']);
+    // Unchanged order, or an id that isn't there, changes nothing.
+    expect(reorderProjects(r, ['calm', 'soon', 'hot'])).toBe(r);
+    expect(reorderProjects(r, ['calm', 'nope'])).toBe(r);
+  });
+
   it('puts tasks in columns by status, with only the last week of done', () => {
-    const hot = lanes[0]!.cells;
+    const hot = lanes.find((l) => l.project.id === 'hot')!.cells;
     expect(hot.todo.map((t) => t.id)).toEqual(['h1']);
     expect(hot.waiting.map((t) => t.id)).toEqual(['h2', 'h3']);
     expect(hot.done.map((t) => t.id)).toEqual(['h4']);
-    expect(lanes[2]!.cells.working.map((t) => t.id)).toEqual(['c2']);
+    expect(lanes[0]!.cells.working.map((t) => t.id)).toEqual(['c2']);
   });
 
   it('moves a card to a column and a place, keeping the project order as the column order', () => {
@@ -52,10 +63,10 @@ describe('board', () => {
       ['h1', 'waiting'],
       ['h3', 'waiting'],
     ]);
-    expect(board(m, NOW).lanes[0]!.cells.waiting.map((t) => t.id)).toEqual(['h2', 'h1', 'h3']);
+    expect(board(m, NOW).lanes[2]!.cells.waiting.map((t) => t.id)).toEqual(['h2', 'h1', 'h3']);
     // Reordered within its column, to the end of it.
     m = moveTaskTo(m, 'hot', 'h2', 'waiting', null, '2026-10-13T12:00:00.000Z');
-    expect(board(m, NOW).lanes[0]!.cells.waiting.map((t) => t.id)).toEqual(['h1', 'h3', 'h2']);
+    expect(board(m, NOW).lanes[2]!.cells.waiting.map((t) => t.id)).toEqual(['h1', 'h3', 'h2']);
     // Dropping a card where it already is changes nothing.
     expect(moveTaskTo(m, 'hot', 'h3', 'waiting', 'h2', '2026-10-13T12:00:00.000Z')).toBe(m);
   });

@@ -198,6 +198,26 @@ export function setTaskStatus(root: Root, projectId: string, taskId: string, sta
 }
 
 /**
+ * Put some projects in a new order among themselves, as dragging a list of
+ * them does. `ids` is the new order of the projects that were showing; they
+ * take the places those projects held, and every other project (archived,
+ * completed, filtered out) keeps its own.
+ */
+export function reorderProjects(root: Root, ids: string[]): Root {
+  const wanted = new Set(ids);
+  const slots = root.projects.flatMap((p, i) => (wanted.has(p.id) ? [i] : []));
+  const byId = new Map(root.projects.map((p) => [p.id, p]));
+  const moved = ids.flatMap((id) => {
+    const p = byId.get(id);
+    return p ? [p] : [];
+  });
+  if (moved.length !== slots.length) return root;
+  const projects = [...root.projects];
+  slots.forEach((slot, i) => (projects[slot] = moved[i]!));
+  return projects.every((p, i) => p === root.projects[i]) ? root : { ...root, projects };
+}
+
+/**
  * Move a task to a status and a place in its project, as a board drop does:
  * just before `beforeId`, or, with null, after the last task already in that
  * status (the end of its column). The project's task order is the board's

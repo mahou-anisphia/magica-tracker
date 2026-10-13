@@ -3,7 +3,8 @@ import { hasOpenTasks } from '../../../core/attention';
 import { isProjectDone } from '../../../core/completion';
 import { daysUntil } from '../../../core/due';
 import type { Project, Root } from '../../../core/schema';
-import { createProject, focusShortcut, openBacklog, openProject } from '../../actions';
+import { createProject, focusShortcut, openBacklog, openProject, reorderProjects } from '../../actions';
+import { useReorder } from '../../components/useReorder';
 import type { View } from '../../store';
 import { AddInput } from './AddInput';
 
@@ -35,20 +36,36 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
   const shownCompleted = completed.filter(matches);
   const shownArchived = archived.filter(matches);
   const today = new Date();
+  // Drag active projects to reorder them; not while filtering, when the list is partial.
+  const order = useReorder({ list: 'sidebar-projects', ids: shown.map((p) => p.id), onReorder: reorderProjects });
 
-  const item = (p: Project, muted = false) => {
+  const item = (p: Project, muted = false, draggable = false) => {
     const current = view.kind === 'project' && view.id === p.id;
     const open = hasOpenTasks(p);
     const overdue = isProjectDone(p)
       ? 0
       : p.tasks.filter((t) => !t.done && t.due && daysUntil(t.due, today) < 0).length;
+    const shift = draggable ? order.offset(p.id) : 0;
+    const held = draggable && order.held === p.id;
     return (
-      <li key={p.id}>
+      <li
+        key={p.id}
+        {...(draggable ? { 'data-reorder': p.id } : {})}
+        class={`select-none [-webkit-touch-callout:none] ${
+          held ? 'relative z-10 rounded-10 bg-card shadow-pop' : order.settling ? '' : 'transition-transform duration-200 ease-out'
+        }`}
+        style={shift ? { transform: `translateY(${shift}px)` } : undefined}
+        onPointerDown={draggable ? (e) => order.press(e, p.id) : undefined}
+        onContextMenu={draggable ? (e) => e.preventDefault() : undefined}
+      >
         <button
           type="button"
           class={navItemClass(current, muted)}
           aria-current={current ? 'page' : undefined}
-          onClick={() => openProject(p.id)}
+          title={draggable ? 'Drag to reorder' : undefined}
+          onClick={() => {
+            if (!order.suppressClick.current) openProject(p.id);
+          }}
         >
           <span
             class={`size-8 flex-none rounded-full border-[1.5px] ${open ? 'border-ink bg-ink' : 'border-line-strong'}`}
@@ -99,7 +116,9 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
           }}
         />
       )}
-      <ul class={NAV_LIST}>{shown.map((p) => item(p))}</ul>
+      <ul class={NAV_LIST} data-reorder-list="sidebar-projects">
+        {shown.map((p) => item(p, false, !q))}
+      </ul>
 
       {adding ? (
         <AddInput

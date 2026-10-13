@@ -3,9 +3,10 @@ import { board } from '../../../core/board';
 import { dayHeading } from '../../../core/format';
 import type { Root } from '../../../core/schema';
 import { localDateStamp } from '../../../core/time';
-import { placeTask } from '../../actions';
+import { placeTask, reorderProjects } from '../../actions';
 import { HintTag, useHighlight } from '../../components/highlight';
 import { LabelledBlock } from '../../components/LabelledBlock';
+import { useReorder } from '../../components/useReorder';
 import { ViewHeader } from '../../components/ViewHeader';
 import { BoardGhost } from './BoardGhost';
 import { BoardGlance } from './BoardGlance';
@@ -38,6 +39,7 @@ export function BoardView(props: { root: Root; now: Date }) {
       });
     },
   });
+  const lanesOrder = useReorder({ list: 'board-lanes', ids: lanes.map((l) => l.project.id), onReorder: reorderProjects });
   const project = openCard ? props.root.projects.find((p) => p.id === openCard.projectId) : undefined;
 
   return (
@@ -53,7 +55,7 @@ export function BoardView(props: { root: Root; now: Date }) {
             No open projects with tasks yet. Add some on your tracker and they appear here, one lane each.
           </p>
         ) : (
-          <div {...lanesHl.attrs} class={`relative rounded-14 border border-line bg-card shadow-card ${lanesHl.ring}`}>
+          <div {...lanesHl.attrs} data-reorder-list="board-lanes" class={`relative rounded-14 border border-line bg-card shadow-card ${lanesHl.ring}`}>
             <HintTag text={lanesHl.hint} />
             <div class={`${GRID} sticky top-0 z-1 rounded-t-14 border-b border-line bg-page-55 max-md:hidden`} aria-hidden="true">
               <span class="px-16 py-10 text-12 font-medium text-body">Project</span>
@@ -78,6 +80,11 @@ export function BoardView(props: { root: Root; now: Date }) {
                 onOpen={(taskId) => {
                   if (!suppressClick.current) setOpenCard({ projectId: lane.project.id, taskId });
                 }}
+                shift={lanesOrder.offset(lane.project.id)}
+                held={lanesOrder.held === lane.project.id}
+                laneSettling={lanesOrder.settling}
+                onLanePress={(e) => lanesOrder.press(e, lane.project.id)}
+                laneClickBlocked={() => lanesOrder.suppressClick.current}
               />
             ))}
           </div>

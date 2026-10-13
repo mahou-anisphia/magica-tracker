@@ -7,7 +7,8 @@ import { CARD_GAP, shiftFor, type DragSource, type DragState } from './useBoardD
 
 /**
  * One project across the columns. Cards move within their own lane only:
- * while one is held, the other lanes fade back.
+ * while one is held, the other lanes fade back. The lane itself is dragged
+ * by its name, to reorder the projects.
  */
 export function BoardLane(props: {
   lane: Lane;
@@ -15,6 +16,12 @@ export function BoardLane(props: {
   settling: boolean;
   onPress: (e: PointerEvent, source: DragSource) => void;
   onOpen: (taskId: string) => void;
+  /** Lane reordering: where to draw it while one is held, and its handle. */
+  shift: number;
+  held: boolean;
+  laneSettling: boolean;
+  onLanePress: (e: PointerEvent) => void;
+  laneClickBlocked: () => boolean;
 }) {
   const { lane, drag } = props;
   const p = lane.project;
@@ -24,10 +31,23 @@ export function BoardLane(props: {
   return (
     <section
       data-lane={p.id}
-      class={`${GRID} border-t border-line transition-opacity duration-200 first:border-t-0 ${drag && !mine ? 'opacity-40' : ''}`}
+      data-reorder={p.id}
+      class={`${GRID} border-t border-line first:border-t-0 ${drag && !mine ? 'opacity-40' : ''} ${
+        props.held
+          ? 'relative z-10 rounded-10 bg-card shadow-pop'
+          : props.laneSettling
+            ? ''
+            : 'transition-[transform,opacity] duration-200 ease-out'
+      }`}
+      style={props.shift ? { transform: `translateY(${props.shift}px)` } : undefined}
       aria-label={p.name}
     >
-      <div class="flex items-start gap-8 px-16 py-14 max-md:pb-4">
+      <div
+        class={`flex items-start gap-8 px-16 py-14 select-none [-webkit-touch-callout:none] max-md:pb-4 ${props.held ? 'cursor-grabbing' : 'cursor-grab'}`}
+        title="Drag to reorder projects"
+        onPointerDown={props.onLanePress}
+        onContextMenu={(e) => e.preventDefault()}
+      >
         {lane.needs !== 'later' && (
           <span
             class={`mt-7 size-7 flex-none rounded-full ${lane.needs === 'now' ? 'bg-watch-mark' : 'bg-watch'}`}
@@ -39,7 +59,9 @@ export function BoardLane(props: {
             type="button"
             class="cursor-pointer bg-transparent p-0 text-left text-15 font-semibold break-words text-ink hover:text-primary-ink"
             title={`Open ${p.name}`}
-            onClick={() => openProject(p.id)}
+            onClick={() => {
+              if (!props.laneClickBlocked()) openProject(p.id);
+            }}
           >
             {p.name}
           </button>
