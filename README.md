@@ -10,7 +10,7 @@ Open `dist/index.html`. It works straight from disk (`file://`) or behind any st
 
 The top bar switches between **Overview** (projects, tasks, backlog) and **Timeline** (a month calendar of deadlines, with today circled). Clicking an item on the Timeline opens it in Overview.
 
-Everything else is behind the **orb** in the bottom-right corner, so the everyday views stay quiet. Opening it shows round buttons for Overview, Search, **Settings**, **Observatory** and **Team**. Hovering (or focusing) a section lists its common actions, and hovering an action explains it beside the list. Choosing an action opens that screen and briefly rings the part to use ("Start here"). On touch, the first tap on a section shows its actions and a second tap opens it. **⌘K** (Mac) or **Ctrl+K** (Windows, Linux) opens a search palette over places, those actions, people, projects and open tasks.
+Everything else is behind the **orb** in the bottom-right corner, so the everyday views stay quiet. Opening it shows round buttons for Overview, Search, **Settings**, **Observatory** and **Team**. Hovering (or focusing) a section lists its common actions, and hovering an action explains it beside the list; Overview and Search show a short note on what they do. Choosing an action opens that screen and briefly rings the part to use ("Start here"). On touch, the first tap on a circle shows its actions or note and a second tap opens it. **⌘K** (Mac) or **Ctrl+K** (Windows, Linux) opens a search palette over places, those actions, people, projects and open tasks.
 
 | Key | Does |
 |---|---|
