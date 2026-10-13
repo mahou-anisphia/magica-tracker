@@ -1,11 +1,15 @@
+import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { prefersReducedMotion } from './motion';
 import { HomeIcon, SearchIcon } from '../components/icons';
 import { go, set } from '../store';
-import { orbSections, type OrbSection } from './orbMenu';
+import { ORB_COLUMN, orbSections, type OrbSection } from './orbMenu';
 import { OrbCircle } from './OrbCircle';
 import { OrbMark } from './OrbMark';
 import { shortcutLabel } from './shortcut';
+
+/** One round button in the orb's column: Overview, Search, or a section. */
+type ColumnCircle = { id: string; label: string; icon: JSX.Element; onClick: () => void; section?: OrbSection };
 
 /** The cascade: each button rises a beat after the one below it. */
 const STEP_MS = 40;
@@ -29,7 +33,7 @@ const FAB_SPOT =
 /**
  * The orb in the bottom-right corner: the way to everything beyond the
  * tracker. Opening it shows round buttons for Overview, search and each
- * section. Hovering or focusing a section lists its common actions; hovering
+ * section, the most used nearest the orb (ORB_COLUMN). Hovering or focusing a section lists its common actions; hovering
  * an action explains it. Choosing an action opens its screen and points at
  * the part to use. On touch, the first tap on a section lists its actions and
  * a second tap opens it.
@@ -57,7 +61,7 @@ export function Orb() {
   const start = () => {
     clearTimeout(leaveTimer.current);
     setLeaving(false);
-    setActive(sections.at(-1)?.id ?? null);
+    setActive(ORB_COLUMN.at(-1) ?? null);
     setActionIndex(0);
     setOpen(true);
   };
@@ -111,8 +115,19 @@ export function Orb() {
   };
 
   const section = sections.find((s) => s.id === active);
-  const circles = sections.length + 2;
-  // The top button (Overview) rises last, so it sinks first.
+  // The column, top to bottom, as ORB_COLUMN orders it.
+  const column = ORB_COLUMN.flatMap((id): ColumnCircle[] => {
+    if (id === 'home') {
+      return [{ id, label: 'Overview', icon: <HomeIcon size={22} />, onClick: () => tapNote('home', () => go('overview')) }];
+    }
+    if (id === 'search') {
+      return [{ id, label: `Search (${shortcutLabel()})`, icon: <SearchIcon size={22} />, onClick: () => tapNote('search', () => set({ palette: true })) }];
+    }
+    const sec = sections.find((x) => x.id === id);
+    return sec ? [{ id, label: sec.label, icon: sec.icon(), onClick: () => choose(sec), section: sec }] : [];
+  });
+  const circles = column.length;
+  // The top circle rises last, so it sinks first.
   const sinkStart = (riseDelay: number) => Math.round((rise(circles - 1) - riseDelay) * SINK_SPEED);
   /** When something that rises after `riseDelay` ms moves: rising, or sinking while closing. */
   const at = (riseDelay: number) => (leaving ? sinkStart(riseDelay) : riseDelay);
@@ -121,8 +136,7 @@ export function Orb() {
   const note = active ? notes[active] : undefined;
   // The explanation beside the list: the hovered action's, or Overview's or Search's note.
   // How far above the corner spot the active circle's bottom edge sits.
-  const order = ['home', 'search', ...sections.map((x) => x.id)];
-  const below = order.length - 1 - order.indexOf(active ?? '');
+  const below = column.length - 1 - column.findIndex((c) => c.id === active);
   const lift = CLOSE_PX + GAP_PX + below * (CIRCLE_PX + GAP_PX);
   const card = section && action ? { ...action, label: section.label } : note;
 
@@ -131,7 +145,7 @@ export function Orb() {
       <button
         type="button"
         class={`${FAB_SPOT} z-20 inline-flex size-56 cursor-pointer items-center justify-center rounded-full border border-line bg-card text-ink shadow-toast`}
-        aria-label="Menu: Overview, search, settings, Observatory, Team and Board"
+        aria-label="Menu: Board, search, Overview, Team, Observatory and settings"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={start}
@@ -163,43 +177,23 @@ export function Orb() {
               pointer.current = 'keyboard';
             }}
           >
-            <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:justify-end max-sm:gap-8">
-              <OrbCircle
-                label="Overview"
-                delay={at(rise(circles - 1))}
-                leaving={leaving}
-                selected={active === 'home'}
-                onHover={hover(() => setActive('home'))}
-                onClick={() => tapNote('home', () => go('overview'))}
-              >
-                <HomeIcon size={22} />
-              </OrbCircle>
-              <OrbCircle
-                label={`Search (${shortcutLabel()})`}
-                delay={at(rise(circles - 2))}
-                leaving={leaving}
-                selected={active === 'search'}
-                onHover={hover(() => setActive('search'))}
-                onClick={() => tapNote('search', () => set({ palette: true }))}
-              >
-                <SearchIcon size={22} />
-              </OrbCircle>
-              {sections.map((s, i) => (
+            <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:justify-end max-sm:gap-4">
+              {column.map((c, i) => (
                 <OrbCircle
-                  key={s.id}
-                  label={s.label}
-                  delay={at(rise(sections.length - 1 - i))}
+                  key={c.id}
+                  label={c.label}
+                  delay={at(rise(column.length - 1 - i))}
                   leaving={leaving}
-                  selected={s.id === active}
-                  expanded={s.id === active}
-                  autoFocus={s.id === sections.at(-1)?.id}
+                  selected={c.id === active}
+                  expanded={c.section ? c.id === active : undefined}
+                  autoFocus={c.id === column.at(-1)?.id}
                   onHover={hover(() => {
-                    if (s.id !== active) setActionIndex(0);
-                    setActive(s.id);
+                    if (c.id !== active) setActionIndex(0);
+                    setActive(c.id);
                   })}
-                  onClick={() => choose(s)}
+                  onClick={c.onClick}
                 >
-                  {s.icon()}
+                  {c.icon}
                 </OrbCircle>
               ))}
               <button
