@@ -2,6 +2,26 @@ import { SCHEMA_VERSION } from './schema';
 
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
+const isObject = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
+
+/**
+ * A v3 task's status, from what it already says: done, blocked (now
+ * "waiting", keeping since when and on what), started (a sub-task done), or
+ * not started yet.
+ */
+function taskV3toV4(task: unknown): unknown {
+  if (!isObject(task)) return task;
+  const { blocked, ...rest } = task;
+  const subtasks = Array.isArray(rest.subtasks) ? rest.subtasks.filter(isObject) : [];
+  const done = subtasks.length > 0 ? subtasks.every((s) => s.done === true) : rest.done === true;
+  if (done) return { ...rest, status: 'done' };
+  if (isObject(blocked)) {
+    const on = typeof blocked.blocker === 'string' && blocked.blocker.trim() ? { on: blocked.blocker } : {};
+    return { ...rest, status: 'waiting', waiting: { since: blocked.since, ...on } };
+  }
+  return { ...rest, status: subtasks.some((s) => s.done === true) ? 'working' : 'todo' };
+}
+
 /**
  * MIGRATIONS[n] upgrades a version-n object to version n+1. Every step must
  * accept any valid file of its version, and the result must validate as the
@@ -21,6 +41,13 @@ export const MIGRATIONS: Record<number, Migration> = {
    * already a valid v3 shape.
    */
   2: (raw) => raw,
+  /** v3 → v4. Every task gets a status, and `blocked` becomes `waiting`. */
+  3: (raw) => ({
+    ...raw,
+    projects: Array.isArray(raw.projects)
+      ? raw.projects.map((p) => (isObject(p) && Array.isArray(p.tasks) ? { ...p, tasks: p.tasks.map(taskV3toV4) } : p))
+      : raw.projects,
+  }),
 };
 
 export class MigrationError extends Error {}

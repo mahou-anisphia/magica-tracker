@@ -5,8 +5,12 @@ import type { Project, Root, Subtask, Task } from './schema';
  * sub-task is done. A task without sub-tasks keeps whatever was set directly.
  * `doneAt` exists only while something is done.
  *
- * Only `done`/`doneAt` change here, never `updatedAt`: deriving a value is not
- * an edit, so it must not reset the staleness clock.
+ * The status follows: a done task is Done; a task reopened from Done goes
+ * back to Working (some sub-task still done) or To do; ticking a sub-task of
+ * a To do task makes it Working. Waiting keeps its details only while waiting.
+ *
+ * Only `done`/`doneAt`/`status`/`waiting` change here, never `updatedAt`:
+ * deriving a value is not an edit, so it must not reset the staleness clock.
  */
 
 export function normalizeSubtask(s: Subtask, now: string): Subtask {
@@ -17,9 +21,12 @@ export function normalizeSubtask(s: Subtask, now: string): Subtask {
 export function normalizeTask(task: Task, now: string): Task {
   const subtasks = task.subtasks.map((s) => normalizeSubtask(s, now));
   const done = subtasks.length > 0 ? subtasks.every((s) => s.done) : task.done;
-  const { doneAt, ...rest } = task;
-  if (!done) return { ...rest, subtasks, done };
-  return { ...rest, subtasks, done, doneAt: doneAt ?? latestDoneAt(subtasks) ?? now };
+  const { doneAt, waiting, ...rest } = task;
+  if (done) return { ...rest, subtasks, done, status: 'done', doneAt: doneAt ?? latestDoneAt(subtasks) ?? now };
+  const started = subtasks.some((s) => s.done);
+  const status = task.status === 'done' || task.status === 'todo' ? (started ? 'working' : 'todo') : task.status;
+  if (status === 'waiting') return { ...rest, subtasks, done, status, waiting: waiting ?? { since: now } };
+  return { ...rest, subtasks, done, status };
 }
 
 function latestDoneAt(subtasks: Subtask[]): string | undefined {
@@ -48,6 +55,12 @@ export function isProjectDone(p: Project): boolean {
   return p.doneAt !== undefined;
 }
 
+/** Working on it: set by hand, or by ticking one of its sub-tasks. */
 export function isInProgress(task: Task): boolean {
-  return !task.done && task.subtasks.some((s) => s.done);
+  return !task.done && task.status === 'working';
+}
+
+/** Waiting on someone or something; `waiting` says since when and on what. */
+export function isWaiting(task: Task): boolean {
+  return !task.done && task.status === 'waiting';
 }

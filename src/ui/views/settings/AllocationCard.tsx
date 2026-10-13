@@ -1,7 +1,7 @@
 import * as ops from '../../../core/ops';
 import { allocationSettings, type AllocationPeriod, type Root } from '../../../core/schema';
 import { update } from '../../store';
-import { Segmented } from './Segmented';
+import { Segmented } from '../../components/Segmented';
 import { Panel } from '../../components/Panel';
 
 /** 100% to 300%, in steps of 10. */

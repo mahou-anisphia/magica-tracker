@@ -3,7 +3,7 @@ import { attention } from '../../../core/attention';
 import { dueDistance } from '../../../core/due';
 import type { Root } from '../../../core/schema';
 import { openProject } from '../../actions';
-import { OverviewBlock } from './OverviewBlock';
+import { LabelledBlock } from '../../components/LabelledBlock';
 
 /** How many items show before "Show more". */
 const FIRST = 3;
@@ -13,21 +13,21 @@ type Item = {
   title: string;
   sub: string;
   pill: string;
-  tone: 'watch' | 'blocked' | 'urgent';
+  tone: 'watch' | 'waiting' | 'urgent';
   open: () => void;
 };
 
 const ROW = 'flex w-full cursor-pointer items-center bg-transparent text-left hover:bg-page-70';
 const DOT: Record<Item['tone'], string> = {
   watch: 'rounded-full border-watch bg-watch',
-  blocked: 'rounded-2 border-ink bg-ink',
+  waiting: 'rounded-2 border-ink bg-ink',
   urgent: 'rounded-full border-primary-strong bg-primary-strong',
 };
-const PILL: Record<Item['tone'], string> = { watch: 'pill-watch', blocked: 'pill-outline', urgent: 'pill-urgent' };
+const PILL: Record<Item['tone'], string> = { watch: 'pill-watch', waiting: 'pill-outline', urgent: 'pill-urgent' };
 
 /**
  * What needs you, most pressing first: overdue and approaching deadlines,
- * then blocked tasks, then urgent ones, then tasks gone quiet. Three at a time, so a busy week
+ * then waiting tasks, then urgent ones, then tasks gone quiet. Three at a time, so a busy week
  * doesn't flood the page. Hidden entirely when nothing qualifies.
  */
 export function NeedsAttention(props: { root: Root; now: Date }) {
@@ -43,12 +43,12 @@ export function NeedsAttention(props: { root: Root; now: Date }) {
       tone: 'watch' as const,
       open: () => openProject(project.id, task?.id ?? null),
     })),
-    ...a.blocked.map(({ project, task, days }) => ({
+    ...a.waiting.map(({ project, task, days }) => ({
       key: task.id,
       title: task.title,
-      sub: task.blocked?.blocker ? `${project.name} · ${task.blocked.blocker}` : project.name,
-      pill: days > 0 ? `Blocked ${days}d` : 'Blocked',
-      tone: 'blocked' as const,
+      sub: task.waiting?.on ? `${project.name} · ${task.waiting.on}` : project.name,
+      pill: days > 0 ? `Waiting ${days}d` : 'Waiting',
+      tone: 'waiting' as const,
       open: () => openProject(project.id, task.id),
     })),
     ...a.urgent.map(({ project, task }) => ({
@@ -74,7 +74,7 @@ export function NeedsAttention(props: { root: Root; now: Date }) {
   const more = items.length - FIRST;
 
   return (
-    <OverviewBlock id="attention-h" title="Needs attention">
+    <LabelledBlock id="attention-h" title="Needs attention">
       <ul class="overflow-hidden rounded-14 border border-line bg-card shadow-card [&>li+li]:border-t [&>li+li]:border-line">
         {shown.map((it) => (
           <li key={it.key}>
@@ -105,6 +105,6 @@ export function NeedsAttention(props: { root: Root; now: Date }) {
           </li>
         )}
       </ul>
-    </OverviewBlock>
+    </LabelledBlock>
   );
 }

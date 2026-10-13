@@ -13,6 +13,8 @@ export function task(id: string, extra: Partial<Task> = {}): Task {
     id,
     title: `Task ${id}`,
     done: false,
+    // As normalisation would set it: done, or started by a ticked sub-task.
+    status: extra.done ? 'done' : extra.subtasks?.some((s) => s.done) ? 'working' : 'todo',
     createdAt: T0,
     updatedAt: T0,
     subtasks: [],

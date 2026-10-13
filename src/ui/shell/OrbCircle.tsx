@@ -8,8 +8,10 @@ export function OrbCircle(props: {
   expanded?: boolean;
   onHover?: () => void;
   onClick: () => void;
-  /** When it rises into place, in ms after the orb opens. */
+  /** When it rises into place after the orb opens, or sinks away after it starts closing, in ms. */
   delay: number;
+  /** The orb is closing: sink instead of rise. */
+  leaving: boolean;
   children: ComponentChildren;
 }) {
   return (
@@ -20,7 +22,7 @@ export function OrbCircle(props: {
       aria-expanded={props.expanded}
       autoFocus={props.autoFocus}
       style={{ animationDelay: `${props.delay}ms` }}
-      class={`inline-flex size-52 flex-none animate-cascade max-sm:size-46 cursor-pointer items-center justify-center rounded-full border-2 shadow-pop ${
+      class={`inline-flex size-52 flex-none ${props.leaving ? 'animate-uncascade' : 'animate-cascade'} max-sm:size-44 cursor-pointer items-center justify-center rounded-full border-2 shadow-pop ${
         props.selected ? 'border-primary bg-primary text-on-primary' : 'border-line bg-card text-body hover:text-primary-ink'
       }`}
       onMouseEnter={props.onHover}

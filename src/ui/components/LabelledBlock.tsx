@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 
-/** A section of the Overview's head: a plain label above a white card. */
-export function OverviewBlock(props: { id: string; title: string; children: ComponentChildren }) {
+/** A section with a plain label above its card: the Overview's head, the Board. */
+export function LabelledBlock(props: { id: string; title: string; children: ComponentChildren }) {
   return (
     <section class="mb-52" aria-labelledby={props.id}>
       <div class="mb-12 flex items-baseline justify-between gap-12">

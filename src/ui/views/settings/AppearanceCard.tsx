@@ -1,7 +1,7 @@
 import { useId } from 'preact/hooks';
 import { setTheme } from '../../store';
 import { hasBothModes, THEMES, themeById, type Appearance, type Theme, type ThemeChoice } from '../../themes';
-import { Segmented } from './Segmented';
+import { Segmented } from '../../components/Segmented';
 import { Panel } from '../../components/Panel';
 
 const APPEARANCES: { value: Appearance; label: string }[] = [

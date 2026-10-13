@@ -8,6 +8,7 @@ import { daysSince } from '../../../core/time';
 import { deleteTask, demoteTask, toggleTask } from '../../actions';
 import { PencilIcon, TrashIcon, TrayIcon } from '../../components/icons';
 import { PRIORITY_LABEL, PriorityChip } from '../../components/PriorityChip';
+import { StatusChip } from '../../components/StatusChip';
 import { set, update } from '../../store';
 import { AddInput } from './AddInput';
 import { controlledCheck } from './controlledCheck';
@@ -25,7 +26,7 @@ export function TaskRow({ project, task, expanded, now }: Props) {
   const [renaming, setRenaming] = useState(false);
   const progress = subtaskProgress(task);
   const stale = isStale(task, now);
-  const blocked = !!task.blocked && !task.done;
+  const waiting = task.status === 'waiting' && !task.done;
   const detailId = `task-detail-${task.id}`;
   const toggleExpand = () => set({ expandedTaskId: expanded ? null : task.id });
 
@@ -62,7 +63,17 @@ export function TaskRow({ project, task, expanded, now }: Props) {
             data-task-row={task.id}
             aria-expanded={expanded}
             aria-controls={detailId}
-            onClick={toggleExpand}
+            title="Click to open, double-click to rename"
+            onClick={(e) => {
+              // The second click of a double-click renames instead of folding the row again.
+              if (e.detail < 2) toggleExpand();
+            }}
+            onDblClick={(e) => {
+              e.preventDefault();
+              // The first click of the pair folded or unfolded it; renaming leaves it open.
+              set({ expandedTaskId: task.id });
+              setRenaming(true);
+            }}
             onKeyDown={(e) => {
               // Space toggles the focused task; Enter (and click) expands it.
               if (e.key === ' ') {
@@ -76,22 +87,22 @@ export function TaskRow({ project, task, expanded, now }: Props) {
           >
             {/* Narrow: the title gets the full width; its chips go on a line beneath. */}
             <span class="min-w-0 flex-1 group-hover/title:text-primary-ink max-lg:basis-full">{task.title}</span>
-            {/* Blocked says it all: the other chips wait until it moves again. */}
-            {blocked && <span class="pill pill-outline">Blocked</span>}
-            {!blocked && <PriorityChip priority={task.priority} />}
-            {!blocked && stale && (
+            {/* Waiting says it all: the other chips wait until it moves again. */}
+            {!task.done && <StatusChip status={task.status} />}
+            {!waiting && <PriorityChip priority={task.priority} />}
+            {!waiting && stale && (
               <span class="inline-block size-7 flex-none rounded-full bg-watch-mark" title={`Untouched ${daysSince(task.updatedAt, now)} days`}>
                 <span class="sr-only">untouched {daysSince(task.updatedAt, now)} days</span>
               </span>
             )}
-            {!blocked && progress.total > 0 && (
+            {!waiting && progress.total > 0 && (
               <span
                 class={`text-13 tabular-nums ${task.done ? 'font-normal text-faint' : 'font-medium text-body'}`}
                 aria-label={`${progress.done} of ${progress.total} sub-tasks done`}>
                 {progress.done} / {progress.total}
               </span>
             )}
-            {!blocked && task.effort !== undefined && (
+            {!waiting && task.effort !== undefined && (
               <span
                 class="rounded-full bg-primary-tint px-8 py-1 text-12 font-medium text-primary-ink tabular-nums"
                 title="Allocation: share of your capacity"
@@ -178,7 +189,7 @@ export function TaskRow({ project, task, expanded, now }: Props) {
             </span>
           </div>
 
-          <TaskMoreDetails project={project} task={task} />
+          <TaskMoreDetails project={project} task={task} now={now} />
 
           <div class="flex flex-wrap items-center gap-x-6 gap-y-4 border-t border-line pt-10">
             <button type="button" class="btn btn-quiet btn-small" onClick={() => setRenaming(true)}>

@@ -3,8 +3,8 @@ import { beforeImportFileName, exportFileName, exportJson } from '../core/export
 import { newId } from '../core/id';
 import { mergeRoots } from '../core/merge';
 import * as ops from '../core/ops';
-import { addSample, isSampleId, removeSample } from '../core/sample';
-import type { Project, Task } from '../core/schema';
+import { addSample, addSampleTeam, isSampleId, removeSample, removeSampleTeam } from '../core/sample';
+import type { Project, Status, Task } from '../core/schema';
 import * as team from '../core/team';
 import { parseRootText } from '../core/validate';
 import { writeLastExport } from '../storage/local';
@@ -56,6 +56,11 @@ export async function deleteProject(project: Project): Promise<void> {
   set({ view: { kind: 'auto' } });
 }
 
+/** A dragged list of projects (Board lanes, the project list) in its new order. */
+export function reorderProjects(ids: string[]): void {
+  update((r) => ops.reorderProjects(r, ids));
+}
+
 export function setArchived(project: Project, archived: boolean): void {
   update((r, now) => ops.setProjectArchived(r, project.id, archived, now));
   if (archived) {
@@ -98,6 +103,31 @@ export async function toggleTask(projectId: string, task: Task, done: boolean): 
     if (!ok) return;
   }
   update((r, now) => ops.setTaskDone(r, projectId, task.id, done, now));
+}
+
+/**
+ * Move a task to another status. Leaving Done reopens it, which unticks its
+ * sub-tasks, so that asks first, as unticking the checkbox does.
+ */
+export async function moveTask(projectId: string, task: Task, status: Status): Promise<void> {
+  if (task.status === status) return;
+  if (!(await confirmReopen(task, status))) return;
+  update((r, now) => ops.setTaskStatus(r, projectId, task.id, status, now));
+}
+
+/** A board drop: a status and a place in the column, just before `beforeId` (or at the end). */
+export async function placeTask(projectId: string, task: Task, status: Status, beforeId: string | null): Promise<void> {
+  if (!(await confirmReopen(task, status))) return;
+  update((r, now) => ops.moveTaskTo(r, projectId, task.id, status, beforeId, now));
+}
+
+async function confirmReopen(task: Task, status: Status): Promise<boolean> {
+  if (!task.done || status === 'done' || task.subtasks.length === 0) return true;
+  return confirmAction({
+    title: `Reopen “${task.title}”?`,
+    body: `This unticks all ${plural(task.subtasks.length, 'sub-task')}.`,
+    confirmLabel: 'Reopen all',
+  });
 }
 
 export async function deleteTask(projectId: string, task: Task): Promise<void> {
@@ -149,9 +179,14 @@ export function deleteBacklogItem(itemId: string, title: string): void {
 
 // ─── Sample data ─────────────────────────────────────────────────────────────
 
+/** Sample projects in your tracker, and sample teammates in your team. */
 export function loadSample(): void {
   const before = getState().root;
-  update((r) => addSample(r, new Date()));
+  const teamBefore = getState().team;
+  const now = new Date();
+  update((r) => addSample(r, now));
+  setTeam(addSampleTeam(teamBefore, now));
+  const teamAfter = getState().team;
   const first = getState().root.projects.find((p) => isSampleId(p.id) && !p.archived);
   if (first) openProject(first.id);
   // Undo only if nothing else changed meanwhile, like the other undo toasts.
@@ -160,6 +195,7 @@ export function loadSample(): void {
     label: 'Undo',
     run: () => {
       if (getState().root === after) commit(before);
+      if (getState().team === teamAfter) setTeam(teamBefore);
       set({ toast: null });
     },
   });
@@ -168,11 +204,12 @@ export function loadSample(): void {
 export async function wipeSample(): Promise<void> {
   const ok = await confirmAction({
     title: 'Wipe the sample data?',
-    body: 'This removes every sample project, task and backlog item, including any changes made to them. Your own data stays.',
+    body: 'This removes every sample project, task and backlog item, including any changes made to them, and the sample teammates. Your own data and team stay.',
     confirmLabel: 'Wipe sample data',
   });
   if (!ok) return;
   update((r) => removeSample(r));
+  setTeam(removeSampleTeam(getState().team));
   set({ view: { kind: 'auto' }, expandedTaskId: null });
 }
 

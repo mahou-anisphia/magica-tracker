@@ -1,4 +1,4 @@
-import { isInProgress, isProjectDone } from './completion';
+import { isInProgress, isProjectDone, isWaiting } from './completion';
 import { daysUntil } from './due';
 import { currentPeriod, dayNumber, overlapDays, type PeriodRange } from './period';
 import { allocationSettings, type AllocationSettings, type Priority, type Project, type Root, type Task } from './schema';
@@ -61,19 +61,19 @@ export function allocation(root: Root, now: Date): Allocation {
 export type Stats = {
   /** Unfinished tasks. */
   open: number;
-  /** Unfinished tasks with at least one sub-task done. */
+  /** Unfinished tasks being worked on (status Working). */
   inProgress: number;
   /** Unfinished tasks marked urgent. */
   urgent: number;
-  /** Unfinished tasks marked blocked. */
-  blocked: number;
+  /** Unfinished tasks waiting on someone or something. */
+  waiting: number;
   /** Unfinished projects, tasks and sub-tasks past their deadline. */
   overdue: number;
 };
 
 /** The dashboard's numbers. Archived and done projects don't count. */
 export function stats(root: Root, now: Date): Stats {
-  const s: Stats = { open: 0, inProgress: 0, urgent: 0, blocked: 0, overdue: 0 };
+  const s: Stats = { open: 0, inProgress: 0, urgent: 0, waiting: 0, overdue: 0 };
   const overdue = (due: string | undefined, done: boolean) => {
     if (due && !done && daysUntil(due, now) < 0) s.overdue++;
   };
@@ -83,7 +83,7 @@ export function stats(root: Root, now: Date): Stats {
     for (const t of p.tasks) {
       if (!t.done) s.open++;
       if (!t.done && t.priority === 'urgent') s.urgent++;
-      if (!t.done && t.blocked) s.blocked++;
+      if (isWaiting(t)) s.waiting++;
       if (isInProgress(t)) s.inProgress++;
       overdue(t.due, t.done);
       for (const st of t.subtasks) overdue(st.due, st.done);

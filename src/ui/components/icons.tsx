@@ -169,6 +169,11 @@ export function TelescopeIcon(props: { size?: number }) {
   return <Line size={props.size} d="M2 13.5h12M4 13.5 6.5 5l5-2.5L13 6 8 8.5 6.5 13.5M8 8.5l1.5 5" />;
 }
 
+/** The Board: three columns of cards. */
+export function BoardIcon(props: { size?: number }) {
+  return <Line size={props.size} d="M2 2.5h3v11H2zM6.5 2.5h3v7h-3zM11 2.5h3v9h-3z" />;
+}
+
 /** The brand mark: a small glowing orb. */
 export function Orb() {
   return <span class="orb" aria-hidden="true" />;

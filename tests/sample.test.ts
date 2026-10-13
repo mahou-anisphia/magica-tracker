@@ -3,7 +3,8 @@ import { attention } from '../src/core/attention';
 import { allocation } from '../src/core/progress';
 import { normalizeRoot } from '../src/core/completion';
 import { dueByDate } from '../src/core/calendar';
-import { addSample, hasSample, isSampleId, removeSample, sampleData } from '../src/core/sample';
+import { addSample, addSampleTeam, hasSample, hasSampleTeam, isSampleId, removeSample, removeSampleTeam, sampleData } from '../src/core/sample';
+import { addMember, emptyTeam, escalations, FILE_STALE_DAYS, fileAgeDays, parseTeamText } from '../src/core/team';
 import { parseRoot } from '../src/core/validate';
 import { T0, project, root, task } from './fixtures';
 
@@ -28,7 +29,7 @@ describe('sample data', () => {
   it('shows off every state the UI has', () => {
     const a = attention(sample, NOW);
     expect(a.inProgress.length).toBeGreaterThan(0);
-    expect(a.blocked.length).toBeGreaterThan(0);
+    expect(a.waiting.length).toBeGreaterThan(0);
     const tasks = sample.projects.flatMap((p) => p.tasks);
     for (const key of ['definitionOfDone', 'relatedPeople', 'escalation', 'startsOn'] as const) {
       expect(tasks.some((t) => t[key] !== undefined)).toBe(true);
@@ -70,5 +71,43 @@ describe('sample allocation', () => {
       expect(a.total).toBeGreaterThan(100);
       expect(a.total).toBeLessThan(a.maxLoad);
     }
+  });
+});
+
+describe('sample teammates', () => {
+  const team = addSampleTeam(emptyTeam(), NOW);
+
+  it('are valid, stored apart from your data, and all sample ids', () => {
+    expect(parseTeamText(JSON.stringify(team))).toStrictEqual(team);
+    expect(team.members.every((m) => isSampleId(m.id))).toBe(true);
+    for (const m of team.members) {
+      if (!m.snapshot) continue;
+      expect(parseRoot(JSON.parse(JSON.stringify(m.snapshot.root))).ok).toBe(true);
+      expect(m.snapshot.root.owner?.id).toBe(m.ownerId);
+      const ids = m.snapshot.root.projects.flatMap((p) => [p.id, ...p.tasks.map((t) => t.id)]);
+      expect(ids.every(isSampleId)).toBe(true);
+    }
+  });
+
+  it('show every Observatory state: past limit, a flag, blocked, an old file and no file', () => {
+    const withFile = team.members.filter((m) => m.snapshot);
+    const past = withFile.filter((m) => {
+      const a = allocation(m.snapshot!.root, NOW);
+      return a.total > a.maxLoad;
+    });
+    expect(past.map((m) => m.name)).toEqual(['Bram']);
+    expect(withFile.some((m) => escalations(m.snapshot!.root).length > 0)).toBe(true);
+    expect(withFile.some((m) => attention(m.snapshot!.root, NOW).waiting.length > 0)).toBe(true);
+    expect(withFile.some((m) => (fileAgeDays(m, NOW) ?? 0) > FILE_STALE_DAYS)).toBe(true);
+    expect(team.members.some((m) => !m.snapshot)).toBe(true);
+  });
+
+  it('load twice without doubling, keep your own members (and their names), and wipe cleanly', () => {
+    const own = addMember(emptyTeam(), 'mine', 'Alice', '', T0);
+    const loaded = addSampleTeam(addSampleTeam(own, NOW), NOW);
+    expect(loaded.members.map((m) => m.name)).toEqual(['Alice', 'Bram', 'Dara', 'Chiyo']);
+    expect(hasSampleTeam(loaded)).toBe(true);
+    expect(removeSampleTeam(loaded)).toEqual(own);
+    expect(removeSampleTeam(own)).toBe(own);
   });
 });

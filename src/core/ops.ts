@@ -10,6 +10,7 @@ import {
   type Project,
   type Resource,
   type Root,
+  type Status,
   type Subtask,
   type Task,
 } from './schema';
@@ -121,6 +122,7 @@ export function addTask(root: Root, projectId: string, id: string, title: string
     id,
     title: title.trim(),
     done: false,
+    status: 'todo',
     createdAt: now,
     updatedAt: now,
     subtasks: [],
@@ -178,19 +180,76 @@ export function setTaskText(root: Root, projectId: string, taskId: string, key: 
   return mapTask(root, projectId, taskId, now, (task) => withOptional(task, key, text));
 }
 
-/** Block or unblock a task. Blocking records when; unblocking forgets the blocker too. */
-export function setTaskBlocked(root: Root, projectId: string, taskId: string, blocked: boolean, now: string): Root {
-  return mapTask(root, projectId, taskId, now, (task) => {
-    const { blocked: current, ...rest } = task;
-    if (!blocked) return rest;
-    return { ...rest, blocked: current ?? { since: now } };
+/**
+ * Move a task to To do, Working, Waiting or Done. Done ticks it (and its
+ * sub-tasks); leaving Done reopens it (and unticks them, as reopening does).
+ * Waiting records since when, and keeps that date if it was already waiting.
+ */
+export function setTaskStatus(root: Root, projectId: string, taskId: string, status: Status, now: string): Root {
+  const task = root.projects.find((p) => p.id === projectId)?.tasks.find((t) => t.id === taskId);
+  if (!task || task.status === status) return root;
+  let r = root;
+  if (status === 'done' || task.done) r = setTaskDone(r, projectId, taskId, status === 'done', now);
+  if (status === 'done') return r;
+  return mapTask(r, projectId, taskId, now, (t) => {
+    const { waiting, ...rest } = t;
+    return status === 'waiting' ? { ...rest, status, waiting: waiting ?? { since: now } } : { ...rest, status };
   });
 }
 
-/** What the task waits on. Only applies while it is blocked. */
-export function setTaskBlocker(root: Root, projectId: string, taskId: string, blocker: string, now: string): Root {
+/**
+ * Put some projects in a new order among themselves, as dragging a list of
+ * them does. `ids` is the new order of the projects that were showing; they
+ * take the places those projects held, and every other project (archived,
+ * completed, filtered out) keeps its own.
+ */
+export function reorderProjects(root: Root, ids: string[]): Root {
+  const wanted = new Set(ids);
+  const slots = root.projects.flatMap((p, i) => (wanted.has(p.id) ? [i] : []));
+  const byId = new Map(root.projects.map((p) => [p.id, p]));
+  const moved = ids.flatMap((id) => {
+    const p = byId.get(id);
+    return p ? [p] : [];
+  });
+  if (moved.length !== slots.length) return root;
+  const projects = [...root.projects];
+  slots.forEach((slot, i) => (projects[slot] = moved[i]!));
+  return projects.every((p, i) => p === root.projects[i]) ? root : { ...root, projects };
+}
+
+/**
+ * Move a task to a status and a place in its project, as a board drop does:
+ * just before `beforeId`, or, with null, after the last task already in that
+ * status (the end of its column). The project's task order is the board's
+ * column order.
+ */
+export function moveTaskTo(
+  root: Root,
+  projectId: string,
+  taskId: string,
+  status: Status,
+  beforeId: string | null,
+  now: string,
+): Root {
+  const r = setTaskStatus(root, projectId, taskId, status, now);
+  const p = r.projects.find((x) => x.id === projectId);
+  const task = p?.tasks.find((t) => t.id === taskId);
+  if (!p || !task || beforeId === taskId) return r;
+  const rest = p.tasks.filter((t) => t.id !== taskId);
+  let at = beforeId ? rest.findIndex((t) => t.id === beforeId) : -1;
+  if (at < 0) {
+    const last = rest.findLastIndex((t) => t.status === task.status);
+    at = last < 0 ? rest.length : last + 1;
+  }
+  const tasks = [...rest.slice(0, at), task, ...rest.slice(at)];
+  if (tasks.every((t, i) => t === p.tasks[i])) return r;
+  return mapProject(r, projectId, (x) => ({ ...x, tasks, updatedAt: now }));
+}
+
+/** What a waiting task waits on: a person, a meeting, evidence. Only applies while it waits. */
+export function setTaskWaitingOn(root: Root, projectId: string, taskId: string, on: string, now: string): Root {
   return mapTask(root, projectId, taskId, now, (task) =>
-    task.blocked ? { ...task, blocked: withOptional(task.blocked, 'blocker', blocker) } : task,
+    task.status === 'waiting' && task.waiting ? { ...task, waiting: withOptional(task.waiting, 'on', on) } : task,
   );
 }
 
@@ -234,12 +293,15 @@ export function deleteTask(root: Root, projectId: string, taskId: string, now: s
  */
 export function setTaskDone(root: Root, projectId: string, taskId: string, done: boolean, now: string): Root {
   return mapTask(root, projectId, taskId, now, (task) => {
+    const status: Status = done ? 'done' : 'todo';
     if (task.subtasks.length === 0) {
-      const { doneAt: _, ...rest } = task;
-      return done ? { ...rest, done: true, doneAt: now } : { ...rest, done: false };
+      const { doneAt: _, waiting: __, ...rest } = task;
+      return done ? { ...rest, done: true, doneAt: now, status } : { ...rest, done: false, status };
     }
+    const { waiting: _, ...rest } = task;
     return {
-      ...task,
+      ...rest,
+      status,
       subtasks: task.subtasks.map((s) => setSubtaskDoneValue(s, done, now)),
     };
   });
@@ -402,6 +464,7 @@ export function promote(root: Root, itemId: string, projectId: string, now: stri
     id: item.id,
     title: item.title,
     done: false,
+    status: 'todo',
     ...(item.notes ? { notes: item.notes } : {}),
     createdAt: now,
     updatedAt: now,

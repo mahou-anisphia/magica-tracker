@@ -1,6 +1,6 @@
 import { EditableText } from './EditableText';
 
-/** A labelled free-text field inside "More details". */
+/** A labelled free-text field in a More details editor: click to edit, saved when you leave it. */
 export function DetailField(props: {
   label: string;
   value: string | undefined;
@@ -12,7 +12,7 @@ export function DetailField(props: {
     <div class="grid min-w-0 grid-cols-1 gap-4">
       <span class="text-12 font-medium text-body">{props.label}</span>
       <EditableText
-        box="m-0 rounded-10 border border-line bg-card px-12 py-8"
+        box="m-0 min-h-36 rounded-10 border border-line bg-card px-12 py-7"
         class="text-14 text-ink"
         value={props.value ?? ''}
         label={props.label}

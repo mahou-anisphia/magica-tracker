@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { hasSample } from '../core/sample';
+import { hasSample, hasSampleTeam } from '../core/sample';
 import { focusShortcut } from './actions';
 import { Banners } from './shell/Banners';
 import { CaptureDialog } from './shell/CaptureDialog';
@@ -11,6 +11,7 @@ import { ToastRegion } from './shell/ToastRegion';
 import { TopBar } from './shell/TopBar';
 import { getState, set, setMode, useStore } from './store';
 import { OverviewView } from './views/overview/OverviewView';
+import { BoardView } from './views/board/BoardView';
 import { MemberView } from './views/member/MemberView';
 import { ObservatoryView } from './views/observatory/ObservatoryView';
 import { SettingsView } from './views/settings/SettingsView';
@@ -101,7 +102,7 @@ export function App() {
           now={now}
           lastExportedAt={s.lastExportedAt}
           hasData={hasData}
-          hasSample={hasSample(s.root)}
+          hasSample={hasSample(s.root) || hasSampleTeam(s.team)}
         />
       )}
       <div
@@ -109,7 +110,9 @@ export function App() {
       >
         <Banners saving={s.saving} notice={s.notice} />
 
-        {mode === 'settings' ? (
+        {mode === 'board' ? (
+          <BoardView root={s.root} now={now} />
+        ) : mode === 'settings' ? (
           <SettingsView root={s.root} theme={s.theme} storage={s.storage} />
         ) : mode === 'team' ? (
           <TeamView root={s.root} team={s.team} teamImport={s.teamImport} now={now} />

@@ -31,7 +31,7 @@ export function PersonRow(props: { person: Person }) {
         <span class="flex flex-wrap gap-6 empty:hidden">
           {isPastLimit(p) && <span class="pill pill-watch">Past limit</span>}
           {escalated > 0 && <span class="pill pill-high">May be escalated{escalated > 1 ? ` · ${escalated}` : ''}</span>}
-          {d && d.stats.blocked > 0 && <span class="pill pill-outline">Blocked {d.stats.blocked}</span>}
+          {d && d.stats.waiting > 0 && <span class="pill pill-outline">Waiting {d.stats.waiting}</span>}
           {d?.fileAge != null && d.fileAge > FILE_STALE_DAYS && <span class="pill pill-low">File {d.fileAge} days old</span>}
           {p.member && !d && <span class="pill pill-low">Ask for a file</span>}
         </span>

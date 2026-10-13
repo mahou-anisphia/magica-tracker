@@ -3,7 +3,7 @@ import { useId, useState } from 'preact/hooks';
 
 /**
  * A fold for the fields most tasks don't need. Closed, its header still names
- * what's set ("Blocked · Definition of done"), so nothing important hides.
+ * what's set ("May be escalated · Definition of done"), so nothing important hides.
  */
 export function MoreDetails(props: { summary: string[]; children: ComponentChildren }) {
   const [open, setOpen] = useState(false);

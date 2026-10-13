@@ -56,7 +56,15 @@ describe('v1 → v2 migration', () => {
     expect(r.root.schemaVersion).toBe(SCHEMA_VERSION);
     const original = JSON.parse(V1_EXPORT);
     delete original.exportedAt;
-    expect({ ...r.root, schemaVersion: 1 }).toEqual(original);
+    // The only thing added on the way up is each task's status (v4), worked out from the task.
+    const statuses = r.root.projects.flatMap((p) => p.tasks.map((t) => t.status));
+    const withoutStatus = {
+      ...r.root,
+      schemaVersion: 1,
+      projects: r.root.projects.map((p) => ({ ...p, tasks: p.tasks.map(({ status: _, ...t }) => t) })),
+    };
+    expect(withoutStatus).toEqual(original);
+    expect(statuses.every((s) => ['todo', 'working', 'done'].includes(s))).toBe(true);
     const t = r.root.projects[0]!.tasks[0]!;
     for (const key of ['due', 'priority', 'effort']) expect(key in t).toBe(false);
     expect('doneAt' in r.root.projects[0]!).toBe(false);
@@ -153,7 +161,7 @@ describe('dashboard numbers', () => {
         project('fin', { doneAt: T0, due: '2026-09-01', tasks: [task('y', { due: '2026-09-01' })] }),
       ],
     });
-    expect(stats(r, NOW)).toEqual({ open: 3, inProgress: 1, urgent: 1, blocked: 0, overdue: 2 });
+    expect(stats(r, NOW)).toEqual({ open: 3, inProgress: 1, urgent: 1, waiting: 0, overdue: 2 });
   });
 });
 

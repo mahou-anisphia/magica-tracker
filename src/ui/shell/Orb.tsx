@@ -1,14 +1,23 @@
+import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { prefersReducedMotion } from './motion';
 import { HomeIcon, SearchIcon } from '../components/icons';
 import { go, set } from '../store';
-import { orbSections, type OrbSection } from './orbMenu';
+import { ORB_COLUMN, orbSections, type OrbSection } from './orbMenu';
 import { OrbCircle } from './OrbCircle';
 import { OrbMark } from './OrbMark';
 import { shortcutLabel } from './shortcut';
 
+/** One round button in the orb's column: Overview, Search, or a section. */
+type ColumnCircle = { id: string; label: string; icon: JSX.Element; onClick: () => void; section?: OrbSection };
+
 /** The cascade: each button rises a beat after the one below it. */
 const STEP_MS = 40;
 const rise = (fromBottom: number) => (fromBottom + 1) * STEP_MS;
+/** Closing plays the cascade backwards (top first), a little quicker. */
+const SINK_SPEED = 0.75;
+/** How long one button takes to sink away (--animate-uncascade). */
+const SINK_MS = 160;
 
 /** The column's sizes, to line the side panel up with a circle: the close orb, a circle, the gap. */
 const CLOSE_PX = 56;
@@ -24,7 +33,7 @@ const FAB_SPOT =
 /**
  * The orb in the bottom-right corner: the way to everything beyond the
  * tracker. Opening it shows round buttons for Overview, search and each
- * section. Hovering or focusing a section lists its common actions; hovering
+ * section, in ORB_COLUMN's order (Search nearest the orb). Hovering or focusing a section lists its common actions; hovering
  * an action explains it. Choosing an action opens its screen and points at
  * the part to use. On touch, the first tap on a section lists its actions and
  * a second tap opens it.
@@ -33,6 +42,9 @@ export function Orb() {
   const dialog = useRef<HTMLDialogElement>(null);
   const pointer = useRef('mouse');
   const [open, setOpen] = useState(false);
+  // Closing: the buttons sink away top first, then the dialog really closes.
+  const [leaving, setLeaving] = useState(false);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const sections = orbSections();
   const [active, setActive] = useState<string | null>(null);
   const [actionIndex, setActionIndex] = useState(0);
@@ -44,13 +56,30 @@ export function Orb() {
     if (!open && d.open) d.close();
   }, [open]);
 
+  useEffect(() => () => clearTimeout(leaveTimer.current), []);
+
   const start = () => {
-    setActive(sections.at(-1)?.id ?? null);
+    clearTimeout(leaveTimer.current);
+    setLeaving(false);
+    setActive(ORB_COLUMN.at(-1) ?? null);
     setActionIndex(0);
     setOpen(true);
   };
+  const close = () => {
+    if (!open || leaving) return;
+    if (prefersReducedMotion()) {
+      setOpen(false);
+      return;
+    }
+    setLeaving(true);
+    leaveTimer.current = setTimeout(() => {
+      setOpen(false);
+      setLeaving(false);
+    }, sinkStart(0) + SINK_MS);
+  };
+  // An action takes effect at once; the menu sinks away over the screen it opened.
   const run = (fn: () => void) => {
-    setOpen(false);
+    close();
     fn();
   };
   // A tap also fires hover and focus just before its click; only taps decide on touch.
@@ -86,13 +115,28 @@ export function Orb() {
   };
 
   const section = sections.find((s) => s.id === active);
-  const circles = sections.length + 2;
+  // The column, top to bottom, as ORB_COLUMN orders it.
+  const column = ORB_COLUMN.flatMap((id): ColumnCircle[] => {
+    if (id === 'home') {
+      return [{ id, label: 'Overview', icon: <HomeIcon size={22} />, onClick: () => tapNote('home', () => go('overview')) }];
+    }
+    if (id === 'search') {
+      return [{ id, label: `Search (${shortcutLabel()})`, icon: <SearchIcon size={22} />, onClick: () => tapNote('search', () => set({ palette: true })) }];
+    }
+    const sec = sections.find((x) => x.id === id);
+    return sec ? [{ id, label: sec.label, icon: sec.icon(), onClick: () => choose(sec), section: sec }] : [];
+  });
+  const circles = column.length;
+  // The top circle rises last, so it sinks first.
+  const sinkStart = (riseDelay: number) => Math.round((rise(circles - 1) - riseDelay) * SINK_SPEED);
+  /** When something that rises after `riseDelay` ms moves: rising, or sinking while closing. */
+  const at = (riseDelay: number) => (leaving ? sinkStart(riseDelay) : riseDelay);
+  const animate = leaving ? 'animate-uncascade' : 'animate-cascade';
   const action = section?.actions[Math.min(actionIndex, section.actions.length - 1)];
   const note = active ? notes[active] : undefined;
   // The explanation beside the list: the hovered action's, or Overview's or Search's note.
   // How far above the corner spot the active circle's bottom edge sits.
-  const order = ['home', 'search', ...sections.map((x) => x.id)];
-  const below = order.length - 1 - order.indexOf(active ?? '');
+  const below = column.length - 1 - column.findIndex((c) => c.id === active);
   const lift = CLOSE_PX + GAP_PX + below * (CIRCLE_PX + GAP_PX);
   const card = section && action ? { ...action, label: section.label } : note;
 
@@ -101,7 +145,7 @@ export function Orb() {
       <button
         type="button"
         class={`${FAB_SPOT} z-20 inline-flex size-56 cursor-pointer items-center justify-center rounded-full border border-line bg-card text-ink shadow-toast`}
-        aria-label="Menu: Overview, search, settings, Observatory and Team"
+        aria-label="Menu: search, Overview, settings, Observatory, Team and Board"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={start}
@@ -112,18 +156,20 @@ export function Orb() {
       <dialog
         ref={dialog}
         aria-label="Menu"
-        class="fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-scrim backdrop:backdrop-blur-[3px]"
+        class={`fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-scrim backdrop:backdrop-blur-[3px] backdrop:transition-opacity backdrop:duration-300 ${
+          leaving ? 'backdrop:opacity-0' : ''
+        }`}
         onCancel={(e) => {
           e.preventDefault();
-          setOpen(false);
+          close();
         }}
         onClick={(e) => {
-          if (e.target === e.currentTarget) setOpen(false);
+          if (e.target === e.currentTarget) close();
         }}
       >
         {open && (
           <div
-            class={`${FAB_SPOT} flex flex-row-reverse items-end gap-14 max-sm:left-16 max-sm:flex-col-reverse max-sm:items-stretch`}
+            class={`${FAB_SPOT} flex flex-row-reverse items-end gap-14 max-sm:left-16 max-sm:flex-col-reverse max-sm:items-stretch ${leaving ? 'pointer-events-none' : ''}`}
             onPointerDown={(e) => {
               pointer.current = e.pointerType;
             }}
@@ -131,47 +177,31 @@ export function Orb() {
               pointer.current = 'keyboard';
             }}
           >
-            <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:justify-end max-sm:gap-8">
-              <OrbCircle
-                label="Overview"
-                delay={rise(circles - 1)}
-                selected={active === 'home'}
-                onHover={hover(() => setActive('home'))}
-                onClick={() => tapNote('home', () => go('overview'))}
-              >
-                <HomeIcon size={22} />
-              </OrbCircle>
-              <OrbCircle
-                label={`Search (${shortcutLabel()})`}
-                delay={rise(circles - 2)}
-                selected={active === 'search'}
-                onHover={hover(() => setActive('search'))}
-                onClick={() => tapNote('search', () => set({ palette: true }))}
-              >
-                <SearchIcon size={22} />
-              </OrbCircle>
-              {sections.map((s, i) => (
+            <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:justify-end max-sm:gap-4">
+              {column.map((c, i) => (
                 <OrbCircle
-                  key={s.id}
-                  label={s.label}
-                  delay={rise(sections.length - 1 - i)}
-                  selected={s.id === active}
-                  expanded={s.id === active}
-                  autoFocus={s.id === sections.at(-1)?.id}
+                  key={c.id}
+                  label={c.label}
+                  delay={at(rise(column.length - 1 - i))}
+                  leaving={leaving}
+                  selected={c.id === active}
+                  expanded={c.section ? c.id === active : undefined}
+                  autoFocus={c.id === column.at(-1)?.id}
                   onHover={hover(() => {
-                    if (s.id !== active) setActionIndex(0);
-                    setActive(s.id);
+                    if (c.id !== active) setActionIndex(0);
+                    setActive(c.id);
                   })}
-                  onClick={() => choose(s)}
+                  onClick={c.onClick}
                 >
-                  {s.icon()}
+                  {c.icon}
                 </OrbCircle>
               ))}
               <button
                 type="button"
-                class="inline-flex size-56 flex-none cursor-pointer items-center justify-center rounded-full border border-line bg-primary-tint text-ink shadow-toast"
+                class="pointer-events-auto inline-flex size-56 flex-none cursor-pointer items-center justify-center rounded-full border border-line bg-primary-tint text-ink shadow-toast"
                 aria-label="Close the menu"
-                onClick={() => setOpen(false)}
+                // While closing it sits where the orb is, so a click there opens the menu again.
+                onClick={leaving ? start : close}
               >
                 <OrbMark lit />
               </button>
@@ -184,7 +214,7 @@ export function Orb() {
                 class={`${SIDE_SPOT} flex flex-col justify-end-safe max-sm:static`}
                 style={{ bottom: `calc(24px + env(safe-area-inset-bottom, 0px) + ${lift}px)` }}
                 onClick={(e) => {
-                  if (e.target === e.currentTarget) setOpen(false);
+                  if (e.target === e.currentTarget) close();
                 }}
               >
                 <div class="flex flex-row-reverse items-end gap-14 max-sm:flex-col-reverse max-sm:items-stretch">
@@ -196,8 +226,8 @@ export function Orb() {
                       class="flex w-250 flex-col items-stretch gap-6 max-sm:w-auto"
                     >
                       <span
-                        style={{ animationDelay: `${rise(section.actions.length)}ms` }}
-                        class="animate-cascade self-start rounded-full bg-ink px-12 py-2 text-12 font-semibold text-page"
+                        style={{ animationDelay: `${at(rise(section.actions.length))}ms` }}
+                        class={`${animate} self-start rounded-full bg-ink px-12 py-2 text-12 font-semibold text-page`}
                       >
                         {section.label}
                       </span>
@@ -205,8 +235,8 @@ export function Orb() {
                         <button
                           key={a.id}
                           type="button"
-                          style={{ animationDelay: `${rise(section.actions.length - 1 - i)}ms` }}
-                          class={`grid min-h-52 animate-cascade cursor-pointer grid-cols-[8px_minmax(0,1fr)] items-center gap-x-12 rounded-12 px-16 py-8 text-left text-15 font-semibold shadow-pop ${
+                          style={{ animationDelay: `${at(rise(section.actions.length - 1 - i))}ms` }}
+                          class={`grid min-h-52 ${animate} cursor-pointer grid-cols-[8px_minmax(0,1fr)] items-center gap-x-12 rounded-12 px-16 py-8 text-left text-15 font-semibold shadow-pop ${
                             a === action ? 'bg-primary text-on-primary' : 'bg-card text-ink'
                           }`}
                           onMouseEnter={() => setActionIndex(i)}
@@ -227,8 +257,8 @@ export function Orb() {
                   {card && (
                     <div
                       key={`${active}-card`}
-                      style={{ animationDelay: `${rise(section ? section.actions.length : 0)}ms` }}
-                      class={`w-300 animate-cascade rounded-14 bg-card px-22 py-20 shadow-dialog max-sm:w-auto ${section ? 'max-sm:hidden' : ''}`}
+                      style={{ animationDelay: `${at(rise(section ? section.actions.length : 0))}ms` }}
+                      class={`w-300 ${animate} rounded-14 bg-card px-22 py-20 shadow-dialog max-sm:w-auto ${section ? 'max-sm:hidden' : ''}`}
                       aria-live="polite"
                     >
                       <div class="text-12 font-semibold text-primary-ink">{card.label}</div>
