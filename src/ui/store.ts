@@ -2,7 +2,8 @@ import { useEffect, useReducer } from 'preact/hooks';
 import { normalizeRoot } from '../core/completion';
 import { emptyRoot, type Root } from '../core/schema';
 import { nowIso } from '../core/time';
-import { createSaver, load, onExternalChange, readLastExport, readMode, writeMode } from '../storage/local';
+import { loadData, type Backend } from '../storage/data';
+import { createSaver, onLastExportChange, readLastExport, readMode, writeMode } from '../storage/local';
 import { applyTheme, DEFAULT_THEME, onSystemAppearanceChange, readThemeChoice, saveThemeChoice, type ThemeChoice } from './themes';
 
 export type View = { kind: 'project'; id: string } | { kind: 'backlog' } | { kind: 'auto' };
@@ -23,6 +24,10 @@ export type Toast = { id: number; text: string; action?: { label: string; run: (
 export type Mode = 'overview' | 'timeline';
 
 export type State = {
+  /** False until the saved data has loaded; nothing renders before. */
+  ready: boolean;
+  /** Where the data is kept, for Settings. */
+  storage: { backend: Backend; migratedAt?: string } | null;
   root: Root;
   mode: Mode;
   /** The colour theme, per browser. */
@@ -43,6 +48,8 @@ export type State = {
 };
 
 let state: State = {
+  ready: false,
+  storage: null,
   root: emptyRoot(),
   mode: 'overview',
   theme: DEFAULT_THEME,
@@ -83,9 +90,15 @@ export function useStore(): State {
 // ─── Persistence ─────────────────────────────────────────────────────────────
 
 let writesAllowed = false;
-const saver = createSaver((ok) => {
-  if (ok !== state.saving) set({ saving: ok });
-});
+let write: (text: string) => Promise<void> | void = () => {
+  throw new Error('Not loaded yet');
+};
+const saver = createSaver(
+  (text) => write(text),
+  (ok) => {
+    if (ok !== state.saving) set({ saving: ok });
+  },
+);
 
 /**
  * The only way data changes (§5): apply the completion rule, update memory,
@@ -107,32 +120,35 @@ export function update(fn: (root: Root, now: string) => Root): void {
   if (next !== current) commit(next);
 }
 
-export function init(): void {
-  const loaded = load();
-  // If load says saving is unsafe (unavailable, or a corrupt copy couldn't be
-  // set aside), never write: the banner stays and nothing gets overwritten.
+/** Loads the saved data (IndexedDB, or localStorage) and starts saving. */
+export async function init(): Promise<void> {
+  // Preferences are synchronous, so the theme is right before the data arrives.
+  set({ mode: readMode() ?? 'overview', theme: readThemeChoice() });
+  applyTheme(state.theme);
+  onSystemAppearanceChange(() => applyTheme(state.theme));
+
+  const loaded = await loadData();
+  const p = loaded.persistence;
+  // If load says saving is unsafe (a corrupt copy couldn't be set aside), never
+  // write: the banner stays and nothing gets overwritten.
   writesAllowed = loaded.canSave;
+  write = p.write;
   set({
+    ready: true,
+    storage: { backend: p.backend, migratedAt: p.migratedAt },
     root: loaded.root,
-    mode: readMode() ?? 'overview',
-    theme: readThemeChoice(),
     saving: loaded.canSave,
     notice: loaded.notice ?? null,
     lastExportedAt: readLastExport(),
   });
-  applyTheme(state.theme);
-  onSystemAppearanceChange(() => applyTheme(state.theme));
 
-  onExternalChange((change) => {
-    if (change.kind === 'lastExport') {
-      set({ lastExportedAt: change.value });
-      return;
-    }
-    // The other tab wrote newer data; ours would only clobber it.
+  p.onExternalChange((root) => {
+    // The other tab saved newer data; ours would only clobber it.
     saver.cancel();
-    set({ root: change.root });
+    set({ root });
     toast('Updated from another tab');
   });
+  onLastExportChange((value) => set({ lastExportedAt: value }));
 
   const flush = () => saver.flush();
   addEventListener('pagehide', flush);

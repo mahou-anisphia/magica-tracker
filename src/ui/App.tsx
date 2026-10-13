@@ -68,6 +68,9 @@ export function App() {
   const now = useNow();
   useShortcuts();
 
+  // Loading from IndexedDB takes a moment; show the bare page rather than an
+  // empty tracker that would flash "Load sample data".
+  if (!s.ready) return null;
   const hasData = s.root.projects.length > 0 || s.root.backlog.length > 0;
 
   return (

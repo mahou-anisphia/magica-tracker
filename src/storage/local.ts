@@ -26,7 +26,17 @@ export type LoadResult = {
   notice?: string;
 };
 
-export function load(): LoadResult {
+/** True when localStorage holds tracker data (valid or not). */
+export function hasLocalData(): boolean {
+  try {
+    return globalThis.localStorage.getItem(STORAGE_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** The data as it was kept before IndexedDB, and the fallback when IndexedDB is missing. */
+export function loadLocal(): LoadResult {
   const s = storage();
   if (!s) return { root: emptyRoot(), canSave: false };
 
@@ -60,23 +70,35 @@ export function load(): LoadResult {
   };
 }
 
+/** Saves to localStorage; throws when the browser refuses (full, or blocked). */
+export function writeLocal(text: string): void {
+  globalThis.localStorage.setItem(STORAGE_KEY, text);
+}
+
 /**
  * Debounced writer. Reports every outcome so the "Not saving" banner tracks
  * reality: it appears on a failed write and clears once a write succeeds.
+ * `write` may be synchronous (localStorage) or return a promise (IndexedDB).
  */
-export function createSaver(onResult: (ok: boolean) => void, delay = SAVE_DELAY_MS) {
+export function createSaver(
+  write: (text: string) => Promise<void> | void,
+  onResult: (ok: boolean) => void,
+  delay = SAVE_DELAY_MS,
+) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let pending: Root | null = null;
 
-  const write = () => {
+  const flush = () => {
     clearTimeout(timer);
     timer = undefined;
     if (!pending) return;
     const root = pending;
     pending = null;
     try {
-      globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(root));
-      onResult(true);
+      Promise.resolve(write(JSON.stringify(root))).then(
+        () => onResult(true),
+        () => onResult(false),
+      );
     } catch {
       onResult(false);
     }
@@ -86,10 +108,10 @@ export function createSaver(onResult: (ok: boolean) => void, delay = SAVE_DELAY_
     schedule(root: Root) {
       pending = root;
       clearTimeout(timer);
-      timer = setTimeout(write, delay);
+      timer = setTimeout(flush, delay);
     },
     /** Write now if something is waiting (e.g. the page is being hidden). */
-    flush: write,
+    flush,
     /** Drop a pending write (another tab's newer data replaced ours). */
     cancel() {
       clearTimeout(timer);
@@ -163,21 +185,18 @@ export function writeTheme(theme: StoredTheme): void {
   }
 }
 
-export type ExternalChange = { kind: 'data'; root: Root } | { kind: 'lastExport'; value: string | null };
+/** Another tab saved new data to localStorage. Only valid data is passed on. */
+export function onLocalDataChange(handler: (root: Root) => void): void {
+  globalThis.addEventListener('storage', (e: StorageEvent) => {
+    if (e.key !== STORAGE_KEY || e.newValue === null) return;
+    const parsed = parseRootText(e.newValue);
+    if (parsed.ok) handler(parsed.root);
+  });
+}
 
-/**
- * Another tab wrote to storage. Only valid data is passed on; anything else is
- * ignored rather than replacing good in-memory state.
- */
-export function onExternalChange(handler: (change: ExternalChange) => void): () => void {
-  const listener = (e: StorageEvent) => {
-    if (e.key === STORAGE_KEY && e.newValue !== null) {
-      const parsed = parseRootText(e.newValue);
-      if (parsed.ok) handler({ kind: 'data', root: parsed.root });
-    } else if (e.key === LAST_EXPORT_KEY) {
-      handler({ kind: 'lastExport', value: e.newValue });
-    }
-  };
-  globalThis.addEventListener('storage', listener);
-  return () => globalThis.removeEventListener('storage', listener);
+/** Another tab exported, so "last exported" changed. */
+export function onLastExportChange(handler: (value: string | null) => void): void {
+  globalThis.addEventListener('storage', (e: StorageEvent) => {
+    if (e.key === LAST_EXPORT_KEY) handler(e.newValue);
+  });
 }
