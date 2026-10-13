@@ -28,7 +28,7 @@ export function StatsRow(props: { root: Root; now: Date }) {
   const items: { label: string; value: number; tone: Tone }[] = [
     { label: 'Open tasks', value: s.open, tone: 'plain' },
     { label: 'In progress', value: s.inProgress, tone: 'plain' },
-    { label: 'Blocked', value: s.blocked, tone: 'plain' },
+    { label: 'Waiting', value: s.waiting, tone: 'plain' },
     { label: 'Overdue', value: s.overdue, tone: 'gold' },
   ];
 

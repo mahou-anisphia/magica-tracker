@@ -1,12 +1,13 @@
 import { dueLabel } from '../../../core/due';
 import type { Task } from '../../../core/schema';
 import { PriorityChip } from '../../components/PriorityChip';
+import { StatusChip } from '../../components/StatusChip';
 
-/** A task as they see it, without anything to press. Blocked hides the other chips, as in your own tracker. */
+/** A task as they see it, without anything to press. Waiting hides the other chips, as in your own tracker. */
 export function ReadOnlyTask(props: { task: Task; now: Date }) {
   const { task, now } = props;
-  const blocked = !task.done && !!task.blocked;
-  const started = !task.done && task.subtasks.some((s) => s.done);
+  const waiting = !task.done && task.status === 'waiting';
+  const started = !task.done && task.status === 'working';
   return (
     <li class="flex min-h-48 items-center gap-10 border-t border-line px-18 py-8 first:border-t-0">
       <span
@@ -18,9 +19,9 @@ export function ReadOnlyTask(props: { task: Task; now: Date }) {
           {task.title}
           {task.done && <span class="sr-only"> (done)</span>}
         </span>
-        {blocked && <span class="pill pill-outline">Blocked</span>}
-        {!blocked && !task.done && <PriorityChip priority={task.priority} />}
-        {!blocked && !task.done && task.escalation && <span class="pill pill-high">May be escalated</span>}
+        {!task.done && <StatusChip status={task.status} />}
+        {!waiting && !task.done && <PriorityChip priority={task.priority} />}
+        {!waiting && !task.done && task.escalation && <span class="pill pill-high">May be escalated</span>}
         {task.due && !task.done && <span class="text-13 font-medium text-body tabular-nums">{dueLabel(task.due, now)}</span>}
       </span>
     </li>

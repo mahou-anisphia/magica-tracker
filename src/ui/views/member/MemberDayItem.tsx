@@ -2,6 +2,7 @@ import type { DueItem } from '../../../core/calendar';
 import { daysUntil, dueDistance } from '../../../core/due';
 import { where } from '../../components/dueItem';
 import { PriorityChip } from '../../components/PriorityChip';
+import { StatusChip } from '../../components/StatusChip';
 
 /** One of their deadlines on a day, with its details shown and nothing to press. */
 export function MemberDayItem(props: { item: DueItem; now: Date }) {
@@ -23,9 +24,10 @@ export function MemberDayItem(props: { item: DueItem; now: Date }) {
         </span>
         {status ? <span class={`pill ${item.done ? 'pill-plain' : 'pill-watch'}`}>{status}</span> : <PriorityChip priority={task?.priority} />}
       </div>
-      {details && (task.blocked || task.escalation || task.effort !== undefined || task.subtasks.length > 0) && (
+      {details && (task.status === 'waiting' || task.status === 'working' || task.escalation || task.effort !== undefined || task.subtasks.length > 0) && (
         <div class="flex flex-wrap gap-6">
-          {!task.done && task.blocked && <span class="pill pill-outline">Blocked</span>}
+          {!task.done && <StatusChip status={task.status} />}
+          {!task.done && task.waiting?.on && <span class="text-13 text-body">On {task.waiting.on}</span>}
           {!task.done && task.escalation && <span class="pill pill-high">May be escalated</span>}
           {task.effort !== undefined && <span class="pill pill-plain">{task.effort}% allocation</span>}
           {task.subtasks.length > 0 && (

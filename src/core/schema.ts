@@ -19,13 +19,21 @@ import { isSafeUrl } from './url';
  * `relatedPeople`, `blocked` and `escalation`; on projects `definitionOfDone`
  * and `relatedPeople`; on the root `owner` (who the file belongs to) and
  * `settings` (allocation period and limit). A v2 file is a valid v3 file.
+ *
+ * 4 gave every task a `status` (To do, Working, Waiting, Done; To do when
+ * missing) and replaced `blocked` with `waiting` (since when, and on what).
+ * MIGRATIONS[3] works the status out from what a v3 task already says.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const ALLOCATION_PERIODS = ['week', 'fortnight'] as const;
 export type AllocationPeriod = (typeof ALLOCATION_PERIODS)[number];
 
 export const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
+
+/** Where a task stands. `done` mirrors it, for the completion rule. */
+export const STATUSES = ['todo', 'working', 'waiting', 'done'] as const;
+export type Status = (typeof STATUSES)[number];
 export type Priority = (typeof PRIORITIES)[number];
 
 const Id = v.optional(v.pipe(v.string(), v.nonEmpty()), newId);
@@ -62,8 +70,8 @@ export const ResourceSchema = v.object({
   addedAt: Stamp,
 });
 
-/** Set while the task is blocked: since when, and optionally on what. */
-const Blocked = v.optional(v.object({ since: Timestamp, blocker: Optional }));
+/** Set while the task is waiting: since when, and optionally on what (a person, a meeting, evidence). */
+const Waiting = v.optional(v.object({ since: Timestamp, on: Optional }));
 /**
  * Set by the task's owner when another team may escalate them to their leader
  * over this task: since when, by whom, and why. A self-report, not a score.
@@ -75,13 +83,14 @@ export const TaskSchema = v.object({
   title: Required,
   done: v.optional(v.boolean(), false),
   doneAt: v.optional(Timestamp),
+  status: v.optional(v.picklist(STATUSES), 'todo'),
   due: DueDate,
   /** Optional: spreads the task's allocation over the periods from here to `due`. */
   startsOn: DueDate,
   definitionOfDone: Optional,
   /** Free text: who to contact about this task. */
   relatedPeople: Optional,
-  blocked: Blocked,
+  waiting: Waiting,
   escalation: Escalation,
   priority: PriorityField,
   effort: Effort,

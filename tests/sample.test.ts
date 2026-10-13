@@ -29,7 +29,7 @@ describe('sample data', () => {
   it('shows off every state the UI has', () => {
     const a = attention(sample, NOW);
     expect(a.inProgress.length).toBeGreaterThan(0);
-    expect(a.blocked.length).toBeGreaterThan(0);
+    expect(a.waiting.length).toBeGreaterThan(0);
     const tasks = sample.projects.flatMap((p) => p.tasks);
     for (const key of ['definitionOfDone', 'relatedPeople', 'escalation', 'startsOn'] as const) {
       expect(tasks.some((t) => t[key] !== undefined)).toBe(true);
@@ -97,7 +97,7 @@ describe('sample teammates', () => {
     });
     expect(past.map((m) => m.name)).toEqual(['Bram']);
     expect(withFile.some((m) => escalations(m.snapshot!.root).length > 0)).toBe(true);
-    expect(withFile.some((m) => attention(m.snapshot!.root, NOW).blocked.length > 0)).toBe(true);
+    expect(withFile.some((m) => attention(m.snapshot!.root, NOW).waiting.length > 0)).toBe(true);
     expect(withFile.some((m) => (fileAgeDays(m, NOW) ?? 0) > FILE_STALE_DAYS)).toBe(true);
     expect(team.members.some((m) => !m.snapshot)).toBe(true);
   });

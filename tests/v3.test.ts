@@ -6,12 +6,12 @@ import {
   setAllocationSettings,
   setOwnerName,
   setProjectText,
-  setTaskBlocked,
-  setTaskBlocker,
   setTaskEscalation,
   setTaskEscalationDetail,
   setTaskStart,
+  setTaskStatus,
   setTaskText,
+  setTaskWaitingOn,
 } from '../src/core/ops';
 import { stats } from '../src/core/progress';
 import { allocationSettings, SCHEMA_VERSION } from '../src/core/schema';
@@ -22,14 +22,15 @@ const NOW = new Date(2026, 8, 28, 12, 0, 0);
 const base = () => root({ projects: [project('p', { tasks: [task('t')] })] });
 
 describe('schema v3', () => {
-  it('loads a v2 file as v3 with nothing invented', () => {
+  it('loads a v2 file with nothing invented but a To do status', () => {
     const v2 = { schemaVersion: 2, updatedAt: T0, projects: [project('p', { tasks: [task('t', { priority: 'high' })] })], backlog: [] };
     const r = parseRootText(JSON.stringify(v2));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.root.schemaVersion).toBe(SCHEMA_VERSION);
     const t = r.root.projects[0]!.tasks[0]!;
-    for (const key of ['startsOn', 'definitionOfDone', 'relatedPeople', 'blocked', 'escalation']) expect(key in t).toBe(false);
+    for (const key of ['startsOn', 'definitionOfDone', 'relatedPeople', 'waiting', 'escalation']) expect(key in t).toBe(false);
+    expect(t.status).toBe('todo');
     expect('owner' in r.root).toBe(false);
     expect('settings' in r.root).toBe(false);
   });
@@ -39,8 +40,8 @@ describe('schema v3', () => {
     r = setTaskStart(r, 'p', 't', '2026-10-01', T1);
     r = setTaskText(r, 'p', 't', 'definitionOfDone', 'Reads true twice', T1);
     r = setTaskText(r, 'p', 't', 'relatedPeople', 'Bram; the lens maker', T1);
-    r = setTaskBlocked(r, 'p', 't', true, T1);
-    r = setTaskBlocker(r, 'p', 't', 'Waiting on the lens', T1);
+    r = setTaskStatus(r, 'p', 't', 'waiting', T1);
+    r = setTaskWaitingOn(r, 'p', 't', 'The lens', T1);
     r = setTaskEscalation(r, 'p', 't', true, T1);
     r = setTaskEscalationDetail(r, 'p', 't', 'by', 'Archive team', T1);
     r = setProjectText(r, 'p', 'definitionOfDone', 'Survey shipped', T1);
@@ -51,19 +52,20 @@ describe('schema v3', () => {
 });
 
 describe('v3 ops', () => {
-  it('blocks with a date, keeps it on repeat, and forgets the blocker when unblocked', () => {
-    let r = setTaskBlocked(base(), 'p', 't', true, T1);
-    expect(getTask(r, 'p', 't').blocked).toEqual({ since: T1 });
-    r = setTaskBlocker(r, 'p', 't', 'Waiting on the lens', T2);
-    r = setTaskBlocked(r, 'p', 't', true, T2);
-    expect(getTask(r, 'p', 't').blocked).toEqual({ since: T1, blocker: 'Waiting on the lens' });
-    r = setTaskBlocked(r, 'p', 't', false, T2);
-    expect('blocked' in getTask(r, 'p', 't')).toBe(false);
+  it('waits with a date, keeps it on repeat, and forgets what it waited on when it moves on', () => {
+    let r = setTaskStatus(base(), 'p', 't', 'waiting', T1);
+    expect(getTask(r, 'p', 't').waiting).toEqual({ since: T1 });
+    r = setTaskWaitingOn(r, 'p', 't', 'The lens', T2);
+    r = setTaskStatus(r, 'p', 't', 'waiting', T2);
+    expect(getTask(r, 'p', 't').waiting).toEqual({ since: T1, on: 'The lens' });
+    r = setTaskStatus(r, 'p', 't', 'working', T2);
+    expect(getTask(r, 'p', 't').status).toBe('working');
+    expect('waiting' in getTask(r, 'p', 't')).toBe(false);
   });
 
   it('ignores a blocker or escalation detail when the flag is not set', () => {
     const r = base();
-    expect(getTask(setTaskBlocker(r, 'p', 't', 'x', T1), 'p', 't').blocked).toBeUndefined();
+    expect(getTask(setTaskWaitingOn(r, 'p', 't', 'x', T1), 'p', 't').waiting).toBeUndefined();
     expect(getTask(setTaskEscalationDetail(r, 'p', 't', 'why', 'x', T1), 'p', 't').escalation).toBeUndefined();
   });
 
@@ -89,23 +91,23 @@ describe('v3 ops', () => {
   });
 });
 
-describe('blocked and urgent in the views', () => {
-  it('lists a blocked task once, as blocked, ahead of urgent and stale', () => {
+describe('waiting and urgent in the views', () => {
+  it('lists a waiting task once, as waiting, ahead of urgent and stale', () => {
     const r = root({
       projects: [
         project('p', {
           tasks: [
-            task('b', { priority: 'urgent', blocked: { since: '2026-09-25T12:00:00.000Z' } }),
+            task('b', { priority: 'urgent', status: 'waiting', waiting: { since: '2026-09-25T12:00:00.000Z' } }),
             task('u', { priority: 'urgent', updatedAt: '2026-09-27T12:00:00.000Z' }),
           ],
         }),
       ],
     });
     const a = attention(r, NOW);
-    expect(a.blocked.map((x) => [x.task.id, x.days])).toEqual([['b', 3]]);
+    expect(a.waiting.map((x) => [x.task.id, x.days])).toEqual([['b', 3]]);
     expect(a.urgent.map((x) => x.task.id)).toEqual(['u']);
     expect(a.stale.map((x) => x.task.id)).toEqual([]);
-    expect(stats(r, NOW)).toMatchObject({ blocked: 1, urgent: 2 });
+    expect(stats(r, NOW)).toMatchObject({ waiting: 1, urgent: 2 });
   });
 
   it('marks urgent task deadlines, not their sub-tasks or projects', () => {

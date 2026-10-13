@@ -16,7 +16,7 @@ export function ObservatoryView(props: { root: Root; team: Team; now: Date }) {
     { label: 'People', value: all.length },
     { label: 'Past their limit', value: all.filter(isPastLimit).length },
     { label: 'May be escalated', value: all.reduce((n, p) => n + (p.data?.escalations.length ?? 0), 0) },
-    { label: 'Blocked tasks', value: all.reduce((n, p) => n + (p.data?.stats.blocked ?? 0), 0) },
+    { label: 'Waiting tasks', value: all.reduce((n, p) => n + (p.data?.stats.waiting ?? 0), 0) },
   ];
 
   return (

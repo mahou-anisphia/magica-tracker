@@ -4,7 +4,7 @@ import { newId } from '../core/id';
 import { mergeRoots } from '../core/merge';
 import * as ops from '../core/ops';
 import { addSample, addSampleTeam, isSampleId, removeSample, removeSampleTeam } from '../core/sample';
-import type { Project, Task } from '../core/schema';
+import type { Project, Status, Task } from '../core/schema';
 import * as team from '../core/team';
 import { parseRootText } from '../core/validate';
 import { writeLastExport } from '../storage/local';
@@ -98,6 +98,23 @@ export async function toggleTask(projectId: string, task: Task, done: boolean): 
     if (!ok) return;
   }
   update((r, now) => ops.setTaskDone(r, projectId, task.id, done, now));
+}
+
+/**
+ * Move a task to another status. Leaving Done reopens it, which unticks its
+ * sub-tasks, so that asks first, as unticking the checkbox does.
+ */
+export async function moveTask(projectId: string, task: Task, status: Status): Promise<void> {
+  if (task.status === status) return;
+  if (task.done && task.subtasks.length > 0) {
+    const ok = await confirmAction({
+      title: `Reopen “${task.title}”?`,
+      body: `This unticks all ${plural(task.subtasks.length, 'sub-task')}.`,
+      confirmLabel: 'Reopen all',
+    });
+    if (!ok) return;
+  }
+  update((r, now) => ops.setTaskStatus(r, projectId, task.id, status, now));
 }
 
 export async function deleteTask(projectId: string, task: Task): Promise<void> {

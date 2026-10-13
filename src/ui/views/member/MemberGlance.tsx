@@ -9,7 +9,7 @@ export function MemberGlance(props: { root: Root; name: string; now: Date }) {
   const items = [
     { label: 'Open tasks', value: s.open },
     { label: 'In progress', value: s.inProgress },
-    { label: 'Blocked', value: s.blocked },
+    { label: 'Waiting', value: s.waiting },
     { label: 'May be escalated', value: escalations(props.root).length },
   ];
   return (

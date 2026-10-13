@@ -77,16 +77,26 @@ function makers(now: Date, scope: string) {
       subtasks?: Subtask[];
       resources?: Resource[];
       /** The v3 fields, as given. */
-      extra?: Partial<Pick<Task, 'definitionOfDone' | 'relatedPeople' | 'blocked' | 'escalation' | 'startsOn'>>;
+      extra?: Partial<Pick<Task, 'definitionOfDone' | 'relatedPeople' | 'waiting' | 'escalation' | 'startsOn'>>;
+      /** Working on it with no sub-task done yet. */
+      working?: boolean;
     } = {},
   ): Task => {
     const subtasks = opts.subtasks ?? [];
     // Mirror the completion rule so the sample is already consistent.
     const done = subtasks.length ? subtasks.every((s) => s.done) : opts.doneDaysAgo !== undefined;
+    const status: Task['status'] = done
+      ? 'done'
+      : opts.extra?.waiting
+        ? 'waiting'
+        : opts.working || subtasks.some((s) => s.done)
+          ? 'working'
+          : 'todo';
     return {
       id: id('task'),
       title,
       done,
+      status,
       ...(done ? { doneAt: ago(opts.doneDaysAgo ?? 1) } : {}),
       ...(opts.due !== undefined ? { due: inDays(opts.due) } : {}),
       ...(opts.priority ? { priority: opts.priority } : {}),
@@ -148,7 +158,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
         priority: 'low',
         notes: 'The glassblower in the lower town owes us a favour.',
         extra: {
-          blocked: { since: ago(3), blocker: 'Waiting on new glass from the lower town' },
+          waiting: { since: ago(3), on: 'New glass from the lower town' },
           escalation: { since: ago(2), by: 'Archive team', why: 'Their star survey depends on the lens.' },
         },
       }),
@@ -268,13 +278,14 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       task('Recruit lamplighters', {
         touched: 2,
         due: 10,
+        working: true,
         extra: { relatedPeople: 'Mira from the guild; the twins on Hollow Lane', definitionOfDone: 'Twelve names, two per street.' },
       }),
       task('Write the opening charm', { touched: 4, due: 17, priority: 'medium', effort: 15, notes: 'Short. People will be cold.' }),
       task('Test the flame-safe glass', {
         touched: 5,
         due: 7,
-        extra: { blocked: { since: ago(5), blocker: 'The glazier is away until the full moon' } },
+        extra: { waiting: { since: ago(5), on: 'The glazier, away until the full moon' } },
       }),
       task('Map the lantern route', { doneDaysAgo: 2 }),
     ],
@@ -285,7 +296,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
     'Spell Ledger',
     [
       task('Reconcile the potion accounts', { touched: 12 }),
-      task('Price the winter remedies', { touched: 3, due: 13 }),
+      task('Price the winter remedies', { touched: 3, due: 13, working: true }),
       task('File the guild dues', {
         touched: 1,
         due: 21,
@@ -392,7 +403,7 @@ export function sampleTeam(now: Date): Member[] {
                 effort: 25,
                 subtasks: [sub('First night', { doneDaysAgo: 2 }), sub('Second night'), sub('Third night')],
               }),
-              task('Test the lens against Polaris', { touched: 2, due: 9, effort: 30 }),
+              task('Test the lens against Polaris', { touched: 2, due: 9, effort: 30, working: true }),
               task('Order the brass fittings', { doneDaysAgo: 4 }),
             ],
             { description: 'The new lens for the north tower.', due: 12 },
@@ -411,7 +422,7 @@ export function sampleTeam(now: Date): Member[] {
               task('Restock moonpetal', {
                 touched: 10,
                 effort: 60,
-                extra: { blocked: { since: ago(12), blocker: 'The supplier is closed for the harvest' } },
+                extra: { waiting: { since: ago(12), on: 'The supplier, closed for the harvest' } },
               }),
               task('Label the shelves', { touched: 11, effort: 30 }),
               task('Clean the copper stills', { doneDaysAgo: 13 }),
