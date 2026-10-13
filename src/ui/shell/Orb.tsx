@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { prefersReducedMotion } from './motion';
 import { HomeIcon, SearchIcon } from '../components/icons';
 import { go, set } from '../store';
 import { orbSections, type OrbSection } from './orbMenu';
@@ -9,6 +10,10 @@ import { shortcutLabel } from './shortcut';
 /** The cascade: each button rises a beat after the one below it. */
 const STEP_MS = 40;
 const rise = (fromBottom: number) => (fromBottom + 1) * STEP_MS;
+/** Closing plays the cascade backwards (top first), a little quicker. */
+const SINK_SPEED = 0.75;
+/** How long one button takes to sink away (--animate-uncascade). */
+const SINK_MS = 160;
 
 /** The column's sizes, to line the side panel up with a circle: the close orb, a circle, the gap. */
 const CLOSE_PX = 56;
@@ -33,6 +38,9 @@ export function Orb() {
   const dialog = useRef<HTMLDialogElement>(null);
   const pointer = useRef('mouse');
   const [open, setOpen] = useState(false);
+  // Closing: the buttons sink away top first, then the dialog really closes.
+  const [leaving, setLeaving] = useState(false);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const sections = orbSections();
   const [active, setActive] = useState<string | null>(null);
   const [actionIndex, setActionIndex] = useState(0);
@@ -44,13 +52,30 @@ export function Orb() {
     if (!open && d.open) d.close();
   }, [open]);
 
+  useEffect(() => () => clearTimeout(leaveTimer.current), []);
+
   const start = () => {
+    clearTimeout(leaveTimer.current);
+    setLeaving(false);
     setActive(sections.at(-1)?.id ?? null);
     setActionIndex(0);
     setOpen(true);
   };
+  const close = () => {
+    if (!open || leaving) return;
+    if (prefersReducedMotion()) {
+      setOpen(false);
+      return;
+    }
+    setLeaving(true);
+    leaveTimer.current = setTimeout(() => {
+      setOpen(false);
+      setLeaving(false);
+    }, sinkStart(0) + SINK_MS);
+  };
+  // An action takes effect at once; the menu sinks away over the screen it opened.
   const run = (fn: () => void) => {
-    setOpen(false);
+    close();
     fn();
   };
   // A tap also fires hover and focus just before its click; only taps decide on touch.
@@ -87,6 +112,11 @@ export function Orb() {
 
   const section = sections.find((s) => s.id === active);
   const circles = sections.length + 2;
+  // The top button (Overview) rises last, so it sinks first.
+  const sinkStart = (riseDelay: number) => Math.round((rise(circles - 1) - riseDelay) * SINK_SPEED);
+  /** When something that rises after `riseDelay` ms moves: rising, or sinking while closing. */
+  const at = (riseDelay: number) => (leaving ? sinkStart(riseDelay) : riseDelay);
+  const animate = leaving ? 'animate-uncascade' : 'animate-cascade';
   const action = section?.actions[Math.min(actionIndex, section.actions.length - 1)];
   const note = active ? notes[active] : undefined;
   // The explanation beside the list: the hovered action's, or Overview's or Search's note.
@@ -112,18 +142,20 @@ export function Orb() {
       <dialog
         ref={dialog}
         aria-label="Menu"
-        class="fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-scrim backdrop:backdrop-blur-[3px]"
+        class={`fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-scrim backdrop:backdrop-blur-[3px] backdrop:transition-opacity backdrop:duration-300 ${
+          leaving ? 'backdrop:opacity-0' : ''
+        }`}
         onCancel={(e) => {
           e.preventDefault();
-          setOpen(false);
+          close();
         }}
         onClick={(e) => {
-          if (e.target === e.currentTarget) setOpen(false);
+          if (e.target === e.currentTarget) close();
         }}
       >
         {open && (
           <div
-            class={`${FAB_SPOT} flex flex-row-reverse items-end gap-14 max-sm:left-16 max-sm:flex-col-reverse max-sm:items-stretch`}
+            class={`${FAB_SPOT} flex flex-row-reverse items-end gap-14 max-sm:left-16 max-sm:flex-col-reverse max-sm:items-stretch ${leaving ? 'pointer-events-none' : ''}`}
             onPointerDown={(e) => {
               pointer.current = e.pointerType;
             }}
@@ -134,7 +166,8 @@ export function Orb() {
             <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:justify-end max-sm:gap-8">
               <OrbCircle
                 label="Overview"
-                delay={rise(circles - 1)}
+                delay={at(rise(circles - 1))}
+                leaving={leaving}
                 selected={active === 'home'}
                 onHover={hover(() => setActive('home'))}
                 onClick={() => tapNote('home', () => go('overview'))}
@@ -143,7 +176,8 @@ export function Orb() {
               </OrbCircle>
               <OrbCircle
                 label={`Search (${shortcutLabel()})`}
-                delay={rise(circles - 2)}
+                delay={at(rise(circles - 2))}
+                leaving={leaving}
                 selected={active === 'search'}
                 onHover={hover(() => setActive('search'))}
                 onClick={() => tapNote('search', () => set({ palette: true }))}
@@ -154,7 +188,8 @@ export function Orb() {
                 <OrbCircle
                   key={s.id}
                   label={s.label}
-                  delay={rise(sections.length - 1 - i)}
+                  delay={at(rise(sections.length - 1 - i))}
+                  leaving={leaving}
                   selected={s.id === active}
                   expanded={s.id === active}
                   autoFocus={s.id === sections.at(-1)?.id}
@@ -169,9 +204,10 @@ export function Orb() {
               ))}
               <button
                 type="button"
-                class="inline-flex size-56 flex-none cursor-pointer items-center justify-center rounded-full border border-line bg-primary-tint text-ink shadow-toast"
+                class="pointer-events-auto inline-flex size-56 flex-none cursor-pointer items-center justify-center rounded-full border border-line bg-primary-tint text-ink shadow-toast"
                 aria-label="Close the menu"
-                onClick={() => setOpen(false)}
+                // While closing it sits where the orb is, so a click there opens the menu again.
+                onClick={leaving ? start : close}
               >
                 <OrbMark lit />
               </button>
@@ -184,7 +220,7 @@ export function Orb() {
                 class={`${SIDE_SPOT} flex flex-col justify-end-safe max-sm:static`}
                 style={{ bottom: `calc(24px + env(safe-area-inset-bottom, 0px) + ${lift}px)` }}
                 onClick={(e) => {
-                  if (e.target === e.currentTarget) setOpen(false);
+                  if (e.target === e.currentTarget) close();
                 }}
               >
                 <div class="flex flex-row-reverse items-end gap-14 max-sm:flex-col-reverse max-sm:items-stretch">
@@ -196,8 +232,8 @@ export function Orb() {
                       class="flex w-250 flex-col items-stretch gap-6 max-sm:w-auto"
                     >
                       <span
-                        style={{ animationDelay: `${rise(section.actions.length)}ms` }}
-                        class="animate-cascade self-start rounded-full bg-ink px-12 py-2 text-12 font-semibold text-page"
+                        style={{ animationDelay: `${at(rise(section.actions.length))}ms` }}
+                        class={`${animate} self-start rounded-full bg-ink px-12 py-2 text-12 font-semibold text-page`}
                       >
                         {section.label}
                       </span>
@@ -205,8 +241,8 @@ export function Orb() {
                         <button
                           key={a.id}
                           type="button"
-                          style={{ animationDelay: `${rise(section.actions.length - 1 - i)}ms` }}
-                          class={`grid min-h-52 animate-cascade cursor-pointer grid-cols-[8px_minmax(0,1fr)] items-center gap-x-12 rounded-12 px-16 py-8 text-left text-15 font-semibold shadow-pop ${
+                          style={{ animationDelay: `${at(rise(section.actions.length - 1 - i))}ms` }}
+                          class={`grid min-h-52 ${animate} cursor-pointer grid-cols-[8px_minmax(0,1fr)] items-center gap-x-12 rounded-12 px-16 py-8 text-left text-15 font-semibold shadow-pop ${
                             a === action ? 'bg-primary text-on-primary' : 'bg-card text-ink'
                           }`}
                           onMouseEnter={() => setActionIndex(i)}
@@ -227,8 +263,8 @@ export function Orb() {
                   {card && (
                     <div
                       key={`${active}-card`}
-                      style={{ animationDelay: `${rise(section ? section.actions.length : 0)}ms` }}
-                      class={`w-300 animate-cascade rounded-14 bg-card px-22 py-20 shadow-dialog max-sm:w-auto ${section ? 'max-sm:hidden' : ''}`}
+                      style={{ animationDelay: `${at(rise(section ? section.actions.length : 0))}ms` }}
+                      class={`w-300 ${animate} rounded-14 bg-card px-22 py-20 shadow-dialog max-sm:w-auto ${section ? 'max-sm:hidden' : ''}`}
                       aria-live="polite"
                     >
                       <div class="text-12 font-semibold text-primary-ink">{card.label}</div>
