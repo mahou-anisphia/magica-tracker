@@ -1,51 +1,13 @@
-import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { HomeIcon, SearchIcon } from '../components/icons';
 import { go, set } from '../store';
 import { orbSections, type OrbSection } from './orbMenu';
+import { OrbCircle } from './OrbCircle';
+import { OrbMark } from './OrbMark';
 import { shortcutLabel } from './shortcut';
 
 const FAB_SPOT =
   'fixed right-[max(24px,env(safe-area-inset-right,0px))] bottom-[calc(24px+env(safe-area-inset-bottom,0px))]';
-
-/** The brand mark: a ring with a coloured core and a small highlight dot. Lit while open. */
-function OrbMark(props: { lit: boolean }) {
-  return (
-    <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2.5" />
-      <circle cx="16" cy="16" r={props.lit ? 5.5 : 4.5} class={props.lit ? 'fill-accent' : 'fill-primary'} />
-      <circle cx="24.5" cy="8" r="2.6" class="fill-watch" />
-    </svg>
-  );
-}
-
-function Circle(props: {
-  label: string;
-  selected?: boolean;
-  autoFocus?: boolean;
-  expanded?: boolean;
-  onHover?: () => void;
-  onClick: () => void;
-  children: ComponentChildren;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={props.label}
-      title={props.label}
-      aria-expanded={props.expanded}
-      autoFocus={props.autoFocus}
-      class={`inline-flex size-52 flex-none cursor-pointer items-center justify-center rounded-full border-2 shadow-pop ${
-        props.selected ? 'border-primary bg-primary text-on-primary' : 'border-line bg-card text-body hover:text-primary-ink'
-      }`}
-      onMouseEnter={props.onHover}
-      onFocus={props.onHover}
-      onClick={props.onClick}
-    >
-      {props.children}
-    </button>
-  );
-}
 
 /**
  * The orb in the bottom-right corner: the way to everything beyond the
@@ -124,14 +86,14 @@ export function Orb() {
             }}
           >
             <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:justify-end">
-              <Circle label="Overview" onHover={() => setActive(null)} onClick={() => run(() => go('overview'))}>
+              <OrbCircle label="Overview" onHover={() => setActive(null)} onClick={() => run(() => go('overview'))}>
                 <HomeIcon size={22} />
-              </Circle>
-              <Circle label={`Search (${shortcutLabel()})`} onHover={() => setActive(null)} onClick={() => run(() => set({ palette: true }))}>
+              </OrbCircle>
+              <OrbCircle label={`Search (${shortcutLabel()})`} onHover={() => setActive(null)} onClick={() => run(() => set({ palette: true }))}>
                 <SearchIcon size={22} />
-              </Circle>
+              </OrbCircle>
               {sections.map((s) => (
-                <Circle
+                <OrbCircle
                   key={s.id}
                   label={s.label}
                   selected={s.id === active}
@@ -144,7 +106,7 @@ export function Orb() {
                   onClick={() => choose(s)}
                 >
                   {s.icon()}
-                </Circle>
+                </OrbCircle>
               ))}
               <button
                 type="button"

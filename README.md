@@ -1,6 +1,6 @@
 # Magica Tracker
 
-A calm, single-page tracker for projects, their tasks and sub-tasks, linked resources, and a backlog. Everything lives in the browser's `localStorage`. There is no server and no account. Export and Import are the backup.
+A calm, single-page tracker for projects, their tasks and sub-tasks, linked resources, and a backlog. Everything lives in the browser (IndexedDB, or `localStorage` where IndexedDB isn't available). There is no server and no account. Export and Import are the backup, and exported files are also how a team shares its work.
 
 ## Using it
 
@@ -10,6 +10,8 @@ Open `dist/index.html`. It works straight from disk (`file://`) or behind any st
 
 The top bar switches between **Overview** (projects, tasks, backlog) and **Timeline** (a month calendar of deadlines, with today circled). Clicking an item on the Timeline opens it in Overview.
 
+Everything else is behind the **orb** in the bottom-right corner, so the everyday views stay quiet. Opening it shows round buttons for Overview, Search, **Settings**, **Observatory** and **Team**. Hovering (or focusing) a section lists its common actions, and hovering an action explains it beside the list. Choosing an action opens that screen and briefly rings the part to use ("Start here"). On touch, the first tap on a section shows its actions and a second tap opens it. **⌘K** (Mac) or **Ctrl+K** (Windows, Linux) opens a search palette over places, those actions, people, projects and open tasks.
+
 | Key | Does |
 |---|---|
 | `n` | Focus "Add a task" in the current project |
@@ -18,6 +20,7 @@ The top bar switches between **Overview** (projects, tasks, backlog) and **Timel
 | `Space` | Toggle the focused task |
 | `/` | Focus the project filter |
 | `Esc` | Close whatever is expanded |
+| `⌘K` / `Ctrl+K` | Search: go to a place, an action, a person, a project or a task |
 
 ## Developing
 
@@ -36,12 +39,14 @@ pnpm check       # typecheck + tests + build + fail if dist/ is out of date
 ```
 src/core/      pure rules, no DOM: schema (Valibot), completion, staleness,
                merge, migrate, validation, ops, url/time helpers
-src/storage/   localStorage adapter: load, debounced save, cross-tab sync
+src/storage/   IndexedDB (idb.ts, data.ts) with localStorage fallback (local.ts),
+               debounced save, cross-tab sync; the team record (team.ts)
 src/ui/        Preact UI: store (commit()), actions, styles.css (Tailwind CSS v4)
-  shell/       top bar, banners, dialogs, toast: around every view
-  views/       one folder per view (overview/, timeline/) with the components only it uses
+  shell/       top bar, banners, dialogs, toast, the orb and search palette: around every view
+  views/       one folder per view (overview/, timeline/, settings/, team/,
+               member/ for View as, observatory/) with the components only it uses
   components/  components shared across views
-tests/         Vitest specs for src/core
+tests/         Vitest specs for src/core and src/storage
 ```
 
 UI conventions (folders, Tailwind setup) are written up in `CLAUDE.md`.
@@ -52,18 +57,27 @@ Every change goes through `commit()` in `src/ui/store.ts`. It applies the comple
 
 - **Date, not a greeting.** Overview's heading is today's date. Timeline's heading is the month. Export and Import sit in the top bar next to the view switch.
 - **Quiet by default.** No empty-state sentences. The Needs attention panel is hidden when nothing qualifies, and shows only the 3 most pressing items until you ask for more ("Show N more"). The theme carries the calm.
-- **Look.** Inter (bundled, Latin subset, 48 KB) in cards on a soft page. The top bar and page structure are unchanged from the first design. Under the date ("Sunday, 4 Oct"; the Timeline heading reads "October, 2026"), an "At a glance" board: four numbers (open tasks, in progress, urgent tasks, overdue) divided by hairlines, with the allocation bar along its bottom. Only urgent and overdue carry a colour, and only when they aren't zero. Boards are spaced generously, with quiet labels above them.
+- **Look.** Inter (bundled, Latin subset, 48 KB) in cards on a soft page. The top bar and page structure are unchanged from the first design. Under the date ("Sunday, 4 Oct"; the Timeline heading reads "October, 2026"), an "At a glance" board: four numbers (open tasks, in progress, blocked, overdue) divided by hairlines, with the allocation bar along its bottom. Only overdue carries a colour, and only when it isn't zero. Boards are spaced generously, with quiet labels above them.
 - **Deadlines** (`due`, a calendar day like `"2026-10-03"`) are optional on projects, tasks and sub-tasks. They are set with a small themed calendar (a popover: arrow keys move by day and week, Page Up/Down by month, with Today and Clear) and compared in local time. A deadline is *approaching* when it is 3 days out or closer (`DUE_SOON_DAYS`, fixed). Approaching and overdue deadlines turn amber and appear in Needs attention. A task listed there for its deadline isn't listed again as urgent or stale. Overdue shows as a count of days ("3d overdue"). In the Timeline, a day cell shows its 3 most urgent deadlines (unfinished first, then project deadlines, then by priority) and "+N more", so every week keeps one height. Clicking a day opens all of them in a side panel with details and quick actions.
 - **Priority** is optional on tasks: low, medium, high or urgent. Open tasks are ordered by priority, then nearest deadline, then the order added. Open urgent tasks appear in Needs attention.
-- **Allocation** is optional on tasks: a whole percent of your capacity (stored as `effort`). It is one shared number, not per project: every open task in an active project adds into the Allocation bar on the Overview, scaled 0–200%. Up to 100% fills in the theme's primary colour; overload past 100% fills in its highlight. Finishing a task, or marking its project done, frees its share.
+- **Allocation** is optional on tasks: a whole percent of your capacity for one period (stored as `effort`). The period is a **week** or a **fortnight** (Settings; fortnight by default). Weeks start on Monday; fortnights count from Monday 1 January 2024, so everyone's line up. By default a task's whole share lands in the period its **deadline** falls in. An optional **start date** spreads it evenly by day from the start to the deadline, for work you want to begin early. Work that is overdue, or has no deadline, counts now. Every open task in an active project adds into the Allocation bar on the Overview, which runs up to your **limit** (Settings, 100–300%, 150% by default). Up to 100% fills in the theme's primary colour; overload past 100% fills in its highlight, and past the limit the note says so. Finishing a task, or marking its project done, frees its share.
+- **More details** on a task (and a project) folds away the fields most tasks don't need: **Blocked** (with what it's waiting on), **I may be escalated** (with by whom and why), **Definition of done** and **Related people**, all optional free text. Folded, its header lists what's set. A blocked task's row shows only the Blocked pill and its deadline; the other chips wait until it moves again. Blocked tasks appear in Needs attention (longest blocked first) and in the numbers. "I may be escalated" is the member's own early warning to their leader that another team's workload may escalate them; it is dated, and shows in the Observatory.
+- **Urgent deadlines** in the Timeline are filled in the theme's primary colour, so they stand out from the rest of the month; a small legend explains the marks.
 - **Projects can be marked done.** A done project leaves Needs attention and the numbers, its deadline stops counting, and it moves to "Completed" in the sidebar. Its tasks are left as they are. Reopen it any time.
 - **Notes** sit at the top of an open task.
 - **Resources** are added through a small form (title, link, optional note) that opens from the dashed "Add a resource…" row. A link with no title gets one from its path. Pasting "Title https://…" into the title field is split for you.
 - **Long text** wraps or truncates with "…" (the full text shows on hover). Every single-column grid uses `minmax(0, 1fr)`, so nothing pushes the layout apart.
-- **View mode** (Overview/Timeline) is remembered per browser under `magica:v1:mode`. It isn't part of the data or its exports.
+- **View mode** (Overview/Timeline) is remembered per browser under `magica:v1:mode`. It isn't part of the data or its exports. Settings, Team, the Observatory and View as are reached from the orb and aren't remembered.
+- **Storage is IndexedDB.** The data is the same JSON as before, kept as one record in the browser's database `magica`. The first time a browser opens this version, whatever was in `localStorage` is copied across and the old copy is left untouched as a backup; Settings shows when that happened. If IndexedDB is missing or refuses (some private modes), the tracker uses `localStorage` exactly as before. Tabs keep each other up to date either way. A record that can't be read is set aside under a `corrupt:` key and never overwritten.
+- **Settings** (from the orb) holds the theme, the allocation period and limit, your name, and storage: where the data lives, the export reminder, Export now, and **Wipe everything**, which downloads a backup first and keeps your name and settings.
+- **Your name** (Settings) goes on your exports as `owner`, with an id that stays the same when you rename yourself, so a team leader can match your file to you.
+- **Team.** Add people one at a time (name, optional role); there are no accounts and no server. Ask each person to Export, then bring their files in with **Import their files** (several at once). Each file is matched to a member by the profile id on it, or else by name; you can change the match, add the person, or skip the file before anything is kept. A newer file replaces that person's copy; an older or identical one is skipped; your own export (once you have set your name) is spotted and skipped. Their data is kept read-only in its own record (`team`), beside yours, and never goes into your exports. A file older than 7 days is flagged.
+- **View as** (from Team, the Observatory or search) shows a member's tracker from their latest file, read-only: their numbers, their allocation by their own period and limit, and their active projects. *First version (prototype):* it doesn't yet show their backlog, sub-tasks, notes or resources, or their Timeline.
+- **Observatory** is the leader's view: everyone (you live, others from their files) with their allocation against their own limit, past-limit, blocked work and old files flagged, and every "I may be escalated" flag in one list. *First version (prototype):* the layout and what it summarises are expected to change.
+- **Schema version 3.** Version 3 only added optional fields: on tasks `startsOn`, `definitionOfDone`, `relatedPeople`, `blocked` (`since`, `blocker`) and `escalation` (`since`, `by`, `why`); on projects `definitionOfDone` and `relatedPeople`; on the root `owner` (`id`, `name`) and `settings.allocation` (`period`, `maxLoad`). Every v2 file loads as-is through `MIGRATIONS[2]`.
 - **Schema version 2.** Version 2 only added optional fields: deadlines, priority, effort, project `doneAt`, and backlog `updatedAt` (so a merge can tell which copy of an edited backlog item is newer). Every v1 file and v1 browser storage loads as-is through `MIGRATIONS[1]` and is saved back as v2 on the next change. The version bump means an older build refuses a v2 file instead of silently dropping fields it doesn't know. The storage key stays `magica:v1`: it names the storage slot, not the schema.
 - **Unsafe URL schemes** (`javascript:`, `data:`, `vbscript:`, `blob:`) are rejected on save and on import. Bare hosts like `docs.example.com/x` get `https://` added.
 - **Ids** use `crypto.randomUUID()` where available. Over plain http on a LAN it isn't, so ids fall back to `crypto.getRandomValues`.
-- **Themes.** A Theme button in the top bar (left, next to sample data) picks the colours: **Euphie** (the default), **March 7th** and **Firefly** (each light and dark, with System / Light / Dark), **Lavender haze** and **Peach milk** (light), **Moonlit cloud** (dark), and **Magica classic**, the original palette, unchanged. The choice is remembered per browser under `magica:v1:theme`, like the view mode, and isn't part of the data or its exports. With System, the theme follows the device's light or dark setting as it changes. Each theme's own highlight colour (Euphie's hairpin yellow, March 7th's icy blue, Lavender's blush…) is what marks things worth watching: deadlines, overload, untouched tasks.
+- **Themes.** Settings → Appearance (or "Theme: …" in search) picks the colours: **Euphie** (the default), **March 7th** and **Firefly** (each light and dark, with System / Light / Dark), **Lavender haze** and **Peach milk** (light), **Moonlit cloud** (dark), and **Magica classic**, the original palette, unchanged. The choice is remembered per browser under `magica:v1:theme`, like the view mode, and isn't part of the data or its exports. With System, the theme follows the device's light or dark setting as it changes. Each theme's own highlight colour (Euphie's hairpin yellow, March 7th's icy blue, Lavender's blush…) is what marks things worth watching: deadlines, overload, untouched tasks.
 - **Contrast.** In every theme, body text, coloured text and text on tints keep at least 4.5:1 (checked when the palettes were made). Faint metadata (done items, dates) sits around 3:1 and is never the only way something is shown. Pale primaries (Euphie, March 7th, Peach) carry dark labels, and a deeper shade of the primary draws bars and thin marks. In Magica classic, Steel (#7A9AB5) is 2.7:1 on Mist and used only for metadata and done items, and "worth watching" is a Gold pill with dark text (7.4:1), with Burnished for the dot only.
 - **Small deletions** (sub-tasks, resources, backlog items) happen at once with an Undo toast. Deleting a project or task, unticking a parent, and demoting a task that loses sub-tasks or resources all ask first.
