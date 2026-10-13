@@ -5,10 +5,11 @@ import { mergeRoots } from '../core/merge';
 import * as ops from '../core/ops';
 import { addSample, isSampleId, removeSample } from '../core/sample';
 import type { Project, Task } from '../core/schema';
+import * as team from '../core/team';
 import { parseRootText } from '../core/validate';
 import { writeLastExport } from '../storage/local';
 import { downloadText } from './download';
-import { commit, confirmAction, getState, set, setMode, toast, update, updateWithUndo } from './store';
+import { commit, confirmAction, getState, go, set, setMode, setTeam, toast, update, updateWithUndo, type TeamImportRow } from './store';
 
 // ─── Navigation ──────────────────────────────────────────────────────────────
 
@@ -175,6 +176,24 @@ export async function wipeSample(): Promise<void> {
   set({ view: { kind: 'auto' }, expandedTaskId: null });
 }
 
+/**
+ * Clear every project and backlog item in this browser. A backup downloads
+ * first, as with Replace import. Your name and settings stay.
+ */
+export async function wipeEverything(): Promise<void> {
+  const ok = await confirmAction({
+    title: 'Wipe everything in this browser?',
+    body: 'Every project, task and backlog item goes. A backup file downloads first, so you can import it again. Your name and settings stay.',
+    confirmLabel: 'Download backup and wipe',
+  });
+  if (!ok) return;
+  const now = new Date();
+  downloadText(beforeImportFileName(now), exportJson(getState().root, now.toISOString()));
+  update((r) => ({ ...r, projects: [], backlog: [] }));
+  set({ view: { kind: 'auto' }, expandedTaskId: null });
+  toast('Wiped. The backup is in your downloads.');
+}
+
 // ─── Export / Import ─────────────────────────────────────────────────────────
 
 export function exportNow(): void {
@@ -213,4 +232,97 @@ export function applyImport(mode: 'replace' | 'merge'): void {
     commit(mergeRoots(s.root, incoming));
   }
   set({ importState: null, view: { kind: 'auto' }, expandedTaskId: null });
+}
+
+// ─── Team ────────────────────────────────────────────────────────────────────
+
+/** Adds a person to the team. False (and nothing added) if the name is blank or taken. */
+export function addTeamMember(name: string, role: string): boolean {
+  const before = getState().team;
+  const after = team.addMember(before, newId(), name, role, new Date().toISOString());
+  setTeam(after);
+  if (after === before) return false;
+  toast(`Added ${name.trim()}. Ask them to export, then import their file.`);
+  return true;
+}
+
+export function updateTeamMember(id: string, patch: { name?: string; role?: string }): void {
+  setTeam(team.updateMember(getState().team, id, patch));
+}
+
+export async function removeTeamMember(member: team.Member): Promise<void> {
+  const ok = await confirmAction({
+    title: `Remove ${member.name} from the team?`,
+    body: member.snapshot ? 'Their imported file goes too. Nothing changes on their side.' : undefined,
+    confirmLabel: 'Remove',
+  });
+  if (ok) setTeam(team.removeMember(getState().team, member.id));
+}
+
+/** Who a newly read file should go to, before anyone chooses. */
+function defaultAssign(read: team.TeamFileRead, forMember: string | undefined): string {
+  if (!read.ok) return 'skip';
+  const s = getState();
+  if (team.isOwnFile(s.root, read.file)) return 'skip';
+  const match = team.matchMember(s.team, read.file.root);
+  if (match) return match.member.id;
+  return forMember ?? '';
+}
+
+/**
+ * Reads the chosen files and shows what importing them would do. With
+ * `forMember`, a file that matches nobody goes to that member.
+ */
+export async function startTeamImport(files: Iterable<File>, forMember?: string): Promise<void> {
+  const now = new Date().toISOString();
+  const rows: TeamImportRow[] = [];
+  let n = 0;
+  for (const f of files) {
+    let read: team.TeamFileRead;
+    try {
+      read = team.readTeamFile(f.name, await f.text(), now);
+    } catch {
+      read = { ok: false, fileName: f.name, error: "The file couldn't be read." };
+    }
+    rows.push({ key: `${++n}-${f.name}`, read, assign: defaultAssign(read, forMember) });
+  }
+  if (rows.length) set({ teamImport: rows });
+}
+
+export function assignTeamFile(key: string, assign: string): void {
+  const rows = getState().teamImport;
+  if (rows) set({ teamImport: rows.map((r) => (r.key === key ? { ...r, assign } : r)) });
+}
+
+/** Keeps each chosen file as its person's read-only copy. Older files change nothing. */
+export function applyTeamImport(): void {
+  const rows = getState().teamImport;
+  if (!rows) return;
+  const now = new Date().toISOString();
+  const before = getState().team;
+  let t = before;
+  let kept = 0;
+  // Oldest first, so when two files for one person arrive together the newer one wins.
+  const files = rows.flatMap((r) => (r.read.ok && r.assign && r.assign !== 'skip' ? [{ file: r.read.file, assign: r.assign }] : []));
+  files.sort((a, b) => Date.parse(a.file.exportedAt) - Date.parse(b.file.exportedAt));
+  for (const { file, assign } of files) {
+    const prev = t;
+    if (assign === 'new') {
+      // A second file for someone just added matches them now.
+      const match = team.matchMember(t, file.root);
+      t = match ? team.applyTeamFile(t, match.member.id, file, now) : team.addMemberFromFile(t, newId(), file, now);
+    } else {
+      t = team.applyTeamFile(t, assign, file, now);
+    }
+    if (t !== prev) kept++;
+  }
+  setTeam(t);
+  set({ teamImport: null });
+  toast(kept ? `Imported ${plural(kept, 'file')}` : 'Nothing new to import');
+}
+
+/** Opens a member's tracker, read-only. */
+export function viewAs(memberId: string): void {
+  set({ memberId });
+  go('member');
 }

@@ -28,12 +28,17 @@ export function DueDate(props: {
   onChange: (due: string | undefined) => void;
   /** Shown beside the icon when no date is set, e.g. "Deadline". */
   emptyLabel?: string;
+  /** What the date is, for screen readers. */
+  noun?: string;
+  /** Never turn amber: a start date isn't something to watch. */
+  plain?: boolean;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const popId = `due-${useId()}`;
   const { value, done, now } = props;
+  const noun = props.noun ?? 'deadline';
 
-  const watch = isDueSoon(value, done, now);
+  const watch = !props.plain && isDueSoon(value, done, now);
   // Set: a chip, amber when approaching. Empty: a quiet button that brightens
   // while its row (a parent with group/row) is hovered.
   const cls = value
@@ -50,19 +55,19 @@ export function DueDate(props: {
         popovertarget={popId}
         aria-haspopup="dialog"
         aria-label={
-          value ? `“${props.of}” deadline ${dueLabel(value, now)}. Change deadline` : `Set a deadline for “${props.of}”`
+          value ? `“${props.of}” ${noun} ${dueLabel(value, now)}. Change ${noun}` : `Set a ${noun} for “${props.of}”`
         }
-        title={value ? undefined : 'Set deadline'}
+        title={value ? undefined : `Set ${noun}`}
       >
         <CalendarIcon size={value ? 12 : undefined} />
         {value ? dueLabel(value, now) : props.emptyLabel}
       </button>
       {value && (
-        <button type="button" class={CLEAR} onClick={() => props.onChange(undefined)} aria-label="Clear deadline">
+        <button type="button" class={CLEAR} onClick={() => props.onChange(undefined)} aria-label={`Clear ${noun}`}>
           ×
         </button>
       )}
-      <DatePicker id={popId} anchor={trigger} value={value} now={now} of={props.of} onChange={props.onChange} />
+      <DatePicker id={popId} anchor={trigger} value={value} now={now} of={props.of} noun={noun} onChange={props.onChange} />
     </span>
   );
 }

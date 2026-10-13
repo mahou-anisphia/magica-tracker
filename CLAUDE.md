@@ -21,17 +21,23 @@ commit that touches `src/`, and never edit `dist/` by hand.
 
 ```
 src/ui/
-  App.tsx            the shell around both views: keyboard shortcuts, the clock, view switch
+  App.tsx            the shell around every view: keyboard shortcuts (⌘K/Ctrl+K), the clock, view switch
   store.ts           state + commit(); actions.ts: everything that changes it
   styles.css         Tailwind entry: theme tokens, element defaults, shared primitives
   themes.css         one block of colour-role values per palette (themes)
   themes.ts          the theme list, the saved choice, and putting the palette on <html>
   components/        GLOBAL: only components used by more than one view (or a view and the shell)
-    icons.tsx  Modal.tsx  PriorityChip.tsx  placePopover.ts
-  shell/             app frame rendered once by App in every view: top bar, banners, dialogs, toast
+    icons.tsx  Modal.tsx  PriorityChip.tsx  AllocationBar.tsx  Avatar.tsx
+    Panel.tsx  ViewHeader.tsx  BackLink.tsx  highlight.tsx
+  shell/             app frame rendered once by App in every view: top bar, banners, dialogs,
+                     toast, the orb (Orb.tsx, orbMenu.tsx) and the search palette
   views/
     overview/        the Overview page: OverviewView.tsx + every component only it uses
     timeline/        the Timeline page: TimelineView.tsx + every component only it uses
+    settings/        Settings (theme, allocation, your name, storage)
+    team/            Team: members, adding one at a time, importing their files
+    member/          View as: one member's tracker, read-only (MemberView.tsx)
+    observatory/     the leader's view across the team
 ```
 
 ### Decisions
@@ -53,6 +59,22 @@ src/ui/
 5. **Imports go down or sideways, never across views.** A view may import from
    `components/`, `store`, `actions` and `src/core`, but never from another
    view's folder. If it needs to, the thing belongs in `components/`.
+6. **Everyday views vs. orb screens.** Overview and Timeline are the top bar's
+   switch and are remembered (`setMode`). Settings, Team, Observatory and View
+   as are reached with `go(mode, highlight?)` from the orb or the palette, and
+   start with `ViewHeader` (the "Your tracker" back link, a title, a line).
+7. **Orb actions point at what to use.** Every orb section and action is
+   declared once in `shell/orbMenu.tsx`; the palette lists the same ones. An
+   action calls `go(mode, { key, hint })`. The target gives itself away with
+   `useHighlight(key)`: spread `attrs` on it, add `ring` to its class and
+   render `<HintTag text={hint} />` inside (it must be `relative`). `Panel`
+   does this for whole cards via its `highlight` prop. The ring pulses and
+   clears after 3.6 s. Add an action by adding both halves.
+8. **Your data and the team never mix.** `root` (yours, exported) and `team`
+   (others' files, read-only) are separate records and separate store fields.
+   Team changes go through `setTeam()`, which saves at once; nothing in a
+   member's snapshot is ever edited. Views that show someone else's data
+   take it as props and have no actions that write.
 
 ## Styling: Tailwind CSS v4
 
@@ -107,7 +129,7 @@ and nothing else.
 6. **Three shared primitives are classes, not utility strings:** `.btn`
    (`btn-primary`, `btn-quiet`, `btn-small`, `btn-danger`), `.icon-btn`, and
    `.pill` (`pill-watch`, `pill-urgent`, `pill-high`, `pill-plain`,
-   `pill-low`). They are in `@layer components`, so any utility on the element
+   `pill-low`, `pill-outline` for Blocked). They are in `@layer components`, so any utility on the element
    still wins over them. Don't add more: a style used by one view belongs in
    that view's TSX, and repeated strings are a reason to extract a component
    (`RowAction`, `CalendarItem`, `OverviewBlock`) or a local constant.

@@ -4,7 +4,7 @@ import { monthGrid } from '../../../core/calendar';
 import { monthHeading } from '../../../core/format';
 import { localDateStamp } from '../../../core/time';
 import { ChevronIcon } from '../../components/icons';
-import { placePopover, useFollowAnchor } from '../../components/placePopover';
+import { placePopover, useFollowAnchor } from './placePopover';
 
 const weekdayShort = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const fullDay = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -52,6 +52,8 @@ export function DatePicker(props: {
   now: Date;
   /** What the deadline belongs to, for screen readers. */
   of: string;
+  /** What the date is, e.g. "deadline" or "start date". */
+  noun?: string;
   onChange: (due: string | undefined) => void;
 }) {
   const pop = useRef<HTMLDivElement>(null);
@@ -119,7 +121,7 @@ export function DatePicker(props: {
       // top/bottom/left from the button it belongs to.
       class="fixed inset-auto m-0 w-[min(284px,calc(100vw-16px))] rounded-14 border border-line bg-card px-12 pt-12 pb-8 text-ink shadow-pop open:animate-pop"
       role="dialog"
-      aria-label={`Deadline for “${props.of}”`}
+      aria-label={`${(props.noun ?? 'deadline').replace(/^./, (c) => c.toUpperCase())} for “${props.of}”`}
       onBeforeToggle={(e) => {
         if (e.newState === 'open') {
           place();

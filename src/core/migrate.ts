@@ -15,6 +15,12 @@ export const MIGRATIONS: Record<number, Migration> = {
    * v2 file instead of silently dropping fields it doesn't know.
    */
   1: (raw) => raw,
+  /**
+   * v2 → v3. Also only new optional fields (start date, definition of done,
+   * related people, blocked, escalation, owner, settings), so a v2 file is
+   * already a valid v3 shape.
+   */
+  2: (raw) => raw,
 };
 
 export class MigrationError extends Error {}

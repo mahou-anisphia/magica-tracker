@@ -1,8 +1,11 @@
 import { useEffect, useReducer } from 'preact/hooks';
 import { normalizeRoot } from '../core/completion';
 import { emptyRoot, type Root } from '../core/schema';
+import { emptyTeam, type Team, type TeamFileRead } from '../core/team';
 import { nowIso } from '../core/time';
-import { createSaver, load, onExternalChange, readLastExport, readMode, writeMode } from '../storage/local';
+import { loadData, type Backend } from '../storage/data';
+import { teamStore, type TeamStore } from '../storage/team';
+import { createSaver, onLastExportChange, readLastExport, readMode, writeMode } from '../storage/local';
 import { applyTheme, DEFAULT_THEME, onSystemAppearanceChange, readThemeChoice, saveThemeChoice, type ThemeChoice } from './themes';
 
 export type View = { kind: 'project'; id: string } | { kind: 'backlog' } | { kind: 'auto' };
@@ -18,11 +21,31 @@ export type ImportState =
   | { kind: 'preview'; fileName: string; incoming: Root }
   | { kind: 'error'; fileName: string; error: string };
 
+/**
+ * Files brought in on the Team screen, one row each. `assign` is a member id,
+ * 'new' (add the person the file names), 'skip', or '' (not chosen yet).
+ */
+export type TeamImportRow = { key: string; read: TeamFileRead; assign: string };
+
 export type Toast = { id: number; text: string; action?: { label: string; run: () => void } };
 
-export type Mode = 'overview' | 'timeline';
+/**
+ * Which screen is showing. Overview and Timeline are the everyday views and
+ * are remembered per browser; the rest are reached from the orb or the palette.
+ */
+export type Mode = 'overview' | 'timeline' | 'settings' | 'team' | 'observatory' | 'member';
+
+/**
+ * A part of a screen to point at for a moment, after an orb or palette action
+ * ("Add member" lands on Team with the add form highlighted).
+ */
+export type Highlight = { key: string; hint?: string };
 
 export type State = {
+  /** False until the saved data has loaded; nothing renders before. */
+  ready: boolean;
+  /** Where the data is kept, for Settings. */
+  storage: { backend: Backend; migratedAt?: string } | null;
   root: Root;
   mode: Mode;
   /** The colour theme, per browser. */
@@ -40,9 +63,19 @@ export type State = {
   /** The day open in the Timeline's side panel, as "2026-10-04". */
   day: string | null;
   importState: ImportState | null;
+  highlight: Highlight | null;
+  /** The ⌘K / Ctrl+K search palette. */
+  palette: boolean;
+  /** The people you follow, with their latest files. Kept apart from `root`. */
+  team: Team;
+  teamImport: TeamImportRow[] | null;
+  /** Whose read-only tracker "View as" shows, when mode is 'member'. */
+  memberId: string | null;
 };
 
 let state: State = {
+  ready: false,
+  storage: null,
   root: emptyRoot(),
   mode: 'overview',
   theme: DEFAULT_THEME,
@@ -57,6 +90,11 @@ let state: State = {
   capture: false,
   day: null,
   importState: null,
+  highlight: null,
+  palette: false,
+  team: emptyTeam(),
+  teamImport: null,
+  memberId: null,
 };
 
 const listeners = new Set<() => void>();
@@ -83,9 +121,15 @@ export function useStore(): State {
 // ─── Persistence ─────────────────────────────────────────────────────────────
 
 let writesAllowed = false;
-const saver = createSaver((ok) => {
-  if (ok !== state.saving) set({ saving: ok });
-});
+let write: (text: string) => Promise<void> | void = () => {
+  throw new Error('Not loaded yet');
+};
+const saver = createSaver(
+  (text) => write(text),
+  (ok) => {
+    if (ok !== state.saving) set({ saving: ok });
+  },
+);
 
 /**
  * The only way data changes (§5): apply the completion rule, update memory,
@@ -107,32 +151,48 @@ export function update(fn: (root: Root, now: string) => Root): void {
   if (next !== current) commit(next);
 }
 
-export function init(): void {
-  const loaded = load();
-  // If load says saving is unsafe (unavailable, or a corrupt copy couldn't be
-  // set aside), never write: the banner stays and nothing gets overwritten.
-  writesAllowed = loaded.canSave;
-  set({
-    root: loaded.root,
-    mode: readMode() ?? 'overview',
-    theme: readThemeChoice(),
-    saving: loaded.canSave,
-    notice: loaded.notice ?? null,
-    lastExportedAt: readLastExport(),
-  });
+let teams: TeamStore | null = null;
+
+/** Changes the team and saves it straight away (it changes rarely, and in whole steps). */
+export function setTeam(team: Team): void {
+  if (team === state.team) return;
+  set({ team });
+  teams?.save(team).catch(() => toast("Couldn't save the team in this browser."));
+}
+
+/** Loads the saved data (IndexedDB, or localStorage) and starts saving. */
+export async function init(): Promise<void> {
+  // Preferences are synchronous, so the theme is right before the data arrives.
+  set({ mode: readMode() ?? 'overview', theme: readThemeChoice() });
   applyTheme(state.theme);
   onSystemAppearanceChange(() => applyTheme(state.theme));
 
-  onExternalChange((change) => {
-    if (change.kind === 'lastExport') {
-      set({ lastExportedAt: change.value });
-      return;
-    }
-    // The other tab wrote newer data; ours would only clobber it.
+  const loaded = await loadData();
+  const p = loaded.persistence;
+  // If load says saving is unsafe (a corrupt copy couldn't be set aside), never
+  // write: the banner stays and nothing gets overwritten.
+  writesAllowed = loaded.canSave;
+  write = p.write;
+  teams = teamStore(p.kv);
+  const loadedTeam = await teams.load();
+  set({
+    ready: true,
+    storage: { backend: p.backend, migratedAt: p.migratedAt },
+    root: loaded.root,
+    saving: loaded.canSave,
+    notice: loaded.notice ?? loadedTeam.notice ?? null,
+    team: loadedTeam.team,
+    lastExportedAt: readLastExport(),
+  });
+
+  p.onExternalChange((root) => {
+    // The other tab saved newer data; ours would only clobber it.
     saver.cancel();
-    set({ root: change.root });
+    set({ root });
     toast('Updated from another tab');
   });
+  teams.onExternalChange((team) => set({ team }));
+  onLastExportChange((value) => set({ lastExportedAt: value }));
 
   const flush = () => saver.flush();
   addEventListener('pagehide', flush);
@@ -141,11 +201,29 @@ export function init(): void {
   });
 }
 
-/** Overview or Timeline, remembered per browser. */
+/** Switch screens. Overview and Timeline are remembered per browser. */
 export function setMode(mode: Mode): void {
   if (mode === state.mode) return;
   set({ mode, drawerOpen: false, day: null });
-  writeMode(mode);
+  if (mode === 'overview' || mode === 'timeline') writeMode(mode);
+}
+
+/** How long an arrival highlight pulses before it fades. */
+const HIGHLIGHT_MS = 3600;
+let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Go to a screen and, optionally, point at the part to use there for a moment. */
+export function go(mode: Mode, highlight?: Highlight): void {
+  setMode(mode);
+  clearTimeout(highlightTimer);
+  set({ highlight: highlight ?? null, palette: false });
+  if (highlight) highlightTimer = setTimeout(() => set({ highlight: null }), HIGHLIGHT_MS);
+  // New screens start at the top; then scroll only as far as the highlighted part needs.
+  scrollTo({ top: 0 });
+  requestAnimationFrame(() => {
+    const el = highlight && document.querySelector<HTMLElement>(`[data-highlight="${CSS.escape(highlight.key)}"]`);
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
 }
 
 /** The colour theme and light/dark choice, remembered per browser. */

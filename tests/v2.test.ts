@@ -62,12 +62,12 @@ describe('v1 → v2 migration', () => {
     expect('doneAt' in r.root.projects[0]!).toBe(false);
   });
 
-  it('is what localStorage data from v1 goes through too, and saves back as v2', () => {
+  it('is what localStorage data from v1 goes through too, and saves back as the current version', () => {
     const r = parseRootText(V1_EXPORT);
     if (!r.ok) throw new Error(r.error);
     const again = parseRootText(exportJson(r.root, T2));
     expect(again).toEqual({ ok: true, root: r.root });
-    expect(JSON.parse(exportJson(r.root, T2)).schemaVersion).toBe(2);
+    expect(JSON.parse(exportJson(r.root, T2)).schemaVersion).toBe(SCHEMA_VERSION);
   });
 
   it('merges a v1 file into v2 data', () => {
@@ -120,19 +120,19 @@ describe('allocation adds up across everything', () => {
         project('fin', { doneAt: T0, tasks: [task('y', { effort: 40 })] }),
       ],
     });
-    expect(allocation(r)).toEqual({ total: 135, tasks: 3 });
+    expect(allocation(r, NOW)).toMatchObject({ total: 135, tasks: 3 });
   });
 
   it('finishing a task or its project frees its share', () => {
     let r = root({ projects: [project('p', { tasks: [task('t', { effort: 70 })] })] });
-    expect(allocation(r).total).toBe(70);
-    expect(allocation(setProjectDone(r, 'p', true, T1)).total).toBe(0);
+    expect(allocation(r, NOW).total).toBe(70);
+    expect(allocation(setProjectDone(r, 'p', true, T1), NOW).total).toBe(0);
     r = root({ projects: [project('p', { tasks: [task('t', { effort: 70, done: true, doneAt: T0 })] })] });
-    expect(allocation(r).total).toBe(0);
+    expect(allocation(r, NOW).total).toBe(0);
   });
 
   it('is zero with nothing allocated', () => {
-    expect(allocation(root())).toEqual({ total: 0, tasks: 0 });
+    expect(allocation(root(), NOW)).toMatchObject({ total: 0, tasks: 0 });
   });
 });
 
@@ -153,7 +153,7 @@ describe('dashboard numbers', () => {
         project('fin', { doneAt: T0, due: '2026-09-01', tasks: [task('y', { due: '2026-09-01' })] }),
       ],
     });
-    expect(stats(r, NOW)).toEqual({ open: 3, inProgress: 1, urgent: 1, overdue: 2 });
+    expect(stats(r, NOW)).toEqual({ open: 3, inProgress: 1, urgent: 1, blocked: 0, overdue: 2 });
   });
 });
 

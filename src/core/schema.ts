@@ -14,8 +14,16 @@ import { isSafeUrl } from './url';
  * 2 added optional fields only: deadlines (`due`) on projects, tasks and
  * sub-tasks, task `priority` and `effort`, project `doneAt`, and backlog `updatedAt`. A v1 file
  * is a valid v2 file; see MIGRATIONS[1].
+ *
+ * 3 added optional fields only: on tasks `startsOn`, `definitionOfDone`,
+ * `relatedPeople`, `blocked` and `escalation`; on projects `definitionOfDone`
+ * and `relatedPeople`; on the root `owner` (who the file belongs to) and
+ * `settings` (allocation period and limit). A v2 file is a valid v3 file.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
+
+export const ALLOCATION_PERIODS = ['week', 'fortnight'] as const;
+export type AllocationPeriod = (typeof ALLOCATION_PERIODS)[number];
 
 export const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 export type Priority = (typeof PRIORITIES)[number];
@@ -54,12 +62,27 @@ export const ResourceSchema = v.object({
   addedAt: Stamp,
 });
 
+/** Set while the task is blocked: since when, and optionally on what. */
+const Blocked = v.optional(v.object({ since: Timestamp, blocker: Optional }));
+/**
+ * Set by the task's owner when another team may escalate them to their leader
+ * over this task: since when, by whom, and why. A self-report, not a score.
+ */
+const Escalation = v.optional(v.object({ since: Timestamp, by: Optional, why: Optional }));
+
 export const TaskSchema = v.object({
   id: Id,
   title: Required,
   done: v.optional(v.boolean(), false),
   doneAt: v.optional(Timestamp),
   due: DueDate,
+  /** Optional: spreads the task's allocation over the periods from here to `due`. */
+  startsOn: DueDate,
+  definitionOfDone: Optional,
+  /** Free text: who to contact about this task. */
+  relatedPeople: Optional,
+  blocked: Blocked,
+  escalation: Escalation,
   priority: PriorityField,
   effort: Effort,
   notes: Optional,
@@ -77,6 +100,8 @@ export const ProjectSchema = v.object({
   /** Set when the project is marked done; absent while it is open. */
   doneAt: v.optional(Timestamp),
   due: DueDate,
+  definitionOfDone: Optional,
+  relatedPeople: Optional,
   createdAt: Stamp,
   updatedAt: Stamp,
   tasks: v.optional(v.array(TaskSchema), () => []),
@@ -93,9 +118,29 @@ export const BacklogItemSchema = v.object({
   updatedAt: v.optional(Timestamp),
 });
 
+/** Who this file belongs to, so a team leader can match it to a member. */
+const Owner = v.optional(v.object({ id: v.pipe(v.string(), v.nonEmpty()), name: Required }));
+
+export const DEFAULT_MAX_LOAD = 150;
+
+/** Per-person preferences that travel with the data, so a leader sees them as set. */
+const Settings = v.optional(
+  v.object({
+    allocation: v.optional(
+      v.object({
+        period: v.optional(v.picklist(ALLOCATION_PERIODS), 'fortnight'),
+        /** The most this person can carry in a period, in percent of capacity. */
+        maxLoad: v.optional(v.pipe(v.number(), v.integer(), v.minValue(100), v.maxValue(300)), DEFAULT_MAX_LOAD),
+      }),
+    ),
+  }),
+);
+
 export const RootSchema = v.object({
   schemaVersion: v.literal(SCHEMA_VERSION),
   updatedAt: Stamp,
+  owner: Owner,
+  settings: Settings,
   projects: v.optional(v.array(ProjectSchema), () => []),
   backlog: v.optional(v.array(BacklogItemSchema), () => []),
 });
@@ -106,6 +151,14 @@ export type Task = v.InferOutput<typeof TaskSchema>;
 export type Project = v.InferOutput<typeof ProjectSchema>;
 export type BacklogItem = v.InferOutput<typeof BacklogItemSchema>;
 export type Root = v.InferOutput<typeof RootSchema>;
+export type Owner = NonNullable<Root['owner']>;
+export type AllocationSettings = { period: AllocationPeriod; maxLoad: number };
+
+/** The allocation settings in force: the saved ones, or the defaults. */
+export function allocationSettings(root: Root): AllocationSettings {
+  const a = root.settings?.allocation;
+  return { period: a?.period ?? 'fortnight', maxLoad: a?.maxLoad ?? DEFAULT_MAX_LOAD };
+}
 
 export function emptyRoot(now: string = nowIso()): Root {
   return { schemaVersion: SCHEMA_VERSION, updatedAt: now, projects: [], backlog: [] };

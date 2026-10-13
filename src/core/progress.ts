@@ -1,9 +1,7 @@
 import { isInProgress, isProjectDone } from './completion';
 import { daysUntil } from './due';
-import type { Priority, Project, Root, Task } from './schema';
-
-/** The allocation bar runs from 0 to this; past 100% is overload. */
-export const ALLOCATION_SCALE = 200;
+import { currentPeriod, dayNumber, overlapDays, type PeriodRange } from './period';
+import { allocationSettings, type AllocationSettings, type Priority, type Project, type Root, type Task } from './schema';
 
 /** Tasks that count toward what's on your plate: open, in a project that's neither archived nor done. */
 function* activeOpenTasks(root: Root): Generator<{ project: Project; task: Task }> {
@@ -13,27 +11,51 @@ function* activeOpenTasks(root: Root): Generator<{ project: Project; task: Task 
   }
 }
 
-export type Allocation = {
-  /** Sum of the open tasks' allocation, in percent of your capacity. Can pass 100. */
+export type Allocation = AllocationSettings & {
+  /** This period's load, in percent of your capacity. Can pass 100 and the limit. */
   total: number;
-  /** How many open tasks carry an allocation. */
+  /** How many open tasks add to it. */
   tasks: number;
+  /** The period it covers. */
+  range: PeriodRange;
 };
 
 /**
- * One shared number: how much of you is spoken for. Each open task's
- * allocation (`effort`, a percent of your capacity) adds up across every
- * active project. Finishing a task, or the project it's in, frees its share.
+ * How much of one task's allocation lands in `range`. By default all of it
+ * lands in the period its deadline falls in. A start date spreads it evenly,
+ * by day, from the start to the deadline. Work that is overdue, or has no
+ * deadline, is on your plate now.
  */
-export function allocation(root: Root): Allocation {
+export function taskShare(task: Task, range: PeriodRange): number {
+  const effort = task.effort ?? 0;
+  if (!effort) return 0;
+  if (!task.due) return effort;
+  const due = dayNumber(task.due);
+  if (due < dayNumber(range.start)) return effort;
+  if (task.startsOn && dayNumber(task.startsOn) <= due) {
+    const span = { start: task.startsOn, end: task.due };
+    return (effort * overlapDays(span, range)) / (due - dayNumber(task.startsOn) + 1);
+  }
+  return due <= dayNumber(range.end) ? effort : 0;
+}
+
+/**
+ * How much of you is spoken for this week or fortnight: every open task's
+ * share of this period, added up across every active project, against the
+ * limit the person set. Finishing a task, or its project, frees its share.
+ */
+export function allocation(root: Root, now: Date): Allocation {
+  const settings = allocationSettings(root);
+  const range = currentPeriod(now, settings.period);
   let total = 0;
   let tasks = 0;
   for (const { task } of activeOpenTasks(root)) {
-    if (task.effort === undefined) continue;
-    total += task.effort;
+    const share = taskShare(task, range);
+    if (share <= 0) continue;
+    total += share;
     tasks++;
   }
-  return { total, tasks };
+  return { ...settings, total: Math.round(total), tasks, range };
 }
 
 export type Stats = {
@@ -43,13 +65,15 @@ export type Stats = {
   inProgress: number;
   /** Unfinished tasks marked urgent. */
   urgent: number;
+  /** Unfinished tasks marked blocked. */
+  blocked: number;
   /** Unfinished projects, tasks and sub-tasks past their deadline. */
   overdue: number;
 };
 
 /** The dashboard's numbers. Archived and done projects don't count. */
 export function stats(root: Root, now: Date): Stats {
-  const s: Stats = { open: 0, inProgress: 0, urgent: 0, overdue: 0 };
+  const s: Stats = { open: 0, inProgress: 0, urgent: 0, blocked: 0, overdue: 0 };
   const overdue = (due: string | undefined, done: boolean) => {
     if (due && !done && daysUntil(due, now) < 0) s.overdue++;
   };
@@ -59,6 +83,7 @@ export function stats(root: Root, now: Date): Stats {
     for (const t of p.tasks) {
       if (!t.done) s.open++;
       if (!t.done && t.priority === 'urgent') s.urgent++;
+      if (!t.done && t.blocked) s.blocked++;
       if (isInProgress(t)) s.inProgress++;
       overdue(t.due, t.done);
       for (const st of t.subtasks) overdue(st.due, st.done);

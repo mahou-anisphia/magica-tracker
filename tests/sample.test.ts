@@ -28,6 +28,11 @@ describe('sample data', () => {
   it('shows off every state the UI has', () => {
     const a = attention(sample, NOW);
     expect(a.inProgress.length).toBeGreaterThan(0);
+    expect(a.blocked.length).toBeGreaterThan(0);
+    const tasks = sample.projects.flatMap((p) => p.tasks);
+    for (const key of ['definitionOfDone', 'relatedPeople', 'escalation', 'startsOn'] as const) {
+      expect(tasks.some((t) => t[key] !== undefined)).toBe(true);
+    }
     expect(a.stale.length).toBeGreaterThan(0);
     const days = a.due.map((d) => d.days);
     expect(days.some((d) => d < 0)).toBe(true); // overdue
@@ -58,7 +63,12 @@ describe('sample data', () => {
 });
 
 describe('sample allocation', () => {
-  it('adds up to a mildly overloaded 140%, so the bar shows overload', () => {
-    expect(allocation(addSample(root(), NOW))).toEqual({ total: 140, tasks: 11 });
+  it('is mildly overloaded on every day of a fortnight, so the bar always shows overload', () => {
+    for (let d = 0; d < 14; d++) {
+      const now = new Date(2026, 9, 5 + d, 12);
+      const a = allocation(addSample(root(), now), now);
+      expect(a.total).toBeGreaterThan(100);
+      expect(a.total).toBeLessThan(a.maxLoad);
+    }
   });
 });

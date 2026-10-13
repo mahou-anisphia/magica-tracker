@@ -38,6 +38,8 @@ export type DueItem = {
   done: boolean;
   /** Unfinished and overdue or due within DUE_SOON_DAYS. */
   watch: boolean;
+  /** An unfinished task (not a sub-task) marked urgent. */
+  urgent: boolean;
 };
 
 /**
@@ -57,11 +59,18 @@ export function dueByDate(root: Root, now: Date): Map<string, DueItem[]> {
     if (project.archived) continue;
     if (project.due) {
       const done = isProjectDone(project);
-      add(project.due, { project, title: project.name, done, watch: isDueSoon(project.due, done, now) });
+      add(project.due, { project, title: project.name, done, watch: isDueSoon(project.due, done, now), urgent: false });
     }
     for (const task of project.tasks) {
       if (task.due) {
-        add(task.due, { project, task, title: task.title, done: task.done, watch: isDueSoon(task.due, task.done, now) });
+        add(task.due, {
+          project,
+          task,
+          title: task.title,
+          done: task.done,
+          watch: isDueSoon(task.due, task.done, now),
+          urgent: !task.done && task.priority === 'urgent',
+        });
       }
       for (const subtask of task.subtasks) {
         if (!subtask.due) continue;
@@ -72,6 +81,7 @@ export function dueByDate(root: Root, now: Date): Map<string, DueItem[]> {
           title: subtask.title,
           done: subtask.done,
           watch: isDueSoon(subtask.due, subtask.done, now),
+          urgent: false,
         });
       }
     }

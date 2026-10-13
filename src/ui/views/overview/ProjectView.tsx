@@ -10,6 +10,7 @@ import { AddInput } from './AddInput';
 import { DueDate } from './DueDate';
 import { EditableText } from './EditableText';
 import { PaneSection } from './PaneSection';
+import { ProjectMoreDetails } from './ProjectMoreDetails';
 import { Resources } from './Resources';
 import { TaskRow } from './TaskRow';
 
@@ -46,6 +47,7 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
             multiline
             onSave={(d) => update((r, n) => ops.setProjectDescription(r, p.id, d, n))}
           />
+          <ProjectMoreDetails project={p} />
         </div>
         <div class="flex flex-wrap items-center gap-8">
           <button

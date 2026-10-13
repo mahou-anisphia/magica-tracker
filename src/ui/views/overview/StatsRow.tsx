@@ -1,27 +1,25 @@
 import { allocation, stats } from '../../../core/progress';
 import type { Root } from '../../../core/schema';
-import { AllocationBar } from './AllocationBar';
+import { AllocationBar } from '../../components/AllocationBar';
 import { OverviewBlock } from './OverviewBlock';
 
-type Tone = 'plain' | 'iris' | 'gold';
+type Tone = 'plain' | 'gold';
 
 const VALUE: Record<Tone | 'zero', string> = {
   zero: 'text-body',
   plain: 'text-ink',
-  iris: 'text-primary-ink',
   gold: 'text-watch-ink',
 };
 
 const MARK: Record<Tone | 'zero', string> = {
   zero: '',
   plain: '',
-  iris: "before:size-7 before:rounded-full before:bg-primary-strong before:content-['']",
   gold: "before:size-7 before:rounded-full before:bg-watch before:content-['']",
 };
 
 /**
  * "At a glance": one calm board. Four numbers divided by hairlines, the shared
- * allocation bar along the bottom. Only urgent and overdue carry a colour, and
+ * allocation bar along the bottom. Only overdue carries a colour, and
  * only when they aren't zero. Archived and done projects don't count. Below
  * 720px the numbers sit two by two.
  */
@@ -30,7 +28,7 @@ export function StatsRow(props: { root: Root; now: Date }) {
   const items: { label: string; value: number; tone: Tone }[] = [
     { label: 'Open tasks', value: s.open, tone: 'plain' },
     { label: 'In progress', value: s.inProgress, tone: 'plain' },
-    { label: 'Urgent tasks', value: s.urgent, tone: 'iris' },
+    { label: 'Blocked', value: s.blocked, tone: 'plain' },
     { label: 'Overdue', value: s.overdue, tone: 'gold' },
   ];
 
@@ -52,7 +50,7 @@ export function StatsRow(props: { root: Root; now: Date }) {
             );
           })}
         </dl>
-        <AllocationBar allocation={allocation(props.root)} embedded />
+        <AllocationBar allocation={allocation(props.root, props.now)} embedded />
       </div>
     </OverviewBlock>
   );

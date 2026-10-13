@@ -3,18 +3,20 @@ import { MigrationError, migrate } from '../src/core/migrate';
 
 describe('migrate', () => {
   it('passes current-version data through', () => {
-    const raw = { schemaVersion: 2, projects: [], backlog: [] };
+    const raw = { schemaVersion: 3, projects: [], backlog: [] };
     expect(migrate(raw)).toEqual(raw);
   });
 
-  it('upgrades v1 to v2 without changing anything else', () => {
-    const raw = { schemaVersion: 1, projects: [{ id: 'p', name: 'x' }], backlog: [] };
-    expect(migrate(raw)).toEqual({ ...raw, schemaVersion: 2 });
+  it('upgrades v1 and v2 to v3 without changing anything else', () => {
+    const v1 = { schemaVersion: 1, projects: [{ id: 'p', name: 'x' }], backlog: [] };
+    expect(migrate(v1)).toEqual({ ...v1, schemaVersion: 3 });
+    const v2 = { schemaVersion: 2, projects: [{ id: 'p', name: 'x', due: '2026-10-01' }], backlog: [] };
+    expect(migrate(v2)).toEqual({ ...v2, schemaVersion: 3 });
   });
 
   it('refuses files from a newer version', () => {
-    expect(() => migrate({ schemaVersion: 3 })).toThrow(MigrationError);
-    expect(() => migrate({ schemaVersion: 3 })).toThrow(/newer version/);
+    expect(() => migrate({ schemaVersion: 4 })).toThrow(MigrationError);
+    expect(() => migrate({ schemaVersion: 4 })).toThrow(/newer version/);
   });
 
   it('refuses things that are not tracker files', () => {
