@@ -45,6 +45,10 @@ export function Orb() {
     setOpen(false);
     fn();
   };
+  // A tap also fires hover and focus just before its click; only taps decide on touch.
+  const hover = (fn: () => void) => () => {
+    if (pointer.current !== 'touch') fn();
+  };
   const choose = (s: OrbSection) => {
     if (pointer.current === 'touch' && active !== s.id) {
       setActive(s.id);
@@ -54,9 +58,31 @@ export function Orb() {
     run(s.open);
   };
 
+  // Overview and Search have no actions, only a note on what they do.
+  const notes: Record<string, { label: string; title: string; text: string }> = {
+    home: {
+      label: 'Overview',
+      title: 'Back to your tracker',
+      text: 'Your projects, tasks and backlog, as you left them. The Timeline is one switch away in the top bar.',
+    },
+    search: {
+      label: 'Search',
+      title: 'Finding anything',
+      text: `Jump to a place, an action, a person, a project or a task by typing part of its name. ${shortcutLabel()} opens it from anywhere.`,
+    },
+  };
+  // On touch, the first tap shows the note and a second tap goes.
+  const tapNote = (id: string, fn: () => void) => {
+    if (pointer.current === 'touch' && active !== id) setActive(id);
+    else run(fn);
+  };
+
   const section = sections.find((s) => s.id === active);
   const circles = sections.length + 2;
   const action = section?.actions[Math.min(actionIndex, section.actions.length - 1)];
+  const note = active ? notes[active] : undefined;
+  // The explanation beside the list: the hovered action's, or Overview's or Search's note.
+  const card = section && action ? { ...action, label: section.label } : note;
 
   return (
     <>
@@ -89,16 +115,26 @@ export function Orb() {
             onPointerDown={(e) => {
               pointer.current = e.pointerType;
             }}
+            onKeyDown={() => {
+              pointer.current = 'keyboard';
+            }}
           >
-            <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:justify-end">
-              <OrbCircle label="Overview" delay={rise(circles - 1)} onHover={() => setActive(null)} onClick={() => run(() => go('overview'))}>
+            <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:justify-end max-sm:gap-8">
+              <OrbCircle
+                label="Overview"
+                delay={rise(circles - 1)}
+                selected={active === 'home'}
+                onHover={hover(() => setActive('home'))}
+                onClick={() => tapNote('home', () => go('overview'))}
+              >
                 <HomeIcon size={22} />
               </OrbCircle>
               <OrbCircle
                 label={`Search (${shortcutLabel()})`}
                 delay={rise(circles - 2)}
-                onHover={() => setActive(null)}
-                onClick={() => run(() => set({ palette: true }))}
+                selected={active === 'search'}
+                onHover={hover(() => setActive('search'))}
+                onClick={() => tapNote('search', () => set({ palette: true }))}
               >
                 <SearchIcon size={22} />
               </OrbCircle>
@@ -110,10 +146,10 @@ export function Orb() {
                   selected={s.id === active}
                   expanded={s.id === active}
                   autoFocus={s.id === sections.at(-1)?.id}
-                  onHover={() => {
+                  onHover={hover(() => {
                     if (s.id !== active) setActionIndex(0);
                     setActive(s.id);
-                  }}
+                  })}
                   onClick={() => choose(s)}
                 >
                   {s.icon()}
@@ -164,16 +200,17 @@ export function Orb() {
               </nav>
             )}
 
-            {section && action && (
+            {/* On phones an action's text is on its own button, so only a note needs the card. */}
+            {card && (
               <div
-                key={`${section.id}-card`}
-                style={{ animationDelay: `${rise(section.actions.length)}ms` }}
-                class="w-300 animate-cascade rounded-14 bg-card px-22 py-20 shadow-dialog max-sm:hidden"
+                key={`${active}-card`}
+                style={{ animationDelay: `${rise(section ? section.actions.length : 0)}ms` }}
+                class={`w-300 animate-cascade rounded-14 bg-card px-22 py-20 shadow-dialog max-sm:w-auto ${section ? 'max-sm:hidden' : ''}`}
                 aria-live="polite"
               >
-                <div class="text-12 font-semibold text-primary-ink">{section.label}</div>
-                <div class="mt-2 mb-8 border-b border-line pb-10 text-18 font-semibold text-ink">{action.title}</div>
-                <p class="text-14 text-body">{action.text}</p>
+                <div class="text-12 font-semibold text-primary-ink">{card.label}</div>
+                <div class="mt-2 mb-8 border-b border-line pb-10 text-18 font-semibold text-ink">{card.title}</div>
+                <p class="text-14 text-body">{card.text}</p>
               </div>
             )}
           </div>
