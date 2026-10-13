@@ -8,6 +8,8 @@ export function OrbCircle(props: {
   expanded?: boolean;
   onHover?: () => void;
   onClick: () => void;
+  /** When it rises into place, in ms after the orb opens. */
+  delay: number;
   children: ComponentChildren;
 }) {
   return (
@@ -17,7 +19,8 @@ export function OrbCircle(props: {
       title={props.label}
       aria-expanded={props.expanded}
       autoFocus={props.autoFocus}
-      class={`inline-flex size-52 flex-none cursor-pointer items-center justify-center rounded-full border-2 shadow-pop ${
+      style={{ animationDelay: `${props.delay}ms` }}
+      class={`inline-flex size-52 flex-none animate-cascade cursor-pointer items-center justify-center rounded-full border-2 shadow-pop ${
         props.selected ? 'border-primary bg-primary text-on-primary' : 'border-line bg-card text-body hover:text-primary-ink'
       }`}
       onMouseEnter={props.onHover}

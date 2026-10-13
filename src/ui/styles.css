@@ -139,6 +139,7 @@
   --animate-pop: rise 140ms ease-out;
   --animate-slide-in: slide-in 200ms ease-out;
   --animate-highlight: highlight 1.2s ease-out 3; /* points at where to act after an orb action */
+  --animate-cascade: cascade 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both; /* the orb's buttons, bottom first */
 
   @keyframes rise {
     from {
@@ -153,6 +154,13 @@
     }
     to {
       box-shadow: 0 0 0 16px color-mix(in srgb, var(--color-accent) 0%, transparent);
+    }
+  }
+
+  @keyframes cascade {
+    from {
+      opacity: 0;
+      transform: translateY(28px) scale(0.94);
     }
   }
 

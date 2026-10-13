@@ -6,6 +6,10 @@ import { OrbCircle } from './OrbCircle';
 import { OrbMark } from './OrbMark';
 import { shortcutLabel } from './shortcut';
 
+/** The cascade: each button rises a beat after the one below it. */
+const STEP_MS = 40;
+const rise = (fromBottom: number) => (fromBottom + 1) * STEP_MS;
+
 const FAB_SPOT =
   'fixed right-[max(24px,env(safe-area-inset-right,0px))] bottom-[calc(24px+env(safe-area-inset-bottom,0px))]';
 
@@ -51,6 +55,7 @@ export function Orb() {
   };
 
   const section = sections.find((s) => s.id === active);
+  const circles = sections.length + 2;
   const action = section?.actions[Math.min(actionIndex, section.actions.length - 1)];
 
   return (
@@ -86,16 +91,22 @@ export function Orb() {
             }}
           >
             <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:justify-end">
-              <OrbCircle label="Overview" onHover={() => setActive(null)} onClick={() => run(() => go('overview'))}>
+              <OrbCircle label="Overview" delay={rise(circles - 1)} onHover={() => setActive(null)} onClick={() => run(() => go('overview'))}>
                 <HomeIcon size={22} />
               </OrbCircle>
-              <OrbCircle label={`Search (${shortcutLabel()})`} onHover={() => setActive(null)} onClick={() => run(() => set({ palette: true }))}>
+              <OrbCircle
+                label={`Search (${shortcutLabel()})`}
+                delay={rise(circles - 2)}
+                onHover={() => setActive(null)}
+                onClick={() => run(() => set({ palette: true }))}
+              >
                 <SearchIcon size={22} />
               </OrbCircle>
-              {sections.map((s) => (
+              {sections.map((s, i) => (
                 <OrbCircle
                   key={s.id}
                   label={s.label}
+                  delay={rise(sections.length - 1 - i)}
                   selected={s.id === active}
                   expanded={s.id === active}
                   autoFocus={s.id === sections.at(-1)?.id}
@@ -118,29 +129,48 @@ export function Orb() {
               </button>
             </div>
 
+            {/* Keyed by section, so a new section's actions rise in again. */}
             {section && (
-              <div class="flex w-260 flex-col gap-2 rounded-14 bg-card p-6 shadow-dialog max-sm:w-auto">
-                <span class="px-10 pt-4 pb-2 text-12 font-semibold text-primary-ink">{section.label}</span>
+              <nav
+                key={section.id}
+                aria-label={`${section.label} actions`}
+                class="flex w-250 flex-col items-stretch gap-6 max-sm:w-auto"
+              >
+                <span
+                  style={{ animationDelay: `${rise(section.actions.length)}ms` }}
+                  class="animate-cascade self-start rounded-full bg-ink px-12 py-2 text-12 font-semibold text-page"
+                >
+                  {section.label}
+                </span>
                 {section.actions.map((a, i) => (
                   <button
                     key={a.id}
                     type="button"
-                    class={`grid min-h-44 cursor-pointer grid-cols-1 content-center rounded-10 px-12 py-6 text-left text-15 font-medium ${
-                      a === action ? 'bg-primary-tint text-ink' : 'bg-transparent text-ink'
+                    style={{ animationDelay: `${rise(section.actions.length - 1 - i)}ms` }}
+                    class={`grid min-h-52 animate-cascade cursor-pointer grid-cols-[8px_minmax(0,1fr)] items-center gap-x-12 rounded-12 px-16 py-8 text-left text-15 font-semibold shadow-pop ${
+                      a === action ? 'bg-primary text-on-primary' : 'bg-card text-ink'
                     }`}
                     onMouseEnter={() => setActionIndex(i)}
                     onFocus={() => setActionIndex(i)}
                     onClick={() => run(a.run)}
                   >
+                    <span class={`size-8 rounded-full ${a === action ? 'bg-on-primary' : 'bg-line-strong'}`} aria-hidden="true" />
                     {a.label}
-                    <span class="hidden text-12 font-normal text-body max-sm:block">{a.text}</span>
+                    <span class={`col-start-2 hidden text-12 font-normal max-sm:block ${a === action ? 'text-on-primary' : 'text-body'}`}>
+                      {a.text}
+                    </span>
                   </button>
                 ))}
-              </div>
+              </nav>
             )}
 
             {section && action && (
-              <div class="w-300 rounded-14 bg-card px-22 py-20 shadow-dialog max-sm:hidden" aria-live="polite">
+              <div
+                key={`${section.id}-card`}
+                style={{ animationDelay: `${rise(section.actions.length)}ms` }}
+                class="w-300 animate-cascade rounded-14 bg-card px-22 py-20 shadow-dialog max-sm:hidden"
+                aria-live="polite"
+              >
                 <div class="text-12 font-semibold text-primary-ink">{section.label}</div>
                 <div class="mt-2 mb-8 border-b border-line pb-10 text-18 font-semibold text-ink">{action.title}</div>
                 <p class="text-14 text-body">{action.text}</p>
