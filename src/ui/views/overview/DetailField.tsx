@@ -1,18 +1,16 @@
-import type { ComponentChildren } from 'preact';
-import { DetailRow } from './DetailRow';
 import { EditableText } from './EditableText';
 
-/** A free-text row in "More details": click to edit, saved when you leave it. */
+/** A labelled free-text field in a More details editor: click to edit, saved when you leave it. */
 export function DetailField(props: {
   label: string;
   value: string | undefined;
   placeholder: string;
   multiline?: boolean;
-  note?: ComponentChildren;
   onSave: (text: string) => void;
 }) {
   return (
-    <DetailRow label={props.label} note={props.note}>
+    <div class="grid min-w-0 grid-cols-1 gap-4">
+      <span class="text-12 font-medium text-body">{props.label}</span>
       <EditableText
         box="m-0 min-h-36 rounded-10 border border-line bg-card px-12 py-7"
         class="text-14 text-ink"
@@ -22,6 +20,6 @@ export function DetailField(props: {
         multiline={props.multiline}
         onSave={props.onSave}
       />
-    </DetailRow>
+    </div>
   );
 }

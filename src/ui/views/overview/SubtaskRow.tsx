@@ -33,20 +33,23 @@ export function SubtaskRow({ project, task, subtask, now }: { project: Project; 
 
   return (
     <li class={ROW}>
-      <label
-        class={`flex min-w-0 flex-1 cursor-pointer items-center gap-12 ${subtask.done ? 'text-faint' : 'text-ink'}`}
-        for={cbId}
+      {/* Only the box ticks it; double-clicking the name renames it. */}
+      <input
+        id={cbId}
+        type="checkbox"
+        aria-label={`${subtask.done ? 'Reopen' : 'Complete'} “${subtask.title}”`}
+        checked={subtask.done}
+        onChange={controlledCheck(subtask.done, (want) =>
+          update((r, n) => ops.setSubtaskDone(r, project.id, task.id, subtask.id, want, n)),
+        )}
+      />
+      <span
+        class={`ml-4 min-w-0 flex-1 cursor-text select-none ${subtask.done ? 'text-faint' : 'text-ink'}`}
+        title="Double-click to rename"
+        onDblClick={() => setEditing(true)}
       >
-        <input
-          id={cbId}
-          type="checkbox"
-          checked={subtask.done}
-          onChange={controlledCheck(subtask.done, (want) =>
-            update((r, n) => ops.setSubtaskDone(r, project.id, task.id, subtask.id, want, n)),
-          )}
-        />
         {subtask.title}
-      </label>
+      </span>
       <DueDate
         value={subtask.due}
         done={subtask.done}

@@ -63,7 +63,17 @@ export function TaskRow({ project, task, expanded, now }: Props) {
             data-task-row={task.id}
             aria-expanded={expanded}
             aria-controls={detailId}
-            onClick={toggleExpand}
+            title="Click to open, double-click to rename"
+            onClick={(e) => {
+              // The second click of a double-click renames instead of folding the row again.
+              if (e.detail < 2) toggleExpand();
+            }}
+            onDblClick={(e) => {
+              e.preventDefault();
+              // The first click of the pair folded or unfolded it; renaming leaves it open.
+              set({ expandedTaskId: task.id });
+              setRenaming(true);
+            }}
             onKeyDown={(e) => {
               // Space toggles the focused task; Enter (and click) expands it.
               if (e.key === ' ') {
@@ -179,7 +189,7 @@ export function TaskRow({ project, task, expanded, now }: Props) {
             </span>
           </div>
 
-          <TaskMoreDetails project={project} task={task} />
+          <TaskMoreDetails project={project} task={task} now={now} />
 
           <div class="flex flex-wrap items-center gap-x-6 gap-y-4 border-t border-line pt-10">
             <button type="button" class="btn btn-quiet btn-small" onClick={() => setRenaming(true)}>
