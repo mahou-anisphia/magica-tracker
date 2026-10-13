@@ -1,4 +1,4 @@
-import type { DueItem } from '../../../core/calendar';
+import type { DueItem } from '../../core/calendar';
 
 export const panelDay = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
 

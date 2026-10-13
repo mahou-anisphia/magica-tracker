@@ -3,7 +3,7 @@ import { plural } from '../../../core/format';
 import { CrossIcon } from '../../components/icons';
 import { Modal } from '../../components/Modal';
 import { DayItem } from './DayItem';
-import { itemKey, panelDay, parseDay } from './dueItem';
+import { itemKey, panelDay, parseDay } from '../../components/dueItem';
 
 /** One day's deadlines in a panel from the right; each row opens to details and quick actions. */
 export function DayPanel(props: { date: string | null; items: DueItem[]; now: Date; focusKey: string | null; onClose: () => void }) {

@@ -39,6 +39,8 @@ export function DueDate(props: {
   const noun = props.noun ?? 'deadline';
 
   const watch = !props.plain && isDueSoon(value, done, now);
+  // Done work, and a start date, owe nothing: a past date reads "7 days ago", not overdue.
+  const label = value ? dueLabel(value, now, undefined, done || props.plain ? 'ago' : 'overdue') : '';
   // Set: a chip, amber when approaching. Empty: a quiet button that brightens
   // while its row (a parent with group/row) is hovered.
   const cls = value
@@ -55,12 +57,12 @@ export function DueDate(props: {
         popovertarget={popId}
         aria-haspopup="dialog"
         aria-label={
-          value ? `“${props.of}” ${noun} ${dueLabel(value, now)}. Change ${noun}` : `Set a ${noun} for “${props.of}”`
+          value ? `“${props.of}” ${noun} ${label}. Change ${noun}` : `Set a ${noun} for “${props.of}”`
         }
         title={value ? undefined : `Set ${noun}`}
       >
         <CalendarIcon size={value ? 12 : undefined} />
-        {value ? dueLabel(value, now) : props.emptyLabel}
+        {value ? label : props.emptyLabel}
       </button>
       {value && (
         <button type="button" class={CLEAR} onClick={() => props.onChange(undefined)} aria-label={`Clear ${noun}`}>

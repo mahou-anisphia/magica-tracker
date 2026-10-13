@@ -6,7 +6,7 @@ import { openProject, setProjectDone, toggleTask } from '../../actions';
 import { ChevronIcon } from '../../components/icons';
 import { PriorityChip } from '../../components/PriorityChip';
 import { set, update } from '../../store';
-import { itemKey, where } from './dueItem';
+import { itemKey, where } from '../../components/dueItem';
 
 /** A deadline in the day panel: a row that opens to details and quick actions. */
 export function DayItem({ item, now, startOpen }: { item: DueItem; now: Date; startOpen: boolean }) {

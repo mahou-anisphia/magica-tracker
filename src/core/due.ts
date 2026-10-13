@@ -41,9 +41,14 @@ export function dueDistance(days: number): string {
   return `due in ${days}d`;
 }
 
-/** "3d overdue", "Today", "Tomorrow", "Oct 3", or "Oct 3, 2027" outside this year. */
-export function dueLabel(due: string, now: Date, locale?: string): string {
+/**
+ * "3d overdue", "Today", "Tomorrow", "Oct 3", or "Oct 3, 2027" outside this year.
+ * A past date that isn't owed anything (a done item's deadline, a start date)
+ * reads "Yesterday" or "7 days ago" instead of overdue: pass `past: 'ago'`.
+ */
+export function dueLabel(due: string, now: Date, locale?: string, past: 'overdue' | 'ago' = 'overdue'): string {
   const n = daysUntil(due, now);
+  if (n < 0 && past === 'ago') return n === -1 ? 'Yesterday' : `${-n} days ago`;
   if (n < 0) return `${-n}d overdue`;
   if (n === 0) return 'Today';
   if (n === 1) return 'Tomorrow';

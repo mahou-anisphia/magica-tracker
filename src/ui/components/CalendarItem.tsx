@@ -1,4 +1,4 @@
-import type { DueItem } from '../../../core/calendar';
+import type { DueItem } from '../../core/calendar';
 import { itemTone, where } from './dueItem';
 
 const TONE = {
