@@ -22,15 +22,15 @@ export type OrbSection = {
 };
 
 /**
- * The orb's column, top to bottom: the things used most sit nearest the orb
- * (the Board, then search and Overview), the rarely used at the top. 'home'
- * and 'search' are Overview and Search; the rest are section ids.
+ * The orb's column, top to bottom. Search sits nearest the orb, then Overview,
+ * then Settings; the Board heads the column. 'home' and 'search' are Overview
+ * and Search; the rest are section ids. The nearest is the one open when the
+ * orb opens.
  */
-export const ORB_COLUMN = ['settings', 'observatory', 'team', 'home', 'search', 'board'] as const;
+export const ORB_COLUMN = ['board', 'team', 'observatory', 'settings', 'home', 'search'] as const;
 
 /**
- * The orb's sections, in the order they stack above it (the last sits nearest
- * the orb, and is the one open when the orb opens: the Board, used most).
+ * The orb's sections. ORB_COLUMN decides where each sits in the column.
  * Each action opens its screen and points at the part to use there.
  * The search palette lists the same actions.
  */

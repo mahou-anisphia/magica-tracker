@@ -33,7 +33,7 @@ const FAB_SPOT =
 /**
  * The orb in the bottom-right corner: the way to everything beyond the
  * tracker. Opening it shows round buttons for Overview, search and each
- * section, the most used nearest the orb (ORB_COLUMN). Hovering or focusing a section lists its common actions; hovering
+ * section, in ORB_COLUMN's order (Search nearest the orb). Hovering or focusing a section lists its common actions; hovering
  * an action explains it. Choosing an action opens its screen and points at
  * the part to use. On touch, the first tap on a section lists its actions and
  * a second tap opens it.
@@ -145,7 +145,7 @@ export function Orb() {
       <button
         type="button"
         class={`${FAB_SPOT} z-20 inline-flex size-56 cursor-pointer items-center justify-center rounded-full border border-line bg-card text-ink shadow-toast`}
-        aria-label="Menu: Board, search, Overview, Team, Observatory and settings"
+        aria-label="Menu: search, Overview, settings, Observatory, Team and Board"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={start}
