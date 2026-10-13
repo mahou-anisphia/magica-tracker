@@ -46,6 +46,10 @@ describe('due dates', () => {
     expect(dueDistance(3)).toBe('due in 3d');
     expect(dueLabel('2026-09-27', NOW, 'en-US')).toBe('1d overdue');
     expect(dueLabel('2026-09-21', NOW, 'en-US')).toBe('7d overdue');
+    // Done items and start dates owe nothing: past dates read as time ago.
+    expect(dueLabel('2026-09-27', NOW, 'en-US', 'ago')).toBe('Yesterday');
+    expect(dueLabel('2026-09-21', NOW, 'en-US', 'ago')).toBe('7 days ago');
+    expect(dueLabel('2026-09-28', NOW, 'en-US', 'ago')).toBe('Today');
   });
 
   it('sets and clears due dates on tasks and sub-tasks, bumping updatedAt', () => {

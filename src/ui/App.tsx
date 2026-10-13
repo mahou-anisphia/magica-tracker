@@ -116,7 +116,7 @@ export function App() {
         ) : mode === 'observatory' ? (
           <ObservatoryView root={s.root} team={s.team} now={now} />
         ) : member ? (
-          <MemberView member={member} now={now} />
+          <MemberView key={member.id} member={member} now={now} />
         ) : mode === 'timeline' ? (
           <TimelineView root={s.root} now={now} day={s.day} />
         ) : (

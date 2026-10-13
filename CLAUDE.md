@@ -29,6 +29,7 @@ src/ui/
   components/        GLOBAL: only components used by more than one view (or a view and the shell)
     icons.tsx  Modal.tsx  PriorityChip.tsx  AllocationBar.tsx  Avatar.tsx
     Panel.tsx  ViewHeader.tsx  BackLink.tsx  highlight.tsx
+    MonthCalendar.tsx  CalendarItem.tsx  dueItem.ts   (your Timeline and View as)
   shell/             app frame rendered once by App: top bar (everyday views only), banners,
                      dialogs, toast, the orb (Orb.tsx, orbMenu.tsx) and the search palette
   views/
