@@ -63,7 +63,12 @@ describe('sample data', () => {
 });
 
 describe('sample allocation', () => {
-  it('adds up to a mildly overloaded 140%, so the bar shows overload', () => {
-    expect(allocation(addSample(root(), NOW))).toEqual({ total: 140, tasks: 11 });
+  it('is mildly overloaded on every day of a fortnight, so the bar always shows overload', () => {
+    for (let d = 0; d < 14; d++) {
+      const now = new Date(2026, 9, 5 + d, 12);
+      const a = allocation(addSample(root(), now), now);
+      expect(a.total).toBeGreaterThan(100);
+      expect(a.total).toBeLessThan(a.maxLoad);
+    }
   });
 });

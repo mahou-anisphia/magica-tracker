@@ -50,7 +50,7 @@ export function StatsRow(props: { root: Root; now: Date }) {
             );
           })}
         </dl>
-        <AllocationBar allocation={allocation(props.root)} embedded />
+        <AllocationBar allocation={allocation(props.root, props.now)} embedded />
       </div>
     </OverviewBlock>
   );

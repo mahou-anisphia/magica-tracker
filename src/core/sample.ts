@@ -119,7 +119,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       task('Calibrate the astrolabe', {
         touched: 0,
         priority: 'high',
-        effort: 25,
+        effort: 35,
         subtasks: [
           sub('Polish the brass rete', { doneDaysAgo: 3 }),
           sub('Align the sights with Polaris', { doneDaysAgo: 1 }),
