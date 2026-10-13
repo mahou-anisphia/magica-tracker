@@ -10,6 +10,14 @@ import { shortcutLabel } from './shortcut';
 const STEP_MS = 40;
 const rise = (fromBottom: number) => (fromBottom + 1) * STEP_MS;
 
+/** The column's sizes, to line the side panel up with a circle: the close orb, a circle, the gap. */
+const CLOSE_PX = 56;
+const CIRCLE_PX = 52;
+const GAP_PX = 12;
+
+/** Left of the column: the corner spot, the orb's width and a gap. Phones stack it instead. */
+const SIDE_SPOT = 'fixed top-16 right-[calc(max(24px,env(safe-area-inset-right,0px))+70px)]';
+
 const FAB_SPOT =
   'fixed right-[max(24px,env(safe-area-inset-right,0px))] bottom-[calc(24px+env(safe-area-inset-bottom,0px))]';
 
@@ -82,6 +90,10 @@ export function Orb() {
   const action = section?.actions[Math.min(actionIndex, section.actions.length - 1)];
   const note = active ? notes[active] : undefined;
   // The explanation beside the list: the hovered action's, or Overview's or Search's note.
+  // How far above the corner spot the active circle's bottom edge sits.
+  const order = ['home', 'search', ...sections.map((x) => x.id)];
+  const below = order.length - 1 - order.indexOf(active ?? '');
+  const lift = CLOSE_PX + GAP_PX + below * (CIRCLE_PX + GAP_PX);
   const card = section && action ? { ...action, label: section.label } : note;
 
   return (
@@ -165,52 +177,66 @@ export function Orb() {
               </button>
             </div>
 
-            {/* Keyed by section, so a new section's actions rise in again. */}
-            {section && (
-              <nav
-                key={section.id}
-                aria-label={`${section.label} actions`}
-                class="flex w-250 flex-col items-stretch gap-6 max-sm:w-auto"
-              >
-                <span
-                  style={{ animationDelay: `${rise(section.actions.length)}ms` }}
-                  class="animate-cascade self-start rounded-full bg-ink px-12 py-2 text-12 font-semibold text-page"
-                >
-                  {section.label}
-                </span>
-                {section.actions.map((a, i) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    style={{ animationDelay: `${rise(section.actions.length - 1 - i)}ms` }}
-                    class={`grid min-h-52 animate-cascade cursor-pointer grid-cols-[8px_minmax(0,1fr)] items-center gap-x-12 rounded-12 px-16 py-8 text-left text-15 font-semibold shadow-pop ${
-                      a === action ? 'bg-primary text-on-primary' : 'bg-card text-ink'
-                    }`}
-                    onMouseEnter={() => setActionIndex(i)}
-                    onFocus={() => setActionIndex(i)}
-                    onClick={() => run(a.run)}
-                  >
-                    <span class={`size-8 rounded-full ${a === action ? 'bg-on-primary' : 'bg-line-strong'}`} aria-hidden="true" />
-                    {a.label}
-                    <span class={`col-start-2 hidden text-12 font-normal max-sm:block ${a === action ? 'text-on-primary' : 'text-body'}`}>
-                      {a.text}
-                    </span>
-                  </button>
-                ))}
-              </nav>
-            )}
-
-            {/* On phones an action's text is on its own button, so only a note needs the card. */}
+            {/* Starts level with its circle and grows up the screen; when there
+                isn't room above, it slides down rather than off the top. */}
             {card && (
               <div
-                key={`${active}-card`}
-                style={{ animationDelay: `${rise(section ? section.actions.length : 0)}ms` }}
-                class={`w-300 animate-cascade rounded-14 bg-card px-22 py-20 shadow-dialog max-sm:w-auto ${section ? 'max-sm:hidden' : ''}`}
-                aria-live="polite"
+                class={`${SIDE_SPOT} flex flex-col justify-end-safe max-sm:static`}
+                style={{ bottom: `calc(24px + env(safe-area-inset-bottom, 0px) + ${lift}px)` }}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) setOpen(false);
+                }}
               >
-                <div class="text-12 font-semibold text-primary-ink">{card.label}</div>
-                <div class="mt-2 mb-8 border-b border-line pb-10 text-18 font-semibold text-ink">{card.title}</div>
-                <p class="text-14 text-body">{card.text}</p>
+                <div class="flex flex-row-reverse items-end gap-14 max-sm:flex-col-reverse max-sm:items-stretch">
+                  {/* Keyed by section, so a new section's actions rise in again. */}
+                  {section && (
+                    <nav
+                      key={section.id}
+                      aria-label={`${section.label} actions`}
+                      class="flex w-250 flex-col items-stretch gap-6 max-sm:w-auto"
+                    >
+                      <span
+                        style={{ animationDelay: `${rise(section.actions.length)}ms` }}
+                        class="animate-cascade self-start rounded-full bg-ink px-12 py-2 text-12 font-semibold text-page"
+                      >
+                        {section.label}
+                      </span>
+                      {section.actions.map((a, i) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          style={{ animationDelay: `${rise(section.actions.length - 1 - i)}ms` }}
+                          class={`grid min-h-52 animate-cascade cursor-pointer grid-cols-[8px_minmax(0,1fr)] items-center gap-x-12 rounded-12 px-16 py-8 text-left text-15 font-semibold shadow-pop ${
+                            a === action ? 'bg-primary text-on-primary' : 'bg-card text-ink'
+                          }`}
+                          onMouseEnter={() => setActionIndex(i)}
+                          onFocus={() => setActionIndex(i)}
+                          onClick={() => run(a.run)}
+                        >
+                          <span class={`size-8 rounded-full ${a === action ? 'bg-on-primary' : 'bg-line-strong'}`} aria-hidden="true" />
+                          {a.label}
+                          <span class={`col-start-2 hidden text-12 font-normal max-sm:block ${a === action ? 'text-on-primary' : 'text-body'}`}>
+                            {a.text}
+                          </span>
+                        </button>
+                      ))}
+                    </nav>
+                  )}
+
+                  {/* On phones an action's text is on its own button, so only a note needs the card. */}
+                  {card && (
+                    <div
+                      key={`${active}-card`}
+                      style={{ animationDelay: `${rise(section ? section.actions.length : 0)}ms` }}
+                      class={`w-300 animate-cascade rounded-14 bg-card px-22 py-20 shadow-dialog max-sm:w-auto ${section ? 'max-sm:hidden' : ''}`}
+                      aria-live="polite"
+                    >
+                      <div class="text-12 font-semibold text-primary-ink">{card.label}</div>
+                      <div class="mt-2 mb-8 border-b border-line pb-10 text-18 font-semibold text-ink">{card.title}</div>
+                      <p class="text-14 text-body">{card.text}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
