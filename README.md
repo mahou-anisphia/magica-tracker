@@ -8,7 +8,7 @@ Open `dist/index.html`. It works straight from disk (`file://`) or behind any st
 
 **Load sample data** (top left) fills the tracker with magic-themed projects, tasks, deadlines and backlog ideas, dated around today, so you can see how it looks when lived in. **Wipe sample data** removes them again. Every sample id starts with `sample-`, so your own projects and tasks are never touched, even when they sit side by side.
 
-The top bar switches between **Overview** (projects, tasks, backlog) and **Timeline** (a month calendar of deadlines, with today circled). Clicking an item on the Timeline opens it in Overview.
+The top bar switches between **Overview** (projects, tasks, backlog) and **Timeline** (a month calendar of deadlines, with today circled). Clicking an item on the Timeline opens it in Overview. The top bar belongs to these two views only; the screens the orb opens have "← Your tracker" at the top instead, so nothing there sends you home unexpectedly.
 
 Everything else is behind the **orb** in the bottom-right corner, so the everyday views stay quiet. Opening it shows round buttons for Overview, Search, **Settings**, **Observatory** and **Team**. Hovering (or focusing) a section lists its common actions, and hovering an action explains it beside the list; Overview and Search show a short note on what they do. Choosing an action opens that screen and briefly rings the part to use ("Start here"). On touch, the first tap on a circle shows its actions or note and a second tap opens it. **⌘K** (Mac) or **Ctrl+K** (Windows, Linux) opens a search palette over places, those actions, people, projects and open tasks.
 
@@ -16,7 +16,7 @@ Everything else is behind the **orb** in the bottom-right corner, so the everyda
 |---|---|
 | `n` | Focus "Add a task" in the current project |
 | `b` | Capture an idea into the backlog |
-| `t` | Switch between Overview and Timeline |
+| `t` | Switch between Overview and Timeline (on those views) |
 | `Space` | Toggle the focused task |
 | `/` | Focus the project filter |
 | `Esc` | Close whatever is expanded |
