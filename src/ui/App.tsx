@@ -11,7 +11,10 @@ import { ToastRegion } from './shell/ToastRegion';
 import { TopBar } from './shell/TopBar';
 import { getState, set, setMode, useStore } from './store';
 import { OverviewView } from './views/overview/OverviewView';
+import { MemberView } from './views/member/MemberView';
+import { ObservatoryView } from './views/observatory/ObservatoryView';
 import { SettingsView } from './views/settings/SettingsView';
+import { TeamView } from './views/team/TeamView';
 import { TimelineView } from './views/timeline/TimelineView';
 
 /** Re-render each minute so the date, deadlines and "n days ago" stay true. */
@@ -43,7 +46,7 @@ function useShortcuts(): void {
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (s.palette) return;
-      if (s.confirm || s.capture || s.importState || s.day) return; // dialogs own the keyboard
+      if (s.confirm || s.capture || s.importState || s.teamImport || s.day) return; // dialogs own the keyboard
 
       if (e.key === 'Escape') {
         const expanded = s.expandedTaskId;
@@ -83,6 +86,9 @@ export function App() {
   // empty tracker that would flash "Load sample data".
   if (!s.ready) return null;
   const hasData = s.root.projects.length > 0 || s.root.backlog.length > 0;
+  // "View as" needs a member with a file; without one, Team is where to get it.
+  const member = s.mode === 'member' ? s.team.members.find((m) => m.id === s.memberId && m.snapshot) : undefined;
+  const mode = s.mode === 'member' && !member ? 'team' : s.mode;
 
   return (
     <>
@@ -96,9 +102,15 @@ export function App() {
       <div class="mx-auto max-w-1160 pt-36 pr-[max(var(--gutter),env(safe-area-inset-right,0px))] pb-96 pl-[max(var(--gutter),env(safe-area-inset-left,0px))]">
         <Banners saving={s.saving} notice={s.notice} />
 
-        {s.mode === 'settings' ? (
+        {mode === 'settings' ? (
           <SettingsView root={s.root} theme={s.theme} storage={s.storage} />
-        ) : s.mode === 'timeline' ? (
+        ) : mode === 'team' ? (
+          <TeamView root={s.root} team={s.team} teamImport={s.teamImport} now={now} />
+        ) : mode === 'observatory' ? (
+          <ObservatoryView root={s.root} team={s.team} now={now} />
+        ) : member ? (
+          <MemberView member={member} now={now} />
+        ) : mode === 'timeline' ? (
           <TimelineView root={s.root} now={now} day={s.day} />
         ) : (
           <OverviewView
@@ -113,7 +125,7 @@ export function App() {
         <ConfirmDialog request={s.confirm} />
         <CaptureDialog open={s.capture} />
         <ImportDialog state={s.importState} current={s.root} />
-        <CommandPalette open={s.palette} root={s.root} />
+        <CommandPalette open={s.palette} root={s.root} team={s.team} />
         <Orb />
         <ToastRegion toast={s.toast} />
       </div>

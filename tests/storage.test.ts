@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadData } from '../src/storage/data';
 import { openKv } from '../src/storage/idb';
 import { STORAGE_KEY } from '../src/storage/local';
+import { teamStore } from '../src/storage/team';
+import { addMember, emptyTeam } from '../src/core/team';
 import { emptyRoot } from '../src/core/schema';
 import { project, root } from './fixtures';
 
@@ -78,5 +80,35 @@ describe('loadData', () => {
     const next = JSON.stringify(emptyRoot());
     loaded.persistence.write(next);
     expect(local.getItem(STORAGE_KEY)).toBe(next);
+  });
+});
+
+describe('teamStore', () => {
+  const team = addMember(emptyTeam(), 'a', 'Alice', '', '2026-10-01T09:00:00.000Z');
+
+  it('saves the team beside the data in IndexedDB, not in it', async () => {
+    const kv = (await openKv(new IDBFactory()))!;
+    const store = teamStore(kv);
+    expect(await store.load()).toEqual({ team: emptyTeam() });
+    await store.save(team);
+    expect(await store.load()).toEqual({ team });
+    expect(await kv.get('root')).toBeUndefined();
+  });
+
+  it('falls back to localStorage', async () => {
+    const store = teamStore(null);
+    await store.save(team);
+    expect(local.getItem('magica:v1:team')).toBe(JSON.stringify(team));
+    expect(await store.load()).toEqual({ team });
+  });
+
+  it('sets an unreadable team aside and starts empty', async () => {
+    const kv = (await openKv(new IDBFactory()))!;
+    await kv.put('team', '{"members": "?"}');
+    const loaded = await teamStore(kv).load();
+    expect(loaded.team).toEqual(emptyTeam());
+    expect(loaded.notice).toMatch(/couldn't be read/);
+    const key = /“(.+)”/.exec(loaded.notice!)![1]!;
+    expect(await kv.get(key)).toBe('{"members": "?"}');
   });
 });

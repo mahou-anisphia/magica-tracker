@@ -1,6 +1,6 @@
 import { allocation, stats } from '../../../core/progress';
 import type { Root } from '../../../core/schema';
-import { AllocationBar } from './AllocationBar';
+import { AllocationBar } from '../../components/AllocationBar';
 import { OverviewBlock } from './OverviewBlock';
 
 type Tone = 'plain' | 'gold';

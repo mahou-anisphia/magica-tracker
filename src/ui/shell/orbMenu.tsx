@@ -1,5 +1,5 @@
 import type { JSX } from 'preact';
-import { GearIcon } from '../components/icons';
+import { GearIcon, TeamIcon, TelescopeIcon } from '../components/icons';
 import { go } from '../store';
 
 /** Something the orb can do, with the one-line explanation it shows beside it. */
@@ -61,6 +61,64 @@ export function orbSections(): OrbSection[] {
           title: 'Storage and backup',
           text: 'Where your data lives, the export reminder, and wiping this browser.',
           run: () => go('settings', { key: 'settings-data' }),
+        },
+      ],
+    },
+    {
+      id: 'observatory',
+      label: 'Observatory',
+      icon: () => <TelescopeIcon size={22} />,
+      open: () => go('observatory'),
+      actions: [
+        {
+          id: 'obs-load',
+          label: 'Who is past their limit',
+          title: 'Seeing everyone’s load',
+          text: 'Each person’s allocation this period against the limit they set, from their latest file.',
+          run: () => go('observatory', { key: 'obs-load' }),
+        },
+        {
+          id: 'obs-escalate',
+          label: 'Escalation flags',
+          title: 'What may be escalated to you',
+          text: 'Tasks people flagged “I may be escalated”, with who might escalate and why.',
+          run: () => go('observatory', { key: 'obs-escalate' }),
+        },
+      ],
+    },
+    {
+      id: 'team',
+      label: 'Team',
+      icon: () => <TeamIcon size={22} />,
+      open: () => go('team'),
+      actions: [
+        {
+          id: 'team-add',
+          label: 'Add member',
+          title: 'Adding a member to the team',
+          text: 'Add one person at a time by name. Their data arrives later, from the file they export.',
+          run: () => go('team', { key: 'team-add', hint: 'Start here' }),
+        },
+        {
+          id: 'team-update',
+          label: 'Update member',
+          title: 'Updating a member',
+          text: 'Rename someone, change their role, or remove them from the team.',
+          run: () => go('team', { key: 'team-members', hint: 'Pick someone to update' }),
+        },
+        {
+          id: 'team-view',
+          label: 'View as…',
+          title: 'Seeing their tracker',
+          text: 'Open someone’s tracker as they see it, from their latest file. Read-only.',
+          run: () => go('team', { key: 'team-members', hint: 'Pick whose view' }),
+        },
+        {
+          id: 'team-import',
+          label: 'Import their files',
+          title: 'Importing their files',
+          text: 'Bring in the files people exported. Each is matched to a person and kept read-only.',
+          run: () => go('team', { key: 'team-import', hint: 'Start here' }),
         },
       ],
     },

@@ -1,7 +1,7 @@
 import { EXPORT_STALE_DAYS } from '../../../core/attention';
 import type { Backend } from '../../../storage/data';
 import { exportNow, wipeEverything } from '../../actions';
-import { SettingsCard } from './SettingsCard';
+import { Panel } from '../../components/Panel';
 
 const dayFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -14,7 +14,7 @@ const BACKEND: Record<Backend, string> = {
 export function StorageCard(props: { storage: { backend: Backend; migratedAt?: string } | null }) {
   const s = props.storage;
   return (
-    <SettingsCard id="storage-h" title="Storage and backup" highlight="settings-data" note="Nothing leaves this device. Export is your backup.">
+    <Panel id="storage-h" title="Storage and backup" highlight="settings-data" note="Nothing leaves this device. Export is your backup.">
       <dl class="grid grid-cols-1 gap-8 text-14">
         <div class="flex flex-wrap justify-between gap-x-12">
           <dt class="text-ink">Saved in</dt>
@@ -39,6 +39,6 @@ export function StorageCard(props: { storage: { backend: Backend; migratedAt?: s
           Wipe everything…
         </button>
       </div>
-    </SettingsCard>
+    </Panel>
   );
 }

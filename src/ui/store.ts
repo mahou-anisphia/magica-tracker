@@ -1,8 +1,10 @@
 import { useEffect, useReducer } from 'preact/hooks';
 import { normalizeRoot } from '../core/completion';
 import { emptyRoot, type Root } from '../core/schema';
+import { emptyTeam, type Team, type TeamFileRead } from '../core/team';
 import { nowIso } from '../core/time';
 import { loadData, type Backend } from '../storage/data';
+import { teamStore, type TeamStore } from '../storage/team';
 import { createSaver, onLastExportChange, readLastExport, readMode, writeMode } from '../storage/local';
 import { applyTheme, DEFAULT_THEME, onSystemAppearanceChange, readThemeChoice, saveThemeChoice, type ThemeChoice } from './themes';
 
@@ -18,6 +20,12 @@ export type ConfirmRequest = {
 export type ImportState =
   | { kind: 'preview'; fileName: string; incoming: Root }
   | { kind: 'error'; fileName: string; error: string };
+
+/**
+ * Files brought in on the Team screen, one row each. `assign` is a member id,
+ * 'new' (add the person the file names), 'skip', or '' (not chosen yet).
+ */
+export type TeamImportRow = { key: string; read: TeamFileRead; assign: string };
 
 export type Toast = { id: number; text: string; action?: { label: string; run: () => void } };
 
@@ -58,6 +66,9 @@ export type State = {
   highlight: Highlight | null;
   /** The ⌘K / Ctrl+K search palette. */
   palette: boolean;
+  /** The people you follow, with their latest files. Kept apart from `root`. */
+  team: Team;
+  teamImport: TeamImportRow[] | null;
   /** Whose read-only tracker "View as" shows, when mode is 'member'. */
   memberId: string | null;
 };
@@ -81,6 +92,8 @@ let state: State = {
   importState: null,
   highlight: null,
   palette: false,
+  team: emptyTeam(),
+  teamImport: null,
   memberId: null,
 };
 
@@ -138,6 +151,15 @@ export function update(fn: (root: Root, now: string) => Root): void {
   if (next !== current) commit(next);
 }
 
+let teams: TeamStore | null = null;
+
+/** Changes the team and saves it straight away (it changes rarely, and in whole steps). */
+export function setTeam(team: Team): void {
+  if (team === state.team) return;
+  set({ team });
+  teams?.save(team).catch(() => toast("Couldn't save the team in this browser."));
+}
+
 /** Loads the saved data (IndexedDB, or localStorage) and starts saving. */
 export async function init(): Promise<void> {
   // Preferences are synchronous, so the theme is right before the data arrives.
@@ -151,12 +173,15 @@ export async function init(): Promise<void> {
   // write: the banner stays and nothing gets overwritten.
   writesAllowed = loaded.canSave;
   write = p.write;
+  teams = teamStore(p.kv);
+  const loadedTeam = await teams.load();
   set({
     ready: true,
     storage: { backend: p.backend, migratedAt: p.migratedAt },
     root: loaded.root,
     saving: loaded.canSave,
-    notice: loaded.notice ?? null,
+    notice: loaded.notice ?? loadedTeam.notice ?? null,
+    team: loadedTeam.team,
     lastExportedAt: readLastExport(),
   });
 
@@ -166,6 +191,7 @@ export async function init(): Promise<void> {
     set({ root });
     toast('Updated from another tab');
   });
+  teams.onExternalChange((team) => set({ team }));
   onLastExportChange((value) => set({ lastExportedAt: value }));
 
   const flush = () => saver.flush();

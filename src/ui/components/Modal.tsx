@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'preact/hooks';
 
 const DIALOG = 'p-0 bg-card text-body backdrop:bg-scrim backdrop:backdrop-blur-[3px]';
 const CENTERED = 'm-auto w-[min(460px,calc(100vw-32px))] rounded-18 border border-line shadow-dialog';
+const WIDE = 'm-auto w-[min(820px,calc(100vw-32px))] rounded-18 border border-line shadow-dialog';
 // A white sheet from the right over the blurred page.
 const DRAWER =
   'fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-[min(440px,100vw)] rounded-none border-l border-line shadow-drawer animate-slide-in';
@@ -10,13 +11,14 @@ const DRAWER =
 /**
  * Native <dialog> shown modally: focus is trapped and restored by the browser,
  * Escape and a backdrop click both call onClose. The "drawer" variant slides
- * in from the right edge instead of sitting in the middle.
+ * in from the right edge instead of sitting in the middle; "wide" is a
+ * centred dialog with room for a table.
  */
 export function Modal(props: {
   open: boolean;
   onClose: () => void;
   labelledBy: string;
-  variant?: 'drawer';
+  variant?: 'drawer' | 'wide';
   children: ComponentChildren;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -31,7 +33,7 @@ export function Modal(props: {
   return (
     <dialog
       ref={ref}
-      class={`${DIALOG} ${props.variant === 'drawer' ? DRAWER : CENTERED}`}
+      class={`${DIALOG} ${props.variant === 'drawer' ? DRAWER : props.variant === 'wide' ? WIDE : CENTERED}`}
       aria-labelledby={props.labelledBy}
       onCancel={(e) => {
         e.preventDefault();

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { shortDay } from '../../core/format';
 import type { Root } from '../../core/schema';
-import { exportNow, openProject } from '../actions';
+import type { Team } from '../../core/team';
+import { exportNow, openProject, viewAs } from '../actions';
 import { SearchIcon } from '../components/icons';
 import { getState, go, set, setTheme } from '../store';
 import { THEMES } from '../themes';
@@ -10,7 +12,7 @@ import { shortcutLabel } from './shortcut';
 type Entry = { group: string; label: string; hint: string; run: () => void };
 
 /** Everything the palette can reach, most useful groups first. */
-function entries(root: Root): Entry[] {
+function entries(root: Root, team: Team): Entry[] {
   const out: Entry[] = [
     { group: 'Places', label: 'Overview', hint: 'Your tracker', run: () => go('overview') },
     { group: 'Places', label: 'Timeline', hint: 'Deadlines by month', run: () => go('timeline') },
@@ -29,6 +31,10 @@ function entries(root: Root): Entry[] {
       hint: 'Appearance',
       run: () => setTheme({ ...getState().theme, theme: t.id }),
     });
+  }
+  for (const m of team.members) {
+    if (!m.snapshot) continue;
+    out.push({ group: 'People', label: `View as ${m.name}`, hint: `Their file from ${shortDay(m.snapshot.exportedAt)}`, run: () => viewAs(m.id) });
   }
   for (const p of root.projects) {
     if (p.archived) continue;
@@ -49,7 +55,7 @@ const LIMIT = 40;
  * ⌘K on Mac, Ctrl+K elsewhere, or the orb's search button: jump to a place,
  * run an orb action, or open a project or task by typing part of its name.
  */
-export function CommandPalette(props: { open: boolean; root: Root }) {
+export function CommandPalette(props: { open: boolean; root: Root; team: Team }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
@@ -65,7 +71,7 @@ export function CommandPalette(props: { open: boolean; root: Root }) {
     if (!props.open && d.open) d.close();
   }, [props.open]);
 
-  const all = useMemo(() => (props.open ? entries(props.root) : []), [props.open, props.root]);
+  const all = useMemo(() => (props.open ? entries(props.root, props.team) : []), [props.open, props.root, props.team]);
   const q = query.trim().toLowerCase();
   const hits = (q ? all.filter((e) => e.label.toLowerCase().includes(q) || e.hint.toLowerCase().includes(q)) : all).slice(0, LIMIT);
   const active = Math.min(index, Math.max(hits.length - 1, 0));

@@ -2,7 +2,7 @@ import { newId } from '../../../core/id';
 import * as ops from '../../../core/ops';
 import type { Root } from '../../../core/schema';
 import { update } from '../../store';
-import { SettingsCard } from './SettingsCard';
+import { Panel } from '../../components/Panel';
 
 /** Your name on your exports, so a team leader can match your file to you. */
 export function ProfileCard(props: { root: Root }) {
@@ -11,7 +11,7 @@ export function ProfileCard(props: { root: Root }) {
     update((r, n) => ops.setOwnerName(r, name, newId, n));
   };
   return (
-    <SettingsCard id="profile-h" title="Profile" highlight="settings-profile">
+    <Panel id="profile-h" title="Profile" highlight="settings-profile">
       <label class="grid grid-cols-1 gap-5 text-12 font-medium text-body">
         Your name
         <input
@@ -27,6 +27,6 @@ export function ProfileCard(props: { root: Root }) {
         />
       </label>
       <p class="text-12 text-body">Your team uses it to match the file you send them to you.</p>
-    </SettingsCard>
+    </Panel>
   );
 }

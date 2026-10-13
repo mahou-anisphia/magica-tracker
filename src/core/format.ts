@@ -27,3 +27,10 @@ export function monthHeading(d: Date, locale?: string): string {
   const month = new Intl.DateTimeFormat(locale, { month: 'long' }).format(d);
   return `${month}, ${d.getFullYear()}`;
 }
+
+/** A moment as its day, the way the headings write it: "12 Oct". */
+export function shortDay(iso: string, locale?: string): string {
+  const d = new Date(iso);
+  const month = new Intl.DateTimeFormat(locale, { month: 'short' }).format(d);
+  return `${d.getDate()} ${month}`;
+}

@@ -2,7 +2,7 @@ import * as ops from '../../../core/ops';
 import { allocationSettings, type AllocationPeriod, type Root } from '../../../core/schema';
 import { update } from '../../store';
 import { Segmented } from './Segmented';
-import { SettingsCard } from './SettingsCard';
+import { Panel } from '../../components/Panel';
 
 /** 100% to 300%, in steps of 10. */
 const LIMITS = Array.from({ length: 21 }, (_, i) => 100 + i * 10);
@@ -16,7 +16,7 @@ const PERIODS: { value: AllocationPeriod; label: string }[] = [
 export function AllocationCard(props: { root: Root }) {
   const a = allocationSettings(props.root);
   return (
-    <SettingsCard
+    <Panel
       id="allocation-h"
       title="Allocation"
       highlight="settings-alloc"
@@ -55,6 +55,6 @@ export function AllocationCard(props: { root: Root }) {
         100% is a full {a.period}. Past 100% the bar turns to the highlight colour; past {a.maxLoad}% your team sees “past
         limit”.
       </p>
-    </SettingsCard>
+    </Panel>
   );
 }

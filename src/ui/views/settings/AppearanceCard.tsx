@@ -2,7 +2,7 @@ import { useId } from 'preact/hooks';
 import { setTheme } from '../../store';
 import { hasBothModes, THEMES, themeById, type Appearance, type Theme, type ThemeChoice } from '../../themes';
 import { Segmented } from './Segmented';
-import { SettingsCard } from './SettingsCard';
+import { Panel } from '../../components/Panel';
 
 const APPEARANCES: { value: Appearance; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -33,7 +33,7 @@ export function AppearanceCard(props: { choice: ThemeChoice }) {
   const name = `theme-${useId()}`;
   const current = themeById(choice.theme);
   return (
-    <SettingsCard id="appearance-h" title="Appearance" highlight="settings-theme" note="Remembered in this browser only.">
+    <Panel id="appearance-h" title="Appearance" highlight="settings-theme" note="Remembered in this browser only.">
       <div role="radiogroup" aria-labelledby="appearance-h" class="grid grid-cols-1 gap-2">
         {THEMES.map((t) => (
           <label
@@ -66,6 +66,6 @@ export function AppearanceCard(props: { choice: ThemeChoice }) {
           <span class="text-13 text-body">{current.light ? 'Light only' : 'Dark only'}</span>
         )}
       </div>
-    </SettingsCard>
+    </Panel>
   );
 }
