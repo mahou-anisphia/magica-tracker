@@ -62,12 +62,12 @@ describe('v1 → v2 migration', () => {
     expect('doneAt' in r.root.projects[0]!).toBe(false);
   });
 
-  it('is what localStorage data from v1 goes through too, and saves back as v2', () => {
+  it('is what localStorage data from v1 goes through too, and saves back as the current version', () => {
     const r = parseRootText(V1_EXPORT);
     if (!r.ok) throw new Error(r.error);
     const again = parseRootText(exportJson(r.root, T2));
     expect(again).toEqual({ ok: true, root: r.root });
-    expect(JSON.parse(exportJson(r.root, T2)).schemaVersion).toBe(2);
+    expect(JSON.parse(exportJson(r.root, T2)).schemaVersion).toBe(SCHEMA_VERSION);
   });
 
   it('merges a v1 file into v2 data', () => {
@@ -153,7 +153,7 @@ describe('dashboard numbers', () => {
         project('fin', { doneAt: T0, due: '2026-09-01', tasks: [task('y', { due: '2026-09-01' })] }),
       ],
     });
-    expect(stats(r, NOW)).toEqual({ open: 3, inProgress: 1, urgent: 1, overdue: 2 });
+    expect(stats(r, NOW)).toEqual({ open: 3, inProgress: 1, urgent: 1, blocked: 0, overdue: 2 });
   });
 });
 

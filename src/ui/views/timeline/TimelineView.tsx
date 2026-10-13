@@ -18,7 +18,7 @@ const WEEKDAYS = Array.from({ length: 7 }, (_, i) => weekdayShort.format(new Dat
 const CELL_ITEMS = 3;
 
 /** Phone dots under a day's date. */
-const DOT = { done: 'bg-line-strong', watch: 'bg-watch-mark', open: 'bg-ink' };
+const DOT = { done: 'bg-line-strong', urgent: 'bg-primary-strong', watch: 'bg-watch-mark', open: 'bg-ink' };
 
 /**
  * A day cell. 132px fits the date and CELL_ITEMS (3) items exactly, so every
@@ -68,6 +68,20 @@ export function TimelineView(props: { root: Root; now: Date; day: string | null 
         <h1 id="timeline-h" class="m-0 text-heading leading-[1.2] tracking-[-0.015em]" aria-live="polite">
           {monthHeading(new Date(cursor.y, cursor.m, 1))}
         </h1>
+        <ul class="ml-auto flex flex-wrap gap-x-14 gap-y-4 text-13 text-body max-md:hidden" aria-label="Colours">
+          <li class="inline-flex items-center gap-6">
+            <span class="h-10 w-14 rounded-2 bg-primary" aria-hidden="true" />
+            Urgent
+          </li>
+          <li class="inline-flex items-center gap-6">
+            <span class="h-10 w-14 rounded-2 bg-watch-tint inset-ring inset-ring-watch" aria-hidden="true" />
+            Due soon or overdue
+          </li>
+          <li class="inline-flex items-center gap-6">
+            <span class="h-10 w-14 rounded-2 bg-chip" aria-hidden="true" />
+            Other
+          </li>
+        </ul>
         <div class="flex items-center gap-4">
           <button
             type="button"

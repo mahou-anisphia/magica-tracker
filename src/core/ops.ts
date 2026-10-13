@@ -1,6 +1,18 @@
 import { normalizeTask } from './completion';
 import { isCalendarDate } from './due';
-import { PRIORITIES, type BacklogItem, type Priority, type Project, type Resource, type Root, type Subtask, type Task } from './schema';
+import {
+  ALLOCATION_PERIODS,
+  allocationSettings,
+  PRIORITIES,
+  type AllocationSettings,
+  type BacklogItem,
+  type Priority,
+  type Project,
+  type Resource,
+  type Root,
+  type Subtask,
+  type Task,
+} from './schema';
 
 /**
  * Every change to the data, as pure functions: (root, …, now) => new root.
@@ -57,6 +69,10 @@ export function renameProject(root: Root, projectId: string, name: string, now: 
 
 export function setProjectDescription(root: Root, projectId: string, description: string, now: string): Root {
   return mapProject(root, projectId, (p) => ({ ...withOptional(p, 'description', description), updatedAt: now }));
+}
+
+export function setProjectText(root: Root, projectId: string, key: TaskText, text: string, now: string): Root {
+  return mapProject(root, projectId, (p) => ({ ...withOptional(p, key, text), updatedAt: now }));
 }
 
 export function setProjectArchived(root: Root, projectId: string, archived: boolean, now: string): Root {
@@ -147,6 +163,61 @@ export function setTaskEffort(root: Root, projectId: string, taskId: string, eff
     const { effort: _, ...rest } = task;
     return effort === undefined ? rest : { ...rest, effort };
   });
+}
+
+/** Optional start: spreads the task's allocation from here to its deadline. Empty clears it. */
+export function setTaskStart(root: Root, projectId: string, taskId: string, startsOn: string | undefined, now: string): Root {
+  if (startsOn && !isCalendarDate(startsOn)) return root;
+  return mapTask(root, projectId, taskId, now, (task) => withOptional(task, 'startsOn', startsOn));
+}
+
+/** Free-text fields on a task; empty text removes the field. */
+export type TaskText = 'definitionOfDone' | 'relatedPeople';
+
+export function setTaskText(root: Root, projectId: string, taskId: string, key: TaskText, text: string, now: string): Root {
+  return mapTask(root, projectId, taskId, now, (task) => withOptional(task, key, text));
+}
+
+/** Block or unblock a task. Blocking records when; unblocking forgets the blocker too. */
+export function setTaskBlocked(root: Root, projectId: string, taskId: string, blocked: boolean, now: string): Root {
+  return mapTask(root, projectId, taskId, now, (task) => {
+    const { blocked: current, ...rest } = task;
+    if (!blocked) return rest;
+    return { ...rest, blocked: current ?? { since: now } };
+  });
+}
+
+/** What the task waits on. Only applies while it is blocked. */
+export function setTaskBlocker(root: Root, projectId: string, taskId: string, blocker: string, now: string): Root {
+  return mapTask(root, projectId, taskId, now, (task) =>
+    task.blocked ? { ...task, blocked: withOptional(task.blocked, 'blocker', blocker) } : task,
+  );
+}
+
+/**
+ * The owner's own flag that another team may escalate them to their leader
+ * over this task. Raising it records when; lowering it forgets the details.
+ */
+export function setTaskEscalation(root: Root, projectId: string, taskId: string, flagged: boolean, now: string): Root {
+  return mapTask(root, projectId, taskId, now, (task) => {
+    const { escalation: current, ...rest } = task;
+    if (!flagged) return rest;
+    return { ...rest, escalation: current ?? { since: now } };
+  });
+}
+
+/** By whom, and why. Only applies while the flag is raised. */
+export function setTaskEscalationDetail(
+  root: Root,
+  projectId: string,
+  taskId: string,
+  key: 'by' | 'why',
+  text: string,
+  now: string,
+): Root {
+  return mapTask(root, projectId, taskId, now, (task) =>
+    task.escalation ? { ...task, escalation: withOptional(task.escalation, key, text) } : task,
+  );
 }
 
 export function deleteTask(root: Root, projectId: string, taskId: string, now: string): Root {
@@ -347,4 +418,23 @@ export function demote(root: Root, projectId: string, taskId: string, now: strin
   if (!task) return root;
   const next = deleteTask(root, projectId, taskId, now);
   return addBacklogItem(next, task.id, task.title, now, { notes: task.notes, suggestedProjectId: projectId });
+}
+
+// ─── Owner and settings ──────────────────────────────────────────────────────
+
+/** Your name on your exports. The id stays the same across renames; empty removes it. */
+export function setOwnerName(root: Root, name: string, makeId: () => string, now: string): Root {
+  const n = name.trim();
+  const { owner, ...rest } = root;
+  if (!n) return { ...rest, updatedAt: now };
+  return { ...rest, owner: { id: owner?.id ?? makeId(), name: n }, updatedAt: now };
+}
+
+export function setAllocationSettings(root: Root, patch: Partial<AllocationSettings>, now: string): Root {
+  if (patch.period !== undefined && !ALLOCATION_PERIODS.includes(patch.period)) return root;
+  if (patch.maxLoad !== undefined && !(Number.isInteger(patch.maxLoad) && patch.maxLoad >= 100 && patch.maxLoad <= 300)) {
+    return root;
+  }
+  const current = allocationSettings(root);
+  return { ...root, settings: { ...root.settings, allocation: { ...current, ...patch } }, updatedAt: now };
 }

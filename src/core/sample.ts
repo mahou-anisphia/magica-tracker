@@ -72,6 +72,8 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       effort?: number;
       subtasks?: Subtask[];
       resources?: Resource[];
+      /** The v3 fields, as given. */
+      extra?: Partial<Pick<Task, 'definitionOfDone' | 'relatedPeople' | 'blocked' | 'escalation' | 'startsOn'>>;
     } = {},
   ): Task => {
     const subtasks = opts.subtasks ?? [];
@@ -86,6 +88,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       ...(opts.priority ? { priority: opts.priority } : {}),
       ...(opts.effort !== undefined ? { effort: opts.effort } : {}),
       ...(opts.notes ? { notes: opts.notes } : {}),
+      ...opts.extra,
       createdAt: ago(30),
       updatedAt: ago(opts.touched ?? opts.doneDaysAgo ?? 1),
       subtasks,
@@ -123,9 +126,22 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
           sub('Record the first lunar transit', { due: 5 }),
         ],
         resources: [res('Autumn star chart', 'charts/autumn-star-chart', 'The one with the corrected Pleiades.')],
+        extra: {
+          definitionOfDone: 'Reads within a degree of the Polaris check, twice in a row.',
+          relatedPeople: 'Bram (optics); the lens maker in Harrow',
+        },
       }),
       task('Catalogue the falling stars', { touched: 2, due: 0, effort: 5 }),
-      task('Replace the cracked scrying lens', { touched: 10, effort: 10, priority: 'low', notes: 'The glassblower in the lower town owes us a favour.' }),
+      task('Replace the cracked scrying lens', {
+        touched: 10,
+        effort: 10,
+        priority: 'low',
+        notes: 'The glassblower in the lower town owes us a favour.',
+        extra: {
+          blocked: { since: ago(3), blocker: 'Waiting on new glass from the lower town' },
+          escalation: { since: ago(2), by: 'Archive team', why: 'Their star survey depends on the lens.' },
+        },
+      }),
       task('Sweep stardust from the dome', { doneDaysAgo: 4 }),
     ],
     {
@@ -193,11 +209,12 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
         effort: 20,
         resources: [res('Coptic binding guide', 'guides/coptic-binding')],
       }),
-      task('Translate the marginalia', { touched: 8, priority: 'urgent', effort: 10 }),
+      task('Translate the marginalia', { touched: 8, due: 8, priority: 'urgent', effort: 10 }),
       task('Index the sealed chapter', {
         touched: 2,
         due: 25,
         effort: 10,
+        extra: { startsOn: inDays(5) },
         subtasks: [sub('Break the wax seal, carefully'), sub('Copy the sigils'), sub('Return it to the vault')],
       }),
     ],

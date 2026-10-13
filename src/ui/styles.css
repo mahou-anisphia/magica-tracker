@@ -395,6 +395,13 @@
     color: var(--color-body);
   }
 
+  /* Blocked: an outline in the ink colour, so it doesn't compete with deadlines or urgency. */
+  .pill.pill-outline {
+    background: transparent;
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-ink);
+  }
+
   .pill.pill-low {
     background: transparent;
     color: var(--color-body);

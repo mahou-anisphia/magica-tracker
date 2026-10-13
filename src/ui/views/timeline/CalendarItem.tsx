@@ -2,6 +2,7 @@ import type { DueItem } from '../../../core/calendar';
 import { itemTone, where } from './dueItem';
 
 const TONE = {
+  urgent: 'bg-primary font-semibold text-on-primary inset-ring inset-ring-primary-strong',
   done: 'bg-page-70 font-normal text-faint',
   watch: 'bg-watch-tint font-medium text-watch-ink',
   open: 'bg-chip font-medium text-ink',
@@ -27,6 +28,11 @@ export function CalendarItem(props: { item: DueItem; agenda?: boolean; onClick: 
       <span class={`block min-w-0 overflow-hidden text-ellipsis ${props.agenda ? 'whitespace-normal' : 'whitespace-nowrap'}`}>
         {it.title}
       </span>
+      {it.urgent && it.watch && (
+        <span class="size-7 flex-none rounded-full bg-watch-mark" title="Due soon">
+          <span class="sr-only">, due soon</span>
+        </span>
+      )}
     </button>
   );
 }

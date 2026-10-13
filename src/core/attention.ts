@@ -14,6 +14,8 @@ export function isStale(task: Task, now: Date): boolean {
 
 export type TaskRef = { project: Project; task: Task };
 export type StaleRef = TaskRef & { days: number };
+/** A blocked open task: `days` since it was blocked. */
+export type BlockedRef = TaskRef & { days: number };
 /**
  * A deadline on a project, a task, or a sub-task (no task means the project's
  * own). `days` is days until due: 0 today, negative when overdue.
@@ -26,9 +28,11 @@ export type Attention = {
   inProgressProjects: number;
   /** Unfinished projects, tasks and sub-tasks overdue, due today or due soon, most urgent first. */
   due: DueRef[];
-  /** Open tasks marked urgent that aren't already listed for a deadline. */
+  /** Blocked open tasks not already listed for a deadline, longest-blocked first. */
+  blocked: BlockedRef[];
+  /** Open tasks marked urgent that aren't already listed for a deadline or as blocked. */
   urgent: TaskRef[];
-  /** Stalest first. A task already listed as due or urgent isn't repeated here. */
+  /** Stalest first. A task already listed as due, blocked or urgent isn't repeated here. */
   stale: StaleRef[];
 };
 
@@ -36,6 +40,7 @@ export type Attention = {
 export function attention(root: Root, now: Date): Attention {
   const inProgress: TaskRef[] = [];
   const due: DueRef[] = [];
+  const blocked: BlockedRef[] = [];
   const urgent: TaskRef[] = [];
   const stale: StaleRef[] = [];
   for (const project of root.projects) {
@@ -52,24 +57,32 @@ export function attention(root: Root, now: Date): Attention {
           due.push({ project, task, subtask, days: daysUntil(subtask.due!, now) });
         }
       }
-      const isUrgent = !taskDue && !task.done && task.priority === 'urgent';
+      const isBlocked = !taskDue && !task.done && !!task.blocked;
+      if (isBlocked) blocked.push({ project, task, days: daysSince(task.blocked!.since, now) });
+      const isUrgent = !taskDue && !isBlocked && !task.done && task.priority === 'urgent';
       if (isUrgent) urgent.push({ project, task });
-      if (!taskDue && !isUrgent && isStale(task, now)) stale.push({ project, task, days: daysSince(task.updatedAt, now) });
+      if (!taskDue && !isBlocked && !isUrgent && isStale(task, now)) {
+        stale.push({ project, task, days: daysSince(task.updatedAt, now) });
+      }
     }
   }
   due.sort((a, b) => a.days - b.days);
+  blocked.sort((a, b) => b.days - a.days);
   stale.sort((a, b) => b.days - a.days);
   return {
     inProgress,
     inProgressProjects: new Set(inProgress.map((r) => r.project.id)).size,
     due,
+    blocked,
     urgent,
     stale,
   };
 }
 
 export function isQuiet(a: Attention): boolean {
-  return a.inProgress.length === 0 && a.due.length === 0 && a.urgent.length === 0 && a.stale.length === 0;
+  return (
+    a.inProgress.length === 0 && a.due.length === 0 && a.blocked.length === 0 && a.urgent.length === 0 && a.stale.length === 0
+  );
 }
 
 export function isExportStale(lastExportedAt: string | null, now: Date): boolean {

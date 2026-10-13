@@ -11,9 +11,13 @@ export function itemKey(it: DueItem): string {
   return it.subtask?.id ?? it.task?.id ?? `project-${it.project.id}`;
 }
 
-/** Done items recede; approaching or overdue ones take the highlight; the rest sit on a chip. */
-export function itemTone(it: DueItem): 'done' | 'watch' | 'open' {
+/**
+ * Done items recede; urgent tasks fill with the primary colour; other
+ * approaching or overdue items take the highlight; the rest sit on a chip.
+ */
+export function itemTone(it: DueItem): 'done' | 'urgent' | 'watch' | 'open' {
   if (it.done) return 'done';
+  if (it.urgent) return 'urgent';
   return it.watch ? 'watch' : 'open';
 }
 

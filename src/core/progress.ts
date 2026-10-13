@@ -43,13 +43,15 @@ export type Stats = {
   inProgress: number;
   /** Unfinished tasks marked urgent. */
   urgent: number;
+  /** Unfinished tasks marked blocked. */
+  blocked: number;
   /** Unfinished projects, tasks and sub-tasks past their deadline. */
   overdue: number;
 };
 
 /** The dashboard's numbers. Archived and done projects don't count. */
 export function stats(root: Root, now: Date): Stats {
-  const s: Stats = { open: 0, inProgress: 0, urgent: 0, overdue: 0 };
+  const s: Stats = { open: 0, inProgress: 0, urgent: 0, blocked: 0, overdue: 0 };
   const overdue = (due: string | undefined, done: boolean) => {
     if (due && !done && daysUntil(due, now) < 0) s.overdue++;
   };
@@ -59,6 +61,7 @@ export function stats(root: Root, now: Date): Stats {
     for (const t of p.tasks) {
       if (!t.done) s.open++;
       if (!t.done && t.priority === 'urgent') s.urgent++;
+      if (!t.done && t.blocked) s.blocked++;
       if (isInProgress(t)) s.inProgress++;
       overdue(t.due, t.done);
       for (const st of t.subtasks) overdue(st.due, st.done);
