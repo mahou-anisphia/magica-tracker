@@ -3,12 +3,15 @@ import { hasSample } from '../core/sample';
 import { focusShortcut } from './actions';
 import { Banners } from './shell/Banners';
 import { CaptureDialog } from './shell/CaptureDialog';
+import { CommandPalette } from './shell/CommandPalette';
 import { ConfirmDialog } from './shell/ConfirmDialog';
 import { ImportDialog } from './shell/ImportDialog';
+import { Orb } from './shell/Orb';
 import { ToastRegion } from './shell/ToastRegion';
 import { TopBar } from './shell/TopBar';
 import { getState, set, setMode, useStore } from './store';
 import { OverviewView } from './views/overview/OverviewView';
+import { SettingsView } from './views/settings/SettingsView';
 import { TimelineView } from './views/timeline/TimelineView';
 
 /** Re-render each minute so the date, deadlines and "n days ago" stay true. */
@@ -30,8 +33,16 @@ function isTyping(target: EventTarget | null): boolean {
 function useShortcuts(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.defaultPrevented) return;
       const s = getState();
+      // ⌘K on Mac, Ctrl+K elsewhere: the search palette, even while typing.
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        set({ palette: !s.palette });
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (s.palette) return;
       if (s.confirm || s.capture || s.importState || s.day) return; // dialogs own the keyboard
 
       if (e.key === 'Escape') {
@@ -81,12 +92,13 @@ export function App() {
         lastExportedAt={s.lastExportedAt}
         hasData={hasData}
         hasSample={hasSample(s.root)}
-        theme={s.theme}
       />
       <div class="mx-auto max-w-1160 pt-36 pr-[max(var(--gutter),env(safe-area-inset-right,0px))] pb-96 pl-[max(var(--gutter),env(safe-area-inset-left,0px))]">
         <Banners saving={s.saving} notice={s.notice} />
 
-        {s.mode === 'timeline' ? (
+        {s.mode === 'settings' ? (
+          <SettingsView root={s.root} theme={s.theme} storage={s.storage} />
+        ) : s.mode === 'timeline' ? (
           <TimelineView root={s.root} now={now} day={s.day} />
         ) : (
           <OverviewView
@@ -101,6 +113,8 @@ export function App() {
         <ConfirmDialog request={s.confirm} />
         <CaptureDialog open={s.capture} />
         <ImportDialog state={s.importState} current={s.root} />
+        <CommandPalette open={s.palette} root={s.root} />
+        <Orb />
         <ToastRegion toast={s.toast} />
       </div>
     </>

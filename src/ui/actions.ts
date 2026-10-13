@@ -175,6 +175,24 @@ export async function wipeSample(): Promise<void> {
   set({ view: { kind: 'auto' }, expandedTaskId: null });
 }
 
+/**
+ * Clear every project and backlog item in this browser. A backup downloads
+ * first, as with Replace import. Your name and settings stay.
+ */
+export async function wipeEverything(): Promise<void> {
+  const ok = await confirmAction({
+    title: 'Wipe everything in this browser?',
+    body: 'Every project, task and backlog item goes. A backup file downloads first, so you can import it again. Your name and settings stay.',
+    confirmLabel: 'Download backup and wipe',
+  });
+  if (!ok) return;
+  const now = new Date();
+  downloadText(beforeImportFileName(now), exportJson(getState().root, now.toISOString()));
+  update((r) => ({ ...r, projects: [], backlog: [] }));
+  set({ view: { kind: 'auto' }, expandedTaskId: null });
+  toast('Wiped. The backup is in your downloads.');
+}
+
 // ─── Export / Import ─────────────────────────────────────────────────────────
 
 export function exportNow(): void {

@@ -138,11 +138,21 @@
   --animate-rise: rise 180ms ease-out;
   --animate-pop: rise 140ms ease-out;
   --animate-slide-in: slide-in 200ms ease-out;
+  --animate-highlight: highlight 1.2s ease-out 3; /* points at where to act after an orb action */
 
   @keyframes rise {
     from {
       opacity: 0;
       transform: translateY(6px);
+    }
+  }
+
+  @keyframes highlight {
+    from {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 55%, transparent);
+    }
+    to {
+      box-shadow: 0 0 0 16px color-mix(in srgb, var(--color-accent) 0%, transparent);
     }
   }
 

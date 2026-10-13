@@ -21,7 +21,17 @@ export type ImportState =
 
 export type Toast = { id: number; text: string; action?: { label: string; run: () => void } };
 
-export type Mode = 'overview' | 'timeline';
+/**
+ * Which screen is showing. Overview and Timeline are the everyday views and
+ * are remembered per browser; the rest are reached from the orb or the palette.
+ */
+export type Mode = 'overview' | 'timeline' | 'settings' | 'team' | 'observatory' | 'member';
+
+/**
+ * A part of a screen to point at for a moment, after an orb or palette action
+ * ("Add member" lands on Team with the add form highlighted).
+ */
+export type Highlight = { key: string; hint?: string };
 
 export type State = {
   /** False until the saved data has loaded; nothing renders before. */
@@ -45,6 +55,11 @@ export type State = {
   /** The day open in the Timeline's side panel, as "2026-10-04". */
   day: string | null;
   importState: ImportState | null;
+  highlight: Highlight | null;
+  /** The ⌘K / Ctrl+K search palette. */
+  palette: boolean;
+  /** Whose read-only tracker "View as" shows, when mode is 'member'. */
+  memberId: string | null;
 };
 
 let state: State = {
@@ -64,6 +79,9 @@ let state: State = {
   capture: false,
   day: null,
   importState: null,
+  highlight: null,
+  palette: false,
+  memberId: null,
 };
 
 const listeners = new Set<() => void>();
@@ -157,11 +175,29 @@ export async function init(): Promise<void> {
   });
 }
 
-/** Overview or Timeline, remembered per browser. */
+/** Switch screens. Overview and Timeline are remembered per browser. */
 export function setMode(mode: Mode): void {
   if (mode === state.mode) return;
   set({ mode, drawerOpen: false, day: null });
-  writeMode(mode);
+  if (mode === 'overview' || mode === 'timeline') writeMode(mode);
+}
+
+/** How long an arrival highlight pulses before it fades. */
+const HIGHLIGHT_MS = 3600;
+let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Go to a screen and, optionally, point at the part to use there for a moment. */
+export function go(mode: Mode, highlight?: Highlight): void {
+  setMode(mode);
+  clearTimeout(highlightTimer);
+  set({ highlight: highlight ?? null, palette: false });
+  if (highlight) highlightTimer = setTimeout(() => set({ highlight: null }), HIGHLIGHT_MS);
+  // New screens start at the top; then scroll only as far as the highlighted part needs.
+  scrollTo({ top: 0 });
+  requestAnimationFrame(() => {
+    const el = highlight && document.querySelector<HTMLElement>(`[data-highlight="${CSS.escape(highlight.key)}"]`);
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
 }
 
 /** The colour theme and light/dark choice, remembered per browser. */

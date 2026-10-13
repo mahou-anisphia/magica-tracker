@@ -129,6 +129,46 @@ export function PaletteIcon(props: { size?: number }) {
   );
 }
 
+function Line(props: { size?: number; d: string; width?: number }) {
+  const s = props.size ?? 14;
+  return (
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width={props.width ?? 1.4} aria-hidden="true">
+      <path d={props.d} stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  );
+}
+
+export function HomeIcon(props: { size?: number }) {
+  return <Line size={props.size} d="M2.5 7.5 8 3l5.5 4.5M4 6.5v7h8v-7M6.5 13.5V10h3v3.5" />;
+}
+
+export function SearchIcon(props: { size?: number }) {
+  return <Line size={props.size} d="M7 11.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM10.5 10.5l3 3" width={1.5} />;
+}
+
+export function GearIcon(props: { size?: number }) {
+  return (
+    <Line
+      size={props.size}
+      d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"
+    />
+  );
+}
+
+export function TeamIcon(props: { size?: number }) {
+  return (
+    <Line
+      size={props.size}
+      d="M6 7a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM1.5 14c.4-2.6 2.2-4 4.5-4s4.1 1.4 4.5 4M11 3.2a2.3 2.3 0 0 1 0 4.4M12.5 10.3c1.2.6 1.9 1.8 2 3.7"
+    />
+  );
+}
+
+/** The Observatory: a telescope on its stand. */
+export function TelescopeIcon(props: { size?: number }) {
+  return <Line size={props.size} d="M2 13.5h12M4 13.5 6.5 5l5-2.5L13 6 8 8.5 6.5 13.5M8 8.5l1.5 5" />;
+}
+
 /** The brand mark: a small glowing orb. */
 export function Orb() {
   return <span class="orb" aria-hidden="true" />;

@@ -1,15 +1,13 @@
 import type { JSX } from 'preact';
 import { loadSample, wipeSample } from '../actions';
 import { setMode, type Mode } from '../store';
-import type { ThemeChoice } from '../themes';
 import { CalendarIcon, ListIcon, SparkIcon } from '../components/icons';
 import { Backup } from './Backup';
-import { ThemePicker } from './ThemePicker';
 
 /**
- * The top bar: sample data and the theme on the left, the Overview/Timeline
- * switch in the middle, the backup controls on the right. Below 720px it
- * stacks: the view switch first, sample data and theme last.
+ * The top bar: sample data on the left, the Overview/Timeline switch in the
+ * middle, the backup controls on the right. Below 720px it stacks: the view
+ * switch first, sample data last. The theme lives in Settings, through the orb.
  */
 export function TopBar(props: {
   mode: Mode;
@@ -17,7 +15,6 @@ export function TopBar(props: {
   lastExportedAt: string | null;
   hasData: boolean;
   hasSample: boolean;
-  theme: ThemeChoice;
 }) {
   const option = (mode: Mode, label: string, icon: JSX.Element) => (
     <button
@@ -44,7 +41,6 @@ export function TopBar(props: {
             Load sample data
           </button>
         )}
-        <ThemePicker choice={props.theme} />
       </div>
       <nav class="col-2 inline-flex gap-2 rounded-12 bg-chip-55 p-4 max-md:col-1" aria-label="View">
         {option('overview', 'Overview', <ListIcon />)}

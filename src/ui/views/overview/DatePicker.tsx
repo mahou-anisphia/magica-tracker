@@ -4,7 +4,7 @@ import { monthGrid } from '../../../core/calendar';
 import { monthHeading } from '../../../core/format';
 import { localDateStamp } from '../../../core/time';
 import { ChevronIcon } from '../../components/icons';
-import { placePopover, useFollowAnchor } from '../../components/placePopover';
+import { placePopover, useFollowAnchor } from './placePopover';
 
 const weekdayShort = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const fullDay = new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
