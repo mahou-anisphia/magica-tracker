@@ -3,7 +3,7 @@ import { beforeImportFileName, exportFileName, exportJson } from '../core/export
 import { newId } from '../core/id';
 import { mergeRoots } from '../core/merge';
 import * as ops from '../core/ops';
-import { addSample, isSampleId, removeSample } from '../core/sample';
+import { addSample, addSampleTeam, isSampleId, removeSample, removeSampleTeam } from '../core/sample';
 import type { Project, Task } from '../core/schema';
 import * as team from '../core/team';
 import { parseRootText } from '../core/validate';
@@ -149,9 +149,14 @@ export function deleteBacklogItem(itemId: string, title: string): void {
 
 // ─── Sample data ─────────────────────────────────────────────────────────────
 
+/** Sample projects in your tracker, and sample teammates in your team. */
 export function loadSample(): void {
   const before = getState().root;
-  update((r) => addSample(r, new Date()));
+  const teamBefore = getState().team;
+  const now = new Date();
+  update((r) => addSample(r, now));
+  setTeam(addSampleTeam(teamBefore, now));
+  const teamAfter = getState().team;
   const first = getState().root.projects.find((p) => isSampleId(p.id) && !p.archived);
   if (first) openProject(first.id);
   // Undo only if nothing else changed meanwhile, like the other undo toasts.
@@ -160,6 +165,7 @@ export function loadSample(): void {
     label: 'Undo',
     run: () => {
       if (getState().root === after) commit(before);
+      if (getState().team === teamAfter) setTeam(teamBefore);
       set({ toast: null });
     },
   });
@@ -168,11 +174,12 @@ export function loadSample(): void {
 export async function wipeSample(): Promise<void> {
   const ok = await confirmAction({
     title: 'Wipe the sample data?',
-    body: 'This removes every sample project, task and backlog item, including any changes made to them. Your own data stays.',
+    body: 'This removes every sample project, task and backlog item, including any changes made to them, and the sample teammates. Your own data and team stay.',
     confirmLabel: 'Wipe sample data',
   });
   if (!ok) return;
   update((r) => removeSample(r));
+  setTeam(removeSampleTeam(getState().team));
   set({ view: { kind: 'auto' }, expandedTaskId: null });
 }
 

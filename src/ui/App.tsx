@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { hasSample } from '../core/sample';
+import { hasSample, hasSampleTeam } from '../core/sample';
 import { focusShortcut } from './actions';
 import { Banners } from './shell/Banners';
 import { CaptureDialog } from './shell/CaptureDialog';
@@ -101,7 +101,7 @@ export function App() {
           now={now}
           lastExportedAt={s.lastExportedAt}
           hasData={hasData}
-          hasSample={hasSample(s.root)}
+          hasSample={hasSample(s.root) || hasSampleTeam(s.team)}
         />
       )}
       <div

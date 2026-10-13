@@ -6,7 +6,7 @@ A calm, single-page tracker for projects, their tasks and sub-tasks, linked reso
 
 Open `dist/index.html`. It works straight from disk (`file://`) or behind any static server, such as Caddy on the homelab. It makes no network requests.
 
-**Load sample data** (top left) fills the tracker with magic-themed projects, tasks, deadlines and backlog ideas, dated around today, so you can see how it looks when lived in. **Wipe sample data** removes them again. Every sample id starts with `sample-`, so your own projects and tasks are never touched, even when they sit side by side.
+**Load sample data** (top left) fills the tracker with magic-themed projects, tasks, deadlines and backlog ideas, dated around today, so you can see how it looks when lived in. It also adds four sample teammates (Alice, Bram and Dara with files, Chiyo without one) so Team, View as and the Observatory have something to show; they go in your team, never in your own data or exports. **Wipe sample data** removes them again, teammates included. Every sample id starts with `sample-`, so your own projects and tasks are never touched, even when they sit side by side.
 
 The top bar switches between **Overview** (projects, tasks, backlog) and **Timeline** (a month calendar of deadlines, with today circled). Clicking an item on the Timeline opens it in Overview. The top bar belongs to these two views only; the screens the orb opens have "← Your tracker" at the top instead, so nothing there sends you home unexpectedly.
 
