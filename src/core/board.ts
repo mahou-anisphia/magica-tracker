@@ -1,11 +1,11 @@
 import { isProjectDone } from './completion';
 import { daysUntil, DUE_SOON_DAYS } from './due';
-import { PRIORITY_RANK } from './progress';
 import type { Project, Root, Status, Task } from './schema';
 import { daysSince } from './time';
 
 /**
- * The Board: every active project as a lane, its tasks in columns by status.
+ * The Board: every active project as a lane, its tasks in columns by status,
+ * in the project's own order (which dragging a card sets).
  * Done shows only the last few days, so it shows progress without growing
  * forever. Lanes that need you sort first.
  */
@@ -26,13 +26,6 @@ export type BoardCounts = {
 };
 
 const RANK = { now: 0, soon: 1, later: 2 } as const;
-const priorityRank = (t: Task) => (t.priority ? PRIORITY_RANK[t.priority] : 0);
-
-/** Soonest deadline first (none last), then the higher priority, then the order added. */
-function byDue(a: Task, b: Task): number {
-  if (a.due !== b.due) return !a.due ? 1 : !b.due ? -1 : a.due.localeCompare(b.due);
-  return priorityRank(b) - priorityRank(a);
-}
 
 export function board(root: Root, now: Date): { lanes: BoardLane[]; counts: BoardCounts } {
   const counts: BoardCounts = { overdue: 0, dueSoon: 0, urgent: 0, waiting: 0, longestWait: 0 };
@@ -59,9 +52,7 @@ export function board(root: Root, now: Date): { lanes: BoardLane[]; counts: Boar
       else if (days !== null && days <= DUE_SOON_DAYS && needs === 'later') needs = 'soon';
     }
     if (!Object.values(cells).some((c) => c.length)) continue;
-    cells.todo.sort(byDue);
-    cells.working.sort(byDue);
-    cells.waiting.sort(byDue);
+    // Open columns keep the project's own order, which dragging sets.
     cells.done.sort((a, b) => Date.parse(b.doneAt ?? '') - Date.parse(a.doneAt ?? ''));
     lanes.push({ project, cells, needs });
   }

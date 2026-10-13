@@ -1,91 +1,44 @@
-import { daysUntil, dueLabel, isDueSoon } from '../../../core/due';
-import * as ops from '../../../core/ops';
-import type { Project, Task } from '../../../core/schema';
-import { daysSince } from '../../../core/time';
-import { moveTask, openProject } from '../../actions';
-import { update } from '../../store';
-import { StatusPicker } from './StatusPicker';
-import { WaitingOnInput } from './WaitingOnInput';
+import type { Task } from '../../../core/schema';
+
+/** The look of a card, shared by the card and the copy that follows the pointer. */
+export const CARD = 'rounded-10 border border-line bg-card px-12 py-10 text-left text-14 font-medium shadow-card';
 
 /**
- * One task: its title, deadline, an urgent mark, and while it waits, on what
- * and for how long. Drag it to another column, or open it to move it with the
- * status buttons (keyboard and touch).
+ * A task on the Board: its title, nothing more. Hold and drag to move it (a
+ * long press on touch); click or tap to see the rest. While another card is
+ * held it slides aside by `shift` pixels to make room or close a gap.
  */
 export function BoardCard(props: {
-  project: Project;
   task: Task;
-  now: Date;
-  open: boolean;
-  /** Just moved to Waiting: ask what on. */
-  askWaitingOn: boolean;
-  onToggle: () => void;
-  onDragStart: () => void;
-  onDragEnd: () => void;
+  /** Being held: its copy follows the pointer, its place stays empty. */
+  held: boolean;
+  shift: number;
+  /** Cards take new places at once right after a drop. */
+  animate: boolean;
+  onPress: (e: PointerEvent) => void;
+  onOpen: () => void;
 }) {
-  const { project, task, now } = props;
-  const watch = isDueSoon(task.due, task.done, now);
-  const overdue = !!task.due && !task.done && daysUntil(task.due, now) < 0;
-  const waitedDays = task.waiting ? daysSince(task.waiting.since, now) : 0;
-  const detailId = `board-card-${task.id}`;
-
+  const { task } = props;
   return (
     <li
-      draggable={!props.open}
-      onDragStart={(e) => {
-        e.dataTransfer?.setData('text/plain', task.id);
-        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-        props.onDragStart();
-      }}
-      onDragEnd={props.onDragEnd}
-      class={`rounded-10 border bg-card shadow-card ${props.open ? 'border-accent-line' : 'border-line'} ${
-        task.done ? 'opacity-80' : ''
+      data-card={task.id}
+      class={`select-none [-webkit-touch-callout:none] ${props.animate ? 'transition-transform duration-200 ease-out' : ''} ${
+        props.held ? 'opacity-0' : ''
       }`}
+      style={props.shift ? { transform: `translateY(${props.shift}px)` } : undefined}
+      onPointerDown={props.onPress}
+      onContextMenu={(e) => e.preventDefault()}
     >
       <button
         type="button"
-        class="grid w-full cursor-pointer grid-cols-1 gap-4 rounded-10 bg-transparent px-12 py-10 text-left hover:bg-page-55 max-lg:min-h-44"
-        aria-expanded={props.open}
-        aria-controls={detailId}
-        onClick={props.onToggle}
+        class={`${CARD} w-full cursor-grab hover:border-accent-line active:cursor-grabbing max-lg:min-h-44 ${
+          task.done ? 'text-faint line-through' : 'text-ink'
+        }`}
+        onClick={props.onOpen}
       >
-        <span class={`text-14 font-medium ${task.done ? 'text-faint line-through' : 'text-ink'}`}>
-          {task.title}
-          {task.done && <span class="sr-only"> (done)</span>}
-        </span>
-        {(task.due || task.priority === 'urgent' || task.status === 'waiting') && (
-          <span class="flex flex-wrap items-center gap-x-8 gap-y-4 text-12 text-body">
-            {task.priority === 'urgent' && !task.done && <span class="pill pill-urgent py-0">Urgent</span>}
-            {task.due && (
-              <span class={`tabular-nums ${watch ? 'font-semibold text-watch-ink' : ''}`}>
-                {overdue ? '' : 'Due '}
-                {dueLabel(task.due, now, undefined, task.done ? 'ago' : 'overdue')}
-              </span>
-            )}
-            {task.status === 'waiting' && (
-              <span>
-                {task.waiting?.on ? `On ${task.waiting.on}` : 'Waiting'}
-                {waitedDays > 0 ? ` · ${waitedDays}d` : ''}
-              </span>
-            )}
-          </span>
-        )}
+        {task.title}
+        {task.done && <span class="sr-only"> (done)</span>}
       </button>
-      {props.open && (
-        <div id={detailId} class="grid grid-cols-1 gap-10 border-t border-line px-12 pt-10 pb-12">
-          <StatusPicker label={`Move “${task.title}”`} value={task.status} onChange={(s) => void moveTask(project.id, task, s)} />
-          {task.status === 'waiting' && (
-            <WaitingOnInput
-              value={task.waiting?.on}
-              autoFocus={props.askWaitingOn}
-              onSave={(text) => update((r, n) => ops.setTaskWaitingOn(r, project.id, task.id, text, n))}
-            />
-          )}
-          <button type="button" class="btn btn-quiet btn-small justify-self-start" onClick={() => openProject(project.id, task.id)}>
-            Open in project →
-          </button>
-        </div>
-      )}
     </li>
   );
 }

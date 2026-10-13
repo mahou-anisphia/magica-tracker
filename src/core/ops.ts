@@ -197,6 +197,35 @@ export function setTaskStatus(root: Root, projectId: string, taskId: string, sta
   });
 }
 
+/**
+ * Move a task to a status and a place in its project, as a board drop does:
+ * just before `beforeId`, or, with null, after the last task already in that
+ * status (the end of its column). The project's task order is the board's
+ * column order.
+ */
+export function moveTaskTo(
+  root: Root,
+  projectId: string,
+  taskId: string,
+  status: Status,
+  beforeId: string | null,
+  now: string,
+): Root {
+  const r = setTaskStatus(root, projectId, taskId, status, now);
+  const p = r.projects.find((x) => x.id === projectId);
+  const task = p?.tasks.find((t) => t.id === taskId);
+  if (!p || !task || beforeId === taskId) return r;
+  const rest = p.tasks.filter((t) => t.id !== taskId);
+  let at = beforeId ? rest.findIndex((t) => t.id === beforeId) : -1;
+  if (at < 0) {
+    const last = rest.findLastIndex((t) => t.status === task.status);
+    at = last < 0 ? rest.length : last + 1;
+  }
+  const tasks = [...rest.slice(0, at), task, ...rest.slice(at)];
+  if (tasks.every((t, i) => t === p.tasks[i])) return r;
+  return mapProject(r, projectId, (x) => ({ ...x, tasks, updatedAt: now }));
+}
+
 /** What a waiting task waits on: a person, a meeting, evidence. Only applies while it waits. */
 export function setTaskWaitingOn(root: Root, projectId: string, taskId: string, on: string, now: string): Root {
   return mapTask(root, projectId, taskId, now, (task) =>

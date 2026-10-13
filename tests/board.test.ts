@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { board } from '../src/core/board';
+import { moveTaskTo } from '../src/core/ops';
 import { project, root, task } from './fixtures';
 
 const NOW = new Date(2026, 9, 13, 12);
@@ -40,6 +41,23 @@ describe('board', () => {
     expect(hot.waiting.map((t) => t.id)).toEqual(['h2', 'h3']);
     expect(hot.done.map((t) => t.id)).toEqual(['h4']);
     expect(lanes[2]!.cells.working.map((t) => t.id)).toEqual(['c2']);
+  });
+
+  it('moves a card to a column and a place, keeping the project order as the column order', () => {
+    const ids = (x: ReturnType<typeof root>) => x.projects.find((p) => p.id === 'hot')!.tasks.map((t) => [t.id, t.status]);
+    // h1 (To do) dropped in Waiting, before h3.
+    let m = moveTaskTo(r, 'hot', 'h1', 'waiting', 'h3', '2026-10-13T12:00:00.000Z');
+    expect(ids(m).slice(0, 3)).toEqual([
+      ['h2', 'waiting'],
+      ['h1', 'waiting'],
+      ['h3', 'waiting'],
+    ]);
+    expect(board(m, NOW).lanes[0]!.cells.waiting.map((t) => t.id)).toEqual(['h2', 'h1', 'h3']);
+    // Reordered within its column, to the end of it.
+    m = moveTaskTo(m, 'hot', 'h2', 'waiting', null, '2026-10-13T12:00:00.000Z');
+    expect(board(m, NOW).lanes[0]!.cells.waiting.map((t) => t.id)).toEqual(['h1', 'h3', 'h2']);
+    // Dropping a card where it already is changes nothing.
+    expect(moveTaskTo(m, 'hot', 'h3', 'waiting', 'h2', '2026-10-13T12:00:00.000Z')).toBe(m);
   });
 
   it('counts deadlines, urgency and waiting for the strip', () => {

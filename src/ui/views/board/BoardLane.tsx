@@ -1,31 +1,32 @@
 import type { BoardLane as Lane } from '../../../core/board';
 import { plural } from '../../../core/format';
-import type { Status, Task } from '../../../core/schema';
-import { moveTask, openProject } from '../../actions';
+import { openProject } from '../../actions';
 import { BoardCard } from './BoardCard';
-import { COLUMNS, GRID, type Dragging } from './columns';
+import { COLUMNS, GRID } from './columns';
+import { CARD_GAP, shiftFor, type DragSource, type DragState } from './useBoardDrag';
 
 /**
- * One project across the columns. A card can be dropped in another column of
- * its own lane only: moving between projects isn't what a board is for.
+ * One project across the columns. Cards move within their own lane only:
+ * while one is held, the other lanes fade back.
  */
 export function BoardLane(props: {
   lane: Lane;
-  now: Date;
-  dragging: Dragging;
-  openCard: string | null;
-  askWaitingOn: string | null;
-  onDrag: (d: Dragging) => void;
-  onOpenCard: (taskId: string | null) => void;
-  onMoved: (task: Task, status: Status) => void;
+  drag: DragState | null;
+  settling: boolean;
+  onPress: (e: PointerEvent, source: DragSource) => void;
+  onOpen: (taskId: string) => void;
 }) {
-  const { lane, dragging } = props;
+  const { lane, drag } = props;
   const p = lane.project;
-  const open = Object.values(lane.cells).reduce((n, c) => n + c.length, 0) - lane.cells.done.length;
-  const canDrop = dragging?.projectId === p.id;
+  const open = lane.cells.todo.length + lane.cells.working.length + lane.cells.waiting.length;
+  const mine = drag?.projectId === p.id;
 
   return (
-    <section class={`${GRID} border-t border-line first:border-t-0`} aria-label={p.name}>
+    <section
+      data-lane={p.id}
+      class={`${GRID} border-t border-line transition-opacity duration-200 first:border-t-0 ${drag && !mine ? 'opacity-40' : ''}`}
+      aria-label={p.name}
+    >
       <div class="flex items-start gap-8 px-16 py-14 max-md:pb-4">
         {lane.needs !== 'later' && (
           <span
@@ -47,41 +48,31 @@ export function BoardLane(props: {
       </div>
       {COLUMNS.map((col) => {
         const cards = lane.cells[col.status];
+        // A column gains a card's height while one is about to land in it.
+        const grows = mine && drag.target?.status === col.status && drag.from !== col.status;
         return (
           <div
             key={col.status}
-            class={`min-h-64 border-l border-line px-8 py-10 max-md:border-l-0 max-md:px-16 max-md:py-4 ${
-              cards.length ? '' : 'max-md:hidden'
-            } ${canDrop ? 'bg-page-55' : ''}`}
-            onDragOver={(e) => {
-              if (canDrop) e.preventDefault();
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              const task = p.tasks.find((t) => t.id === dragging?.taskId);
-              props.onDrag(null);
-              if (!task || !canDrop || task.status === col.status) return;
-              void moveTask(p.id, task, col.status).then(() => props.onMoved(task, col.status));
-            }}
+            data-cell={col.status}
+            class={`border-l border-line px-8 py-10 max-md:border-l-0 max-md:px-16 max-md:py-4 ${
+              props.settling ? '' : 'transition-[padding] duration-200 ease-out'
+            } ${cards.length || mine ? '' : 'max-md:hidden'}`}
+            style={grows ? { paddingBottom: `${10 + drag.height + CARD_GAP}px` } : undefined}
           >
             <span class="mb-6 hidden text-12 font-medium text-body max-md:block">{col.label}</span>
-            {cards.length > 0 && (
-              <ul class="grid grid-cols-1 gap-8">
-                {cards.map((t) => (
-                  <BoardCard
-                    key={t.id}
-                    project={p}
-                    task={t}
-                    now={props.now}
-                    open={props.openCard === t.id}
-                    askWaitingOn={props.askWaitingOn === t.id}
-                    onToggle={() => props.onOpenCard(props.openCard === t.id ? null : t.id)}
-                    onDragStart={() => props.onDrag({ taskId: t.id, projectId: p.id })}
-                    onDragEnd={() => props.onDrag(null)}
-                  />
-                ))}
-              </ul>
-            )}
+            <ul class="grid min-h-44 grid-cols-1 content-start gap-8">
+              {cards.map((t, i) => (
+                <BoardCard
+                  key={t.id}
+                  task={t}
+                  held={drag?.taskId === t.id}
+                  shift={shiftFor(drag, p.id, col.status, i, t.id)}
+                  animate={!props.settling}
+                  onPress={(e) => props.onPress(e, { taskId: t.id, projectId: p.id, title: t.title, status: col.status, index: i })}
+                  onOpen={() => props.onOpen(t.id)}
+                />
+              ))}
+            </ul>
           </div>
         );
       })}

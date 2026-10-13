@@ -30,7 +30,7 @@ src/ui/
     icons.tsx  Modal.tsx  PriorityChip.tsx  AllocationBar.tsx  Avatar.tsx
     Panel.tsx  ViewHeader.tsx  BackLink.tsx  highlight.tsx
     MonthCalendar.tsx  CalendarItem.tsx  dueItem.ts   (your Timeline and View as)
-    Segmented.tsx  StatusChip.tsx
+    Segmented.tsx  StatusChip.tsx  GlanceNumbers.tsx  LabelledBlock.tsx
   shell/             app frame rendered once by App: top bar (everyday views only), banners,
                      dialogs, toast, the orb (Orb.tsx, orbMenu.tsx) and the search palette
   views/
@@ -40,7 +40,8 @@ src/ui/
     team/            Team: members, adding one at a time, importing their files
     member/          View as: one member's tracker, read-only (MemberView.tsx)
     observatory/     the leader's view across the team
-    board/           the Board: project lanes × status columns (an orb screen)
+    board/           the Board: project lanes × status columns (an orb screen); useBoardDrag.ts
+                     is its pointer drag (mouse, long-press touch), cards step aside by transform
 ```
 
 ### Decisions

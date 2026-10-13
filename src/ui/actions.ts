@@ -106,15 +106,23 @@ export async function toggleTask(projectId: string, task: Task, done: boolean): 
  */
 export async function moveTask(projectId: string, task: Task, status: Status): Promise<void> {
   if (task.status === status) return;
-  if (task.done && task.subtasks.length > 0) {
-    const ok = await confirmAction({
-      title: `Reopen “${task.title}”?`,
-      body: `This unticks all ${plural(task.subtasks.length, 'sub-task')}.`,
-      confirmLabel: 'Reopen all',
-    });
-    if (!ok) return;
-  }
+  if (!(await confirmReopen(task, status))) return;
   update((r, now) => ops.setTaskStatus(r, projectId, task.id, status, now));
+}
+
+/** A board drop: a status and a place in the column, just before `beforeId` (or at the end). */
+export async function placeTask(projectId: string, task: Task, status: Status, beforeId: string | null): Promise<void> {
+  if (!(await confirmReopen(task, status))) return;
+  update((r, now) => ops.moveTaskTo(r, projectId, task.id, status, beforeId, now));
+}
+
+async function confirmReopen(task: Task, status: Status): Promise<boolean> {
+  if (!task.done || status === 'done' || task.subtasks.length === 0) return true;
+  return confirmAction({
+    title: `Reopen “${task.title}”?`,
+    body: `This unticks all ${plural(task.subtasks.length, 'sub-task')}.`,
+    confirmLabel: 'Reopen all',
+  });
 }
 
 export async function deleteTask(projectId: string, task: Task): Promise<void> {
