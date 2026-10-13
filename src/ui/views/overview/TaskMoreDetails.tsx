@@ -1,8 +1,11 @@
+import { shortDay } from '../../../core/format';
 import * as ops from '../../../core/ops';
 import type { Project, Task } from '../../../core/schema';
 import { STATUS_LABEL } from '../../components/StatusChip';
 import { update } from '../../store';
 import { DetailField } from './DetailField';
+import { DetailRow } from './DetailRow';
+import { DetailRows } from './DetailRows';
 import { MoreDetails } from './MoreDetails';
 import { TaskStatus } from './TaskStatus';
 
@@ -27,41 +30,38 @@ export function TaskMoreDetails(props: { project: Project; task: Task }) {
 
   return (
     <MoreDetails summary={taskDetailSummary(t)}>
-      <TaskStatus project={p} task={t} />
-      <div class="grid grid-cols-2 items-start gap-12 max-lg:grid-cols-1">
-        <div
-          class={`grid content-start gap-6 rounded-12 px-14 py-12 ${t.escalation ? 'bg-primary-tint' : 'border border-line'}`}
-        >
-          <label class="flex cursor-pointer items-center gap-8 text-14 font-semibold text-ink">
+      <DetailRows>
+        <TaskStatus project={p} task={t} />
+        <DetailRow label="Escalation">
+          <label class="flex min-h-36 cursor-pointer items-center gap-8 text-14 text-ink">
             <input
               type="checkbox"
               checked={!!t.escalation}
               onChange={(e) => update((r, n) => ops.setTaskEscalation(r, p.id, t.id, e.currentTarget.checked, n))}
             />
             I may be escalated
+            {t.escalation && <span class="text-12 text-body">since {shortDay(t.escalation.since)}</span>}
           </label>
-          {t.escalation ? (
-            <>
-              <DetailField
-                label="By"
-                value={t.escalation.by}
-                placeholder="Which team?"
-                onSave={(text) => update((r, n) => ops.setTaskEscalationDetail(r, p.id, t.id, 'by', text, n))}
-              />
-              <DetailField
-                label="Why"
-                value={t.escalation.why}
-                placeholder="What do they need?"
-                onSave={(text) => update((r, n) => ops.setTaskEscalationDetail(r, p.id, t.id, 'why', text, n))}
-              />
-            </>
-          ) : (
-            <span class="text-13 text-body">A heads-up for your leader: another team may escalate you over this.</span>
+          {!t.escalation && (
+            <span class="text-12 text-body">A heads-up for your leader: another team may escalate you over this.</span>
           )}
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-12 max-lg:grid-cols-1">
+        </DetailRow>
+        {t.escalation && (
+          <>
+            <DetailField
+              label="Escalated by"
+              value={t.escalation.by}
+              placeholder="Which team?"
+              onSave={(text) => update((r, n) => ops.setTaskEscalationDetail(r, p.id, t.id, 'by', text, n))}
+            />
+            <DetailField
+              label="Why"
+              value={t.escalation.why}
+              placeholder="What do they need?"
+              onSave={(text) => update((r, n) => ops.setTaskEscalationDetail(r, p.id, t.id, 'why', text, n))}
+            />
+          </>
+        )}
         <DetailField
           label="Definition of done"
           value={t.definitionOfDone}
@@ -75,7 +75,7 @@ export function TaskMoreDetails(props: { project: Project; task: Task }) {
           placeholder="Who to contact"
           onSave={(text) => update((r, n) => ops.setTaskText(r, p.id, t.id, 'relatedPeople', text, n))}
         />
-      </div>
+      </DetailRows>
     </MoreDetails>
   );
 }

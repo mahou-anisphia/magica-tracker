@@ -2,6 +2,7 @@ import * as ops from '../../../core/ops';
 import type { Project } from '../../../core/schema';
 import { update } from '../../store';
 import { DetailField } from './DetailField';
+import { DetailRows } from './DetailRows';
 import { MoreDetails } from './MoreDetails';
 
 /** A project's definition of done and related people, folded away. */
@@ -12,7 +13,7 @@ export function ProjectMoreDetails(props: { project: Project }) {
   );
   return (
     <MoreDetails summary={summary}>
-      <div class="grid grid-cols-2 gap-12 max-lg:grid-cols-1">
+      <DetailRows>
         <DetailField
           label="Definition of done"
           value={p.definitionOfDone}
@@ -26,7 +27,7 @@ export function ProjectMoreDetails(props: { project: Project }) {
           placeholder="Who to contact"
           onSave={(text) => update((r, n) => ops.setProjectText(r, p.id, 'relatedPeople', text, n))}
         />
-      </div>
+      </DetailRows>
     </MoreDetails>
   );
 }
