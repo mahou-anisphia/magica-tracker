@@ -1,6 +1,7 @@
 import type { BoardLane as Lane } from '../../../core/board';
 import { plural } from '../../../core/format';
 import { openProject } from '../../actions';
+import { DropHere } from '../../components/DropHere';
 import { BoardCard } from './BoardCard';
 import { COLUMNS, GRID } from './columns';
 import { CARD_GAP, shiftFor, type DragSource, type DragState } from './useBoardDrag';
@@ -32,7 +33,7 @@ export function BoardLane(props: {
     <section
       data-lane={p.id}
       data-reorder={p.id}
-      class={`${GRID} border-t border-line first:border-t-0 ${drag && !mine ? 'opacity-40' : ''} ${
+      class={`${GRID} border-t border-line ${drag && !mine ? 'opacity-40' : ''} ${
         props.held
           ? 'relative z-10 rounded-10 bg-card shadow-pop'
           : props.laneSettling
@@ -71,7 +72,8 @@ export function BoardLane(props: {
       {COLUMNS.map((col) => {
         const cards = lane.cells[col.status];
         // A column gains a card's height while one is about to land in it.
-        const grows = mine && drag.target?.status === col.status && drag.from !== col.status;
+        const target = mine && drag.target?.status === col.status;
+        const grows = target && drag.from !== col.status;
         return (
           <div
             key={col.status}
@@ -82,7 +84,7 @@ export function BoardLane(props: {
             style={grows ? { paddingBottom: `${10 + drag.height + CARD_GAP}px` } : undefined}
           >
             <span class="mb-6 hidden text-12 font-medium text-body max-md:block">{col.label}</span>
-            <ul class="grid min-h-44 grid-cols-1 content-start gap-8">
+            <ul class="relative grid min-h-44 grid-cols-1 content-start gap-8">
               {cards.map((t, i) => (
                 <BoardCard
                   key={t.id}
@@ -94,7 +96,14 @@ export function BoardLane(props: {
                   onOpen={() => props.onOpen(t.id)}
                 />
               ))}
+              {target && drag.slotTop !== null && (
+                <li aria-hidden="true" class="pointer-events-none absolute inset-x-0" style={{ top: `${drag.slotTop}px`, height: `${drag.height}px` }}>
+                  <DropHere active class="h-full" />
+                </li>
+              )}
             </ul>
+            {/* While a card of this lane is held, every column shows it can take it; the one it would land in shows the gap instead. */}
+            {mine && <DropHere active={false} class={`mt-8 min-h-32 ${target ? 'invisible' : ''}`} />}
           </div>
         );
       })}

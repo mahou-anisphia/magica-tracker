@@ -4,7 +4,7 @@ import { daysUntil, dueDistance, isDueSoon } from '../../core/due';
 import { plural } from '../../core/format';
 import { glanceLists, type GlanceLists, type GlanceRef } from '../../core/glance';
 import { allocation } from '../../core/progress';
-import type { Root } from '../../core/schema';
+import { allocationSettings, type Root } from '../../core/schema';
 import { daysSince } from '../../core/time';
 import { AllocationBar } from './AllocationBar';
 import { GlanceNumbers, type GlanceItem } from './GlanceNumbers';
@@ -12,6 +12,7 @@ import { CrossIcon } from './icons';
 import { LabelledBlock } from './LabelledBlock';
 import { ListRow, type RowTone } from './ListRow';
 import { ShowMoreRow } from './ShowMoreRow';
+import { useLoadFormat } from './useUnit';
 
 type ListKey = keyof GlanceLists;
 
@@ -28,7 +29,7 @@ const LINE: Record<ListKey, (n: number) => string> = {
 type Pill = { text: string; class: string };
 
 /** A row's mark, words and pills: what made it count, and its allocation. */
-function describe(ref: GlanceRef, list: ListKey, now: Date): { tone: RowTone; title: string; sub: string; pills: Pill[] } {
+function describe(ref: GlanceRef, list: ListKey, now: Date, fmtLoad: (percent: number) => string): { tone: RowTone; title: string; sub: string; pills: Pill[] } {
   const { project, task, subtask } = ref;
   if (list === 'overdue' || !task) {
     const due = subtask?.due ?? task?.due ?? project.due!;
@@ -43,7 +44,7 @@ function describe(ref: GlanceRef, list: ListKey, now: Date): { tone: RowTone; ti
   const sub = [project.name, task.waiting?.on, steps.total ? `${steps.done} of ${plural(steps.total, 'sub-task')}` : undefined]
     .filter(Boolean)
     .join(' · ');
-  const effort: Pill[] = task.effort ? [{ text: `${task.effort}%`, class: 'pill-plain' }] : [];
+  const effort: Pill[] = task.effort ? [{ text: fmtLoad(task.effort), class: 'pill-plain' }] : [];
   const waited = task.waiting ? daysSince(task.waiting.since, now) : 0;
   const [tone, pill]: [RowTone, Pill | null] =
     task.status === 'waiting'
@@ -75,6 +76,8 @@ export function GlanceBoard(props: { root: Root; now: Date; whose?: string; onOp
   const { root, now, onOpen } = props;
   const [chosen, setChosen] = useState<ListKey | null>(null);
   const [all, setAll] = useState(false);
+  // Allocations are shares of this tracker's own period.
+  const fmtLoad = useLoadFormat(allocationSettings(root).period);
   const lists = glanceLists(root, now);
   // A list that empties (its last task done) closes.
   const open = chosen && lists[chosen].length ? chosen : null;
@@ -109,7 +112,7 @@ export function GlanceBoard(props: { root: Root; now: Date; whose?: string; onOp
             </div>
             <ul class="[&>li]:border-t [&>li]:border-line">
               {(all ? rows : rows.slice(0, FIRST)).map((ref) => {
-                const d = describe(ref, open, now);
+                const d = describe(ref, open, now, fmtLoad);
                 return (
                   <li key={`${ref.project.id}/${ref.task?.id ?? ''}/${ref.subtask?.id ?? ''}`}>
                     <ListRow tone={d.tone} title={d.title} sub={d.sub} onOpen={onOpen && (() => onOpen(ref))}>

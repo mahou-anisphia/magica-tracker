@@ -20,7 +20,7 @@ function* countedTasks(root: Root): Generator<{ project: Project; task: Task }> 
 export type LoadItem = { project: Project; task: Task; share: number };
 
 export type Allocation = AllocationSettings & {
-  /** This period's load, in percent of your capacity. Can pass 100 and the limit. */
+  /** This period's load, in percent of your capacity (to a hundredth). Can pass 100 and the limit. */
   total: number;
   /** How many tasks add to it. */
   tasks: number;
@@ -71,7 +71,8 @@ function loadIn(root: Root, settings: AllocationSettings, range: PeriodRange, to
   }
   items.sort((a, b) => b.share - a.share);
   const done = items.filter((i) => i.task.done).length;
-  return { ...settings, total: Math.round(total), tasks: items.length, done, range, items };
+  // To a hundredth: shares spread by day are fractions, and float sums shouldn't show.
+  return { ...settings, total: Math.round(total * 100) / 100, tasks: items.length, done, range, items };
 }
 
 /**

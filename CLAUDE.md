@@ -33,11 +33,15 @@ src/ui/
     Segmented.tsx  StatusChip.tsx  GlanceNumbers.tsx  LabelledBlock.tsx
     GlanceBoard.tsx   (At a glance with its lists: the Overview and View as share it)
     ListRow.tsx  ShowMoreRow.tsx   (rows of Needs attention and the glance lists)
-    useReorder.ts   (drag to reorder a vertical list: Board lanes, the project list)
+    useUnit.ts   (percent or hours: every allocation shown goes through useLoadFormat)
+    useReorder.ts   (drag to reorder a vertical list: the Board's lanes within a domain)
+    DropHere.tsx    (the dotted "• Drop here" slot every drag shows where something can land)
   shell/             app frame rendered once by App: top bar (everyday views only), banners,
                      dialogs, toast, the orb (Orb.tsx, orbMenu.tsx) and the search palette
   views/
-    overview/        the Overview page: OverviewView.tsx + every component only it uses
+    overview/        the Overview page: OverviewView.tsx + every component only it uses;
+                     useProjectDrag.ts drags projects in the sidebar (reorder, move between
+                     domains, drop on another to group them)
     timeline/        the Timeline page: TimelineView.tsx + every component only it uses
     settings/        Settings (theme, allocation, your name, storage)
     team/            Team: members, adding one at a time, importing their files

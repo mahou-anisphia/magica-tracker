@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION, type AllocationSettings, type BacklogItem, type Priority, type Project, type Resource, type Root, type Subtask, type Task } from './schema';
+import { SCHEMA_VERSION, type AllocationSettings, type BacklogItem, type Domain, type Priority, type Project, type Resource, type Root, type Subtask, type Task } from './schema';
 import type { Member, Team } from './team';
 import { DAY_MS, localDateStamp } from './time';
 
@@ -18,17 +18,28 @@ export const isSampleId = (id: string) => id.startsWith(SAMPLE_PREFIX);
 export function hasSample(root: Root): boolean {
   return (
     root.backlog.some((b) => isSampleId(b.id)) ||
+    !!root.domains?.some((d) => isSampleId(d.id)) ||
     root.projects.some((p) => isSampleId(p.id) || p.tasks.some((t) => isSampleId(t.id)))
   );
 }
 
-/** Remove every sample project, task and backlog item; leave everything else as it is. */
+/**
+ * Remove every sample domain, project, task and backlog item; leave everything
+ * else as it is. Your own projects in a sample domain stay, ungrouped.
+ */
 export function removeSample(root: Root): Root {
+  const { domains, ...rest } = root;
+  const own = domains?.filter((d) => !isSampleId(d.id));
   return {
-    ...root,
+    ...rest,
+    ...(own?.length ? { domains: own } : {}),
     projects: root.projects
       .filter((p) => !isSampleId(p.id))
-      .map((p) => (p.tasks.some((t) => isSampleId(t.id)) ? { ...p, tasks: p.tasks.filter((t) => !isSampleId(t.id)) } : p)),
+      .map((p) => {
+        const { domainId, ...plain } = p;
+        const kept = domainId && isSampleId(domainId) ? plain : p;
+        return kept.tasks.some((t) => isSampleId(t.id)) ? { ...kept, tasks: kept.tasks.filter((t) => !isSampleId(t.id)) } : kept;
+      }),
     backlog: root.backlog.filter((b) => !isSampleId(b.id)),
   };
 }
@@ -37,7 +48,12 @@ export function removeSample(root: Root): Root {
 export function addSample(root: Root, now: Date): Root {
   const sample = sampleData(now);
   const base = removeSample(root);
-  return { ...base, projects: [...base.projects, ...sample.projects], backlog: [...base.backlog, ...sample.backlog] };
+  return {
+    ...base,
+    domains: [...(base.domains ?? []), ...sample.domains],
+    projects: [...base.projects, ...sample.projects],
+    backlog: [...base.backlog, ...sample.backlog],
+  };
 }
 
 /** Builders for sample records. `scope` keeps a teammate's ids apart from yours. */
@@ -130,8 +146,14 @@ function makers(now: Date, scope: string) {
   return { id, ago, inDays, sub, res, task, project };
 }
 
-export function sampleData(now: Date): { projects: Project[]; backlog: BacklogItem[] } {
+export function sampleData(now: Date): { domains: Domain[]; projects: Project[]; backlog: BacklogItem[] } {
   const { id, ago, inDays, sub, res, task, project } = makers(now, '');
+  const domain = (name: string): Domain => ({ id: id('domain'), name, createdAt: ago(40), updatedAt: ago(40) });
+  const sky = domain('Sky and archive');
+  const craft = domain('Workshop');
+  const town = domain('Town');
+  /** Puts the sample projects in their domains. */
+  const inDomain = (d: Domain, ...ps: Project[]) => ps.forEach((p) => (p.domainId = d.id));
 
   const observatory = project(
     'Moonwell Observatory',
@@ -344,7 +366,12 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
     updatedAt: ago(opts.daysAgo ?? 3),
   });
 
+  inDomain(sky, observatory, grimoire);
+  inDomain(craft, workshop, ledger, garden, wands);
+  inDomain(town, familiars, festival);
+
   return {
+    domains: [sky, craft, town],
     projects: [observatory, workshop, familiars, festival, grimoire, ledger, garden, wands],
     backlog: [
       idea('Learn to read tea leaves', { notes: 'Start with the chipped blue cup.', daysAgo: 9 }),
@@ -400,7 +427,7 @@ export function sampleTeam(now: Date): Member[] {
     member('alice', 'Alice', 'Optics', {
       daysAgo: 1,
       root: ({ task, project, sub, ago }) =>
-        teammateRoot(now, { id: `${SAMPLE_PREFIX}owner-alice`, name: 'Alice' }, { period: 'week', maxLoad: 120 }, [
+        teammateRoot(now, { id: `${SAMPLE_PREFIX}owner-alice`, name: 'Alice' }, { period: 'week', maxLoad: 120, unit: 'percent' }, [
           project(
             'Moonwell lenses',
             [
@@ -435,7 +462,7 @@ export function sampleTeam(now: Date): Member[] {
     member('bram', 'Bram', 'Potions', {
       daysAgo: 10,
       root: ({ task, project, ago }) =>
-        teammateRoot(now, { id: `${SAMPLE_PREFIX}owner-bram`, name: 'Bram' }, { period: 'fortnight', maxLoad: 150 }, [
+        teammateRoot(now, { id: `${SAMPLE_PREFIX}owner-bram`, name: 'Bram' }, { period: 'fortnight', maxLoad: 150, unit: 'percent' }, [
           project(
             'Potion stores',
             [
@@ -448,9 +475,12 @@ export function sampleTeam(now: Date): Member[] {
               task('Label the shelves', { touched: 11, effort: 30 }),
               task('Clean the copper stills', { doneDaysAgo: 13 }),
               // Earlier fortnights past his limit: two big batches in each, on time.
-              ...[20, 34, 48, 62].flatMap((days) =>
-                ['Brew the cold remedy', 'Bottle the sleeping draught'].map((title) => task(title, { doneDaysAgo: days, due: -days, effort: 85 })),
-              ),
+              ...[
+                { days: 20, titles: ['Brew the cold remedy', 'Bottle the sleeping draught'] },
+                { days: 34, titles: ['Press the autumn oils', 'Candy the ginger root'] },
+                { days: 48, titles: ['Steep the elderflower', 'Dry the summer mint'] },
+                { days: 62, titles: ['Render the beeswax', 'Pot the healing salve'] },
+              ].flatMap(({ days, titles }) => titles.map((title) => task(title, { doneDaysAgo: days, due: -days, effort: 85 }))),
             ],
             { description: 'Everything the apothecary sells.' },
           ),
@@ -459,7 +489,7 @@ export function sampleTeam(now: Date): Member[] {
     member('dara', 'Dara', 'Archive', {
       daysAgo: 3,
       root: ({ task, project, sub }) =>
-        teammateRoot(now, { id: `${SAMPLE_PREFIX}owner-dara`, name: 'Dara' }, { period: 'fortnight', maxLoad: 140 }, [
+        teammateRoot(now, { id: `${SAMPLE_PREFIX}owner-dara`, name: 'Dara' }, { period: 'fortnight', maxLoad: 140, unit: 'hours' }, [
           project(
             'Star survey',
             [

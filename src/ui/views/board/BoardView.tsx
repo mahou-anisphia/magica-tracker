@@ -1,16 +1,17 @@
 import { useState } from 'preact/hooks';
 import { board } from '../../../core/board';
+import { byDomain } from '../../../core/domains';
 import { dayHeading } from '../../../core/format';
 import type { Root } from '../../../core/schema';
 import { localDateStamp } from '../../../core/time';
-import { placeTask, reorderProjects } from '../../actions';
+import { plural } from '../../../core/format';
+import { placeTask } from '../../actions';
 import { HintTag, useHighlight } from '../../components/highlight';
 import { LabelledBlock } from '../../components/LabelledBlock';
-import { useReorder } from '../../components/useReorder';
 import { ViewHeader } from '../../components/ViewHeader';
 import { BoardGhost } from './BoardGhost';
 import { BoardGlance } from './BoardGlance';
-import { BoardLane } from './BoardLane';
+import { BoardLanes } from './BoardLanes';
 import { BoardTaskDialog } from './BoardTaskDialog';
 import { COLUMNS, GRID } from './columns';
 import { useBoardDrag } from './useBoardDrag';
@@ -19,7 +20,8 @@ import { useBoardDrag } from './useBoardDrag';
  * The Board, from the orb: every active project as a lane, its tasks in
  * To do, Working, Waiting and the last week's Done. Cards are titles only;
  * drag one to move it, within or across its lane's columns, and click it for
- * the rest. Dropping one in Waiting opens it to say what on.
+ * the rest. Dropping one in Waiting opens it to say what on. With domains,
+ * the lanes are grouped under them.
  */
 export function BoardView(props: { root: Root; now: Date }) {
   const { lanes, counts } = board(props.root, props.now);
@@ -39,7 +41,12 @@ export function BoardView(props: { root: Root; now: Date }) {
       });
     },
   });
-  const lanesOrder = useReorder({ list: 'board-lanes', ids: lanes.map((l) => l.project.id), onReorder: reorderProjects });
+  // With domains, lanes sit under their domain's name, the ones in none last.
+  const groups = byDomain(props.root, lanes, (l) => l.project);
+  const grouped = groups.length > 1 || groups[0]?.domain !== null;
+  const openTask = (projectId: string, taskId: string) => {
+    if (!suppressClick.current) setOpenCard({ projectId, taskId });
+  };
   const project = openCard ? props.root.projects.find((p) => p.id === openCard.projectId) : undefined;
 
   return (
@@ -49,13 +56,13 @@ export function BoardView(props: { root: Root; now: Date }) {
       </ViewHeader>
       <BoardGlance counts={counts} />
 
-      <LabelledBlock id="board-lanes-h" title="By project">
+      <LabelledBlock id="board-lanes-h" title={grouped ? 'By domain and project' : 'By project'}>
         {lanes.length === 0 ? (
           <p class="rounded-14 border border-dashed border-line-strong px-20 py-18 text-15 text-body">
             No open projects with tasks yet. Add some on your tracker and they appear here, one lane each.
           </p>
         ) : (
-          <div {...lanesHl.attrs} data-reorder-list="board-lanes" class={`relative rounded-14 border border-line bg-card shadow-card ${lanesHl.ring}`}>
+          <div {...lanesHl.attrs} class={`relative rounded-14 border border-line bg-card shadow-card ${lanesHl.ring}`}>
             <HintTag text={lanesHl.hint} />
             <div class={`${GRID} sticky top-0 z-1 rounded-t-14 border-b border-line bg-page-55 max-md:hidden`} aria-hidden="true">
               <span class="px-16 py-10 text-12 font-medium text-body">Project</span>
@@ -70,23 +77,26 @@ export function BoardView(props: { root: Root; now: Date }) {
                 </span>
               ))}
             </div>
-            {lanes.map((lane) => (
-              <BoardLane
-                key={lane.project.id}
-                lane={lane}
-                drag={drag}
-                settling={settling}
-                onPress={press}
-                onOpen={(taskId) => {
-                  if (!suppressClick.current) setOpenCard({ projectId: lane.project.id, taskId });
-                }}
-                shift={lanesOrder.offset(lane.project.id)}
-                held={lanesOrder.held === lane.project.id}
-                laneSettling={lanesOrder.settling}
-                onLanePress={(e) => lanesOrder.press(e, lane.project.id)}
-                laneClickBlocked={() => lanesOrder.suppressClick.current}
-              />
-            ))}
+            {grouped ? (
+              groups.map((g) => (
+                <section key={g.domain?.id ?? 'none'} aria-label={g.domain?.name ?? 'No domain'}>
+                  <h3 class="flex items-baseline gap-10 border-t border-line bg-page-40 px-16 py-8 text-13 font-semibold text-ink">
+                    {g.domain?.name ?? 'No domain'}
+                    <span class="text-12 font-normal text-body">{plural(g.items.length, 'project')}</span>
+                  </h3>
+                  <BoardLanes
+                    list={`board-lanes:${g.domain?.id ?? 'none'}`}
+                    lanes={g.items}
+                    drag={drag}
+                    settling={settling}
+                    onPress={press}
+                    onOpen={openTask}
+                  />
+                </section>
+              ))
+            ) : (
+              <BoardLanes list="board-lanes" lanes={lanes} drag={drag} settling={settling} onPress={press} onOpen={openTask} />
+            )}
           </div>
         )}
       </LabelledBlock>

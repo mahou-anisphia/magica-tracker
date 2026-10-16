@@ -2,9 +2,11 @@ import { useState } from 'preact/hooks';
 import { plural } from '../../../core/format';
 import { allocationHistory } from '../../../core/progress';
 import type { Root } from '../../../core/schema';
+import { loadParts } from '../../../core/units';
 import { rangeLabel } from '../../components/AllocationBar';
 import { GlanceNumbers } from '../../components/GlanceNumbers';
 import { Panel } from '../../components/Panel';
+import { useLoadFormat, useUnit } from '../../components/useUnit';
 import { ViewHeader } from '../../components/ViewHeader';
 import { go } from '../../store';
 import { AllocationChart } from './AllocationChart';
@@ -24,23 +26,27 @@ export function AllocationView(props: { root: Root; now: Date }) {
   const [picked, setPicked] = useState(current.range.start);
   const shown = history.find((a) => a.range.start === picked) ?? current;
   const { period, maxLoad } = current;
+  const unit = useUnit();
+  const fmt = useLoadFormat(period);
+  const amount = (percent: number) => loadParts(percent, period, unit);
   const past = history.slice(0, -1);
-  const average = past.length ? Math.round(past.reduce((n, a) => n + a.total, 0) / past.length) : current.total;
+  const average = past.length ? past.reduce((n, a) => n + a.total, 0) / past.length : current.total;
   const of = past.length ? `of ${past.length}` : undefined;
   const isNow = shown === current;
-  const note = shown.total > maxLoad ? `past the ${maxLoad}% limit` : shown.total > 100 ? `${shown.total - 100}% over` : `${100 - shown.total}% free`;
+  const note =
+    shown.total > maxLoad ? `past the ${fmt(maxLoad)} limit` : shown.total > 100 ? `${fmt(shown.total - 100)} over` : `${fmt(100 - shown.total)} free`;
 
   return (
     <>
       <ViewHeader title="Allocation">
-        Each {period} against your {maxLoad}% limit. Finished work stays in the {period} it counted in.
+        Each {period} against your {fmt(maxLoad)} limit. Finished work stays in the {period} it counted in.
       </ViewHeader>
       <div class="mb-24 overflow-hidden rounded-14 border border-line bg-card shadow-card">
         <GlanceNumbers
           items={[
-            { label: `This ${period}`, value: current.total, unit: '%', tone: 'plain' },
-            { label: past.length ? `Average, last ${plural(past.length, period)}` : 'Average', value: average, unit: '%', tone: 'plain' },
-            { label: 'Over 100%', value: past.filter((a) => a.total > 100).length, tone: 'plain', note: of },
+            { label: `This ${period}`, ...amount(current.total), tone: 'plain' },
+            { label: past.length ? `Average, last ${plural(past.length, period)}` : 'Average', ...amount(average), tone: 'plain' },
+            { label: `Over ${fmt(100)}`, value: past.filter((a) => a.total > 100).length, tone: 'plain', note: of },
             { label: 'Past the limit', value: past.filter((a) => a.total > maxLoad).length, tone: 'gold', note: of },
           ]}
         />
@@ -63,11 +69,11 @@ export function AllocationView(props: { root: Root; now: Date }) {
           id="alloc-detail-h"
           title={isNow ? `This ${period}, ${rangeLabel(shown.range)}` : `The ${period} of ${rangeLabel(shown.range)}`}
           highlight="alloc-detail"
-          note={shown.tasks ? `${plural(shown.tasks, 'task')}, ${shown.done === shown.tasks ? 'all' : shown.done} done` : undefined}
+          note={shown.tasks ? `${plural(shown.tasks, 'task')}, ${shown.done === shown.tasks ? 'all' : shown.done || 'none'} done` : undefined}
           aside={
             <span class="flex items-baseline gap-10">
               <span class={`text-22 font-medium tracking-[-0.02em] tabular-nums ${shown.total > 100 ? 'text-watch-ink' : 'text-ink'}`}>
-                {shown.total}%
+                {fmt(shown.total)}
               </span>
               <span class={`text-13 whitespace-nowrap ${shown.total > 100 ? 'rounded-full bg-watch-tint px-10 py-1 font-medium text-watch-ink' : 'text-body'}`}>
                 {note}
@@ -75,7 +81,7 @@ export function AllocationView(props: { root: Root; now: Date }) {
             </span>
           }
         >
-          <PeriodTasks allocation={shown} />
+          <PeriodTasks root={props.root} allocation={shown} />
         </Panel>
       </div>
     </>

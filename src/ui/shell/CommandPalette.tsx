@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { domainOf } from '../../core/domains';
 import { shortDay } from '../../core/format';
 import type { Root } from '../../core/schema';
 import type { Team } from '../../core/team';
@@ -38,7 +39,8 @@ function entries(root: Root, team: Team): Entry[] {
   }
   for (const p of root.projects) {
     if (p.archived) continue;
-    out.push({ group: 'Projects', label: p.name, hint: 'Project', run: () => openProject(p.id) });
+    const domain = domainOf(root, p);
+    out.push({ group: 'Projects', label: p.name, hint: domain ? `Project · ${domain.name}` : 'Project', run: () => openProject(p.id) });
   }
   for (const p of root.projects) {
     if (p.archived) continue;

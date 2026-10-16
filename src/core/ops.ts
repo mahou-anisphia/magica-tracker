@@ -2,10 +2,12 @@ import { normalizeTask } from './completion';
 import { isCalendarDate } from './due';
 import {
   ALLOCATION_PERIODS,
+  ALLOCATION_UNITS,
   allocationSettings,
   PRIORITIES,
   type AllocationSettings,
   type BacklogItem,
+  type Domain,
   type Priority,
   type Project,
   type Resource,
@@ -158,9 +160,9 @@ export function setTaskPriority(
   return mapTask(root, projectId, taskId, now, (task) => withOptional(task, 'priority', priority));
 }
 
-/** Allocation (stored as `effort`): a whole percent of your capacity, 0–100; undefined clears it. */
+/** Allocation (stored as `effort`): a percent of your capacity, 0–100; undefined clears it. */
 export function setTaskEffort(root: Root, projectId: string, taskId: string, effort: number | undefined, now: string): Root {
-  if (effort !== undefined && !(Number.isInteger(effort) && effort >= 0 && effort <= 100)) return root;
+  if (effort !== undefined && !(Number.isFinite(effort) && effort >= 0 && effort <= 100)) return root;
   return mapTask(root, projectId, taskId, now, (task) => {
     const { effort: _, ...rest } = task;
     return effort === undefined ? rest : { ...rest, effort };
@@ -483,6 +485,81 @@ export function demote(root: Root, projectId: string, taskId: string, now: strin
   return addBacklogItem(next, task.id, task.title, now, { notes: task.notes, suggestedProjectId: projectId });
 }
 
+// ─── Domains ─────────────────────────────────────────────────────────────────
+
+/** A new domain at the end of the list. A blank name changes nothing. */
+export function createDomain(root: Root, id: string, name: string, now: string): Root {
+  const n = name.trim();
+  if (!n) return root;
+  const domain: Domain = { id, name: n, createdAt: now, updatedAt: now };
+  return { ...root, domains: [...(root.domains ?? []), domain] };
+}
+
+export function renameDomain(root: Root, domainId: string, name: string, now: string): Root {
+  const n = name.trim();
+  if (!n || !root.domains?.some((d) => d.id === domainId)) return root;
+  return { ...root, domains: root.domains.map((d) => (d.id === domainId ? { ...d, name: n, updatedAt: now } : d)) };
+}
+
+/** Removes a domain; its projects stay, ungrouped. */
+export function deleteDomain(root: Root, domainId: string, now: string): Root {
+  if (!root.domains?.some((d) => d.id === domainId)) return root;
+  return {
+    ...root,
+    domains: root.domains.filter((d) => d.id !== domainId),
+    projects: root.projects.map((p) => (p.domainId === domainId ? ungroup(p, now) : p)),
+  };
+}
+
+function ungroup(p: Project, now: string): Project {
+  const { domainId: _, ...rest } = p;
+  return { ...rest, updatedAt: now };
+}
+
+/**
+ * Moves a project, as dragging it does: into a domain (undefined: none) and
+ * just before `beforeId`, or with null after the last project already in
+ * that domain. The project order is one list; domains show it in groups.
+ */
+export function moveProject(root: Root, projectId: string, domainId: string | undefined, beforeId: string | null, now: string): Root {
+  const domains = new Set((root.domains ?? []).map((d) => d.id));
+  if (domainId !== undefined && !domains.has(domainId)) return root;
+  const project = root.projects.find((p) => p.id === projectId);
+  if (!project || beforeId === projectId) return root;
+  const groupOf = (p: Project) => (p.domainId && domains.has(p.domainId) ? p.domainId : undefined);
+  const moved = groupOf(project) === domainId ? project : domainId === undefined ? ungroup(project, now) : { ...project, domainId, updatedAt: now };
+  const rest = root.projects.filter((p) => p.id !== projectId);
+  let at = beforeId ? rest.findIndex((p) => p.id === beforeId) : -1;
+  if (at < 0) {
+    const last = rest.findLastIndex((p) => groupOf(p) === domainId);
+    at = last < 0 ? rest.length : last + 1;
+  }
+  const projects = [...rest.slice(0, at), moved, ...rest.slice(at)];
+  return projects.every((p, i) => p === root.projects[i]) ? root : { ...root, projects };
+}
+
+/**
+ * Drops one project on another to group them: a new domain holding both,
+ * the dropped one just after the other. Name it later; it starts as `name`.
+ */
+export function groupProjects(root: Root, domainId: string, name: string, targetId: string, droppedId: string, now: string): Root {
+  const target = root.projects.find((p) => p.id === targetId);
+  if (!target || targetId === droppedId || !root.projects.some((p) => p.id === droppedId)) return root;
+  let r = createDomain(root, domainId, name, now);
+  r = setProjectDomain(r, targetId, domainId, now);
+  const after = r.projects[r.projects.findIndex((p) => p.id === targetId) + 1];
+  return moveProject(r, droppedId, domainId, after && after.id !== droppedId ? after.id : null, now);
+}
+
+/** Puts a project in a domain, or (undefined) in none. An unknown domain changes nothing. */
+export function setProjectDomain(root: Root, projectId: string, domainId: string | undefined, now: string): Root {
+  if (domainId !== undefined && !root.domains?.some((d) => d.id === domainId)) return root;
+  return mapProject(root, projectId, (p) => {
+    if (p.domainId === domainId) return p;
+    return domainId === undefined ? ungroup(p, now) : { ...p, domainId, updatedAt: now };
+  });
+}
+
 // ─── Owner and settings ──────────────────────────────────────────────────────
 
 /** Your name on your exports. The id stays the same across renames; empty removes it. */
@@ -495,6 +572,7 @@ export function setOwnerName(root: Root, name: string, makeId: () => string, now
 
 export function setAllocationSettings(root: Root, patch: Partial<AllocationSettings>, now: string): Root {
   if (patch.period !== undefined && !ALLOCATION_PERIODS.includes(patch.period)) return root;
+  if (patch.unit !== undefined && !ALLOCATION_UNITS.includes(patch.unit)) return root;
   if (patch.maxLoad !== undefined && !(Number.isInteger(patch.maxLoad) && patch.maxLoad >= 100 && patch.maxLoad <= 300)) {
     return root;
   }

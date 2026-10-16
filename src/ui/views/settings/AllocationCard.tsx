@@ -1,5 +1,6 @@
 import * as ops from '../../../core/ops';
-import { allocationSettings, type AllocationPeriod, type Root } from '../../../core/schema';
+import { allocationSettings, type AllocationPeriod, type AllocationUnit, type Root } from '../../../core/schema';
+import { formatLoad, HOURS_PER_WEEK } from '../../../core/units';
 import { update } from '../../store';
 import { Segmented } from '../../components/Segmented';
 import { Panel } from '../../components/Panel';
@@ -12,9 +13,18 @@ const PERIODS: { value: AllocationPeriod; label: string }[] = [
   { value: 'fortnight', label: 'Fortnightly' },
 ];
 
-/** The allocation period and the most you can carry. Saved with your data, so your team sees them. */
+const UNITS: { value: AllocationUnit; label: string }[] = [
+  { value: 'percent', label: 'Percent' },
+  { value: 'hours', label: 'Hours' },
+];
+
+/**
+ * The allocation period, the unit it is shown and entered in, and the most
+ * you can carry. Saved with your data, so your team sees them.
+ */
 export function AllocationCard(props: { root: Root }) {
   const a = allocationSettings(props.root);
+  const fmt = (n: number) => formatLoad(n, a.period, a.unit);
   return (
     <Panel
       id="allocation-h"
@@ -32,6 +42,15 @@ export function AllocationCard(props: { root: Root }) {
         />
       </div>
       <div class="flex flex-wrap items-center justify-between gap-12">
+        <span class="font-medium text-ink">Show it in</span>
+        <Segmented
+          label="Allocation unit"
+          value={a.unit}
+          options={UNITS}
+          onChange={(unit) => update((r, n) => ops.setAllocationSettings(r, { unit }, n))}
+        />
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-12">
         <label for="max-load" class="font-medium text-ink">
           The most I can carry
         </label>
@@ -46,14 +65,14 @@ export function AllocationCard(props: { root: Root }) {
         >
           {LIMITS.map((v) => (
             <option key={v} value={v}>
-              {v}%
+              {a.unit === 'hours' ? `${fmt(v)} (${v}%)` : fmt(v)}
             </option>
           ))}
         </select>
       </div>
       <p class="text-12 text-body">
-        100% is a full {a.period}. Past 100% the bar turns to the highlight colour; past {a.maxLoad}% your team sees “past
-        limit”.
+        {a.unit === 'hours' ? `${fmt(100)} (${HOURS_PER_WEEK} hours a week) is` : '100% is'} a full {a.period}. Past it the bar
+        turns to the highlight colour; past {fmt(a.maxLoad)} your team sees “past limit”.
       </p>
     </Panel>
   );

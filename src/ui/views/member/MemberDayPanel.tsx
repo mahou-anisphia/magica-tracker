@@ -1,12 +1,21 @@
 import type { DueItem } from '../../../core/calendar';
 import { plural } from '../../../core/format';
+import type { AllocationPeriod } from '../../../core/schema';
 import { itemKey, panelDay, parseDay } from '../../components/dueItem';
 import { CrossIcon } from '../../components/icons';
 import { Modal } from '../../components/Modal';
 import { MemberDayItem } from './MemberDayItem';
 
 /** One day of their deadlines, from the right, read-only. */
-export function MemberDayPanel(props: { date: string | null; items: DueItem[]; name: string; now: Date; onClose: () => void }) {
+export function MemberDayPanel(props: {
+  date: string | null;
+  items: DueItem[];
+  name: string;
+  now: Date;
+  /** Their allocation period, which their tasks' allocations are shares of. */
+  period: AllocationPeriod;
+  onClose: () => void;
+}) {
   const { date, items } = props;
   return (
     <Modal open={!!date} onClose={props.onClose} labelledBy="member-day-h" variant="drawer">
@@ -27,7 +36,7 @@ export function MemberDayPanel(props: { date: string | null; items: DueItem[]; n
           </header>
           <ul class="overflow-y-auto">
             {items.map((it) => (
-              <MemberDayItem key={itemKey(it)} item={it} now={props.now} />
+              <MemberDayItem key={itemKey(it)} item={it} now={props.now} period={props.period} />
             ))}
           </ul>
         </>

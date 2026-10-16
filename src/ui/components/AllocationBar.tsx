@@ -1,6 +1,8 @@
 import { plural } from '../../core/format';
 import type { PeriodRange } from '../../core/period';
 import type { Allocation } from '../../core/progress';
+import { formatLoad } from '../../core/units';
+import { useUnit } from './useUnit';
 
 const dayMonth = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
 const asDate = (stamp: string) => {
@@ -21,12 +23,14 @@ export function rangeLabel(r: PeriodRange): string {
  */
 export function AllocationBar(props: { allocation: Allocation; embedded?: boolean; whose?: string }) {
   const { total, tasks, done, maxLoad, period, range } = props.allocation;
+  const unit = useUnit();
+  const fmt = (n: number) => formatLoad(n, period, unit);
   const pct = (n: number) => `${(Math.min(Math.max(n, 0), maxLoad) / maxLoad) * 100}%`;
   const over = total > 100;
   const pastLimit = total > maxLoad;
   // "100%" sits under its tick, unless the limit's own label is too close to it.
   const mid = maxLoad <= 110 ? 'hidden' : maxLoad < 140 ? 'max-md:hidden' : '';
-  const note = pastLimit ? `past the ${maxLoad}% limit` : over ? `${total - 100}% over` : `${100 - total}% free`;
+  const note = pastLimit ? `past the ${fmt(maxLoad)} limit` : over ? `${fmt(total - 100)} over` : `${fmt(100 - total)} free`;
 
   return (
     <section
@@ -43,7 +47,7 @@ export function AllocationBar(props: { allocation: Allocation; embedded?: boolea
           {props.whose && ' · their settings'}
         </h2>
         <span class={`text-22 font-medium tracking-[-0.02em] tabular-nums ${over ? 'text-watch-ink' : 'text-ink'}`}>
-          {total}%
+          {fmt(total)}
         </span>
         <span
           class={`text-13 whitespace-nowrap ${over ? 'rounded-full bg-watch-tint px-10 py-1 font-medium text-watch-ink' : 'text-body'}`}
@@ -58,7 +62,7 @@ export function AllocationBar(props: { allocation: Allocation; embedded?: boolea
         aria-valuemin={0}
         aria-valuemax={maxLoad}
         aria-valuenow={Math.min(total, maxLoad)}
-        aria-valuetext={`${total}% of ${props.whose ? `${props.whose}’s` : 'your'} capacity this ${period}, ${note}`}
+        aria-valuetext={`${fmt(total)} of ${props.whose ? `${props.whose}’s` : 'your'} capacity this ${period}, ${note}`}
         aria-labelledby="allocation-h"
       >
         <span class="absolute inset-y-0 left-0 bg-primary-strong" style={{ width: pct(Math.min(total, 100)) }} />
@@ -66,11 +70,11 @@ export function AllocationBar(props: { allocation: Allocation; embedded?: boolea
         <span class="absolute -top-2 -bottom-2 -ml-1 w-2 bg-card" style={{ left: pct(100) }} aria-hidden="true" />
       </div>
       <div class="relative h-18 text-12 text-body tabular-nums" aria-hidden="true">
-        <span class="absolute left-0">0%</span>
+        <span class="absolute left-0">{fmt(0)}</span>
         <span class={`absolute -translate-x-1/2 ${mid}`} style={{ left: pct(100) }}>
-          100%
+          {fmt(100)}
         </span>
-        <span class="absolute right-0">{maxLoad}% limit</span>
+        <span class="absolute right-0">{fmt(maxLoad)} limit</span>
       </div>
     </section>
   );

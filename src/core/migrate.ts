@@ -48,6 +48,12 @@ export const MIGRATIONS: Record<number, Migration> = {
       ? raw.projects.map((p) => (isObject(p) && Array.isArray(p.tasks) ? { ...p, tasks: p.tasks.map(taskV3toV4) } : p))
       : raw.projects,
   }),
+  /**
+   * v4 → v5. Only new optional fields (domains, a project's domain, the
+   * allocation unit) and a wider `effort`, so a v4 file is already a valid v5
+   * shape.
+   */
+  4: (raw) => raw,
 };
 
 export class MigrationError extends Error {}

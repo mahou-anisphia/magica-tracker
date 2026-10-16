@@ -1,5 +1,6 @@
 import { plural, shortDay } from '../../../core/format';
 import { rangeLabel } from '../../components/AllocationBar';
+import { useLoadFormat } from '../../components/useUnit';
 import { go } from '../../store';
 import { LoadMeter } from './LoadMeter';
 import type { Person } from './people';
@@ -13,6 +14,7 @@ export function PersonHistory(props: { id: string; person: Person }) {
   const p = props.person;
   const d = p.data!;
   const { period, maxLoad } = d.allocation;
+  const fmt = useLoadFormat(period);
   const periods = [...d.history].reverse();
   const past = periods.filter((a) => a.total > maxLoad).length;
   const whose = p.member ? `${p.name}’s` : 'Your';
@@ -21,7 +23,7 @@ export function PersonHistory(props: { id: string; person: Person }) {
   return (
     <div id={props.id} class="col-span-full ml-50 grid grid-cols-1 gap-12 rounded-12 bg-page-55 px-16 py-14 max-lg:ml-0">
       <p class="text-13 text-body">
-        {whose} allocation in each of the {plural(periods.length, period)} before this one, against {p.member ? 'their' : 'your'} {maxLoad}%
+        {whose} allocation in each of the {plural(periods.length, period)} before this one, against {p.member ? 'their' : 'your'} {fmt(maxLoad)}
         limit{past ? `: past it in ${past} of them` : ''}.{source}
       </p>
       <ul class="grid grid-cols-1 gap-12">

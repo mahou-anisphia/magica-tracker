@@ -1,12 +1,16 @@
 import type { DueItem } from '../../../core/calendar';
 import { daysUntil, dueDistance } from '../../../core/due';
+import type { AllocationPeriod } from '../../../core/schema';
 import { where } from '../../components/dueItem';
 import { PriorityChip } from '../../components/PriorityChip';
 import { StatusChip } from '../../components/StatusChip';
+import { useLoadFormat } from '../../components/useUnit';
 
 /** One of their deadlines on a day, with its details shown and nothing to press. */
-export function MemberDayItem(props: { item: DueItem; now: Date }) {
+/** `period`: theirs, which their allocations are shares of. */
+export function MemberDayItem(props: { item: DueItem; now: Date; period: AllocationPeriod }) {
   const { item, now } = props;
+  const fmtLoad = useLoadFormat(props.period);
   const { task, subtask } = item;
   const due = subtask?.due ?? task?.due ?? item.project.due;
   const status = item.done ? 'Done' : due && item.watch ? dueDistance(daysUntil(due, now)) : null;
@@ -29,7 +33,7 @@ export function MemberDayItem(props: { item: DueItem; now: Date }) {
           {!task.done && <StatusChip status={task.status} />}
           {!task.done && task.waiting?.on && <span class="text-13 text-body">On {task.waiting.on}</span>}
           {!task.done && task.escalation && <span class="pill pill-high">May be escalated</span>}
-          {task.effort !== undefined && <span class="pill pill-plain">{task.effort}% allocation</span>}
+          {task.effort !== undefined && <span class="pill pill-plain">{fmtLoad(task.effort)} allocation</span>}
           {task.subtasks.length > 0 && (
             <span class="pill pill-plain">
               {task.subtasks.filter((s) => s.done).length} / {task.subtasks.length} sub-tasks

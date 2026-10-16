@@ -83,11 +83,12 @@ describe('v3 ops', () => {
   });
 
   it('validates allocation settings and fills in defaults', () => {
-    expect(allocationSettings(base())).toEqual({ period: 'fortnight', maxLoad: 150 });
+    expect(allocationSettings(base())).toEqual({ period: 'fortnight', maxLoad: 150, unit: 'percent' });
     const r = setAllocationSettings(base(), { maxLoad: 120 }, T1);
-    expect(allocationSettings(r)).toEqual({ period: 'fortnight', maxLoad: 120 });
+    expect(allocationSettings(r)).toEqual({ period: 'fortnight', maxLoad: 120, unit: 'percent' });
     expect(setAllocationSettings(r, { maxLoad: 90 }, T2)).toBe(r);
     expect(setAllocationSettings(r, { maxLoad: 125.5 }, T2)).toBe(r);
+    expect(allocationSettings(setAllocationSettings(r, { unit: 'hours' }, T2)).unit).toBe('hours');
   });
 });
 

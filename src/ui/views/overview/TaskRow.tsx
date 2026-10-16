@@ -9,6 +9,7 @@ import { deleteTask, demoteTask, toggleTask } from '../../actions';
 import { PencilIcon, TrashIcon, TrayIcon } from '../../components/icons';
 import { PRIORITY_LABEL, PriorityChip } from '../../components/PriorityChip';
 import { StatusChip } from '../../components/StatusChip';
+import { useLoadFormat } from '../../components/useUnit';
 import { set, update } from '../../store';
 import { AddInput } from './AddInput';
 import { controlledCheck } from './controlledCheck';
@@ -24,6 +25,7 @@ type Props = { project: Project; task: Task; expanded: boolean; now: Date };
 
 export function TaskRow({ project, task, expanded, now }: Props) {
   const [renaming, setRenaming] = useState(false);
+  const fmtLoad = useLoadFormat();
   const progress = subtaskProgress(task);
   const stale = isStale(task, now);
   const waiting = task.status === 'waiting' && !task.done;
@@ -107,7 +109,7 @@ export function TaskRow({ project, task, expanded, now }: Props) {
                 class="rounded-full bg-primary-tint px-8 py-1 text-12 font-medium text-primary-ink tabular-nums"
                 title="Allocation: share of your capacity"
               >
-                {task.effort}%
+                {fmtLoad(task.effort)}
               </span>
             )}
           </button>

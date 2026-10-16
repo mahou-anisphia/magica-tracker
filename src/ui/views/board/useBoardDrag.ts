@@ -19,6 +19,8 @@ export type DragState = {
   x: number;
   y: number;
   target: DragTarget | null;
+  /** Where the gap for it opens in the target column, from the top of that column's list. */
+  slotTop: number | null;
 };
 
 export type DragSource = { taskId: string; projectId: string; title: string; status: Status; index: number };
@@ -36,7 +38,15 @@ const EDGE_SPEED = 14;
 /** A drop this far from every column of the lane goes nowhere. */
 const REACH = 140;
 
-type CellLayout = { status: Status; left: number; right: number; top: number; bottom: number; mids: { id: string; mid: number }[] };
+type CellLayout = {
+  status: Status;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  mids: { id: string; mid: number }[];
+  heights: { id: string; height: number }[];
+};
 
 /** The lane's columns and cards where they sit now, in page coordinates (so scrolling doesn't move them). */
 function measure(projectId: string): CellLayout[] {
@@ -54,6 +64,10 @@ function measure(projectId: string): CellLayout[] {
         const c = card.getBoundingClientRect();
         return { id: card.dataset.card!, mid: c.top + scrollY + c.height / 2 };
       }),
+      heights: [...cell.querySelectorAll<HTMLElement>('[data-card]')].map((card) => ({
+        id: card.dataset.card!,
+        height: card.getBoundingClientRect().height,
+      })),
     };
   });
 }
@@ -77,11 +91,19 @@ function targetAt(layout: CellLayout[], taskId: string, px: number, py: number):
   return { status: best.status, index };
 }
 
+/** How far down its column's list the gap for the held card opens: the cards above it, and their gaps. */
+function slotTopFor(layout: CellLayout[], taskId: string, target: DragTarget | null): number | null {
+  const cell = target && layout.find((c) => c.status === target.status);
+  if (!cell) return null;
+  const above = cell.heights.filter((c) => c.id !== taskId).slice(0, target.index);
+  return above.reduce((y, c) => y + c.height + CARD_GAP, 0);
+}
+
 /**
  * Dragging cards on the Board, by pointer: a mouse drag starts after a few
  * pixels, a touch drag after a long press (a quick swipe still scrolls). While
  * a card is held, a copy follows the pointer and `target` says where it would
- * land; the lane draws the gap. Escape, or letting go far from the lane, puts
+ * land; the lane draws the gap, with "Drop here" in it at `slotTop`. Escape, or letting go far from the lane, puts
  * it back. `settling` is true for the frames right after a drop, so cards
  * take their new places without animating from the old ones.
  */
@@ -103,7 +125,10 @@ export function useBoardDrag(opts: { onDrop: (drag: DragState, target: DragTarge
     setDrag(next);
   };
 
-  const retarget = (d: DragState) => ({ ...d, target: targetAt(layout.current, d.taskId, d.x + scrollX, d.y + scrollY) });
+  const retarget = (d: DragState) => {
+    const target = targetAt(layout.current, d.taskId, d.x + scrollX, d.y + scrollY);
+    return { ...d, target, slotTop: slotTopFor(layout.current, d.taskId, target) };
+  };
 
   const activate = (x: number, y: number) => {
     const p = pending.current;
@@ -124,6 +149,7 @@ export function useBoardDrag(opts: { onDrop: (drag: DragState, target: DragTarge
       x,
       y,
       target: { status: p.source.status, index: p.source.index },
+      slotTop: null,
     });
     navigator.vibrate?.(8);
     // Measure once the lane has shown every column (phones hide empty ones).

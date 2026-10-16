@@ -1,16 +1,17 @@
 import { newId } from './id';
-import type { BacklogItem, Project, Root } from './schema';
+import type { BacklogItem, Domain, Project, Root } from './schema';
 import { isNewer } from './time';
 
 /**
- * Merge import (§6): add incoming projects and backlog items. On an id
- * collision the copy with the newer `updatedAt` wins (a tie keeps the current
- * one). Backlog items compare `updatedAt`, falling back to `createdAt`.
+ * Merge import (§6): add incoming domains, projects and backlog items. On an
+ * id collision the copy with the newer `updatedAt` wins (a tie keeps the
+ * current one). Backlog items compare `updatedAt`, falling back to `createdAt`.
  */
 export function mergeRoots(current: Root, incoming: Root, makeId: () => string = newId): Root {
   const projects = mergeById<Project>(current.projects, incoming.projects, (p) => p.updatedAt);
   const backlog = mergeById<BacklogItem>(current.backlog, incoming.backlog, (b) => b.updatedAt ?? b.createdAt);
-  return dedupeIds({ ...current, projects, backlog }, makeId);
+  const domains = mergeById<Domain>(current.domains ?? [], incoming.domains ?? [], (d) => d.updatedAt);
+  return dedupeIds({ ...current, ...(domains.length ? { domains } : {}), projects, backlog }, makeId);
 }
 
 function mergeById<T extends { id: string }>(current: T[], incoming: T[], stamp: (x: T) => string): T[] {
@@ -45,8 +46,11 @@ export function dedupeIds(root: Root, makeId: () => string = newId): Root {
     seen.add(id);
     return { ...x, id };
   };
+  // Domains first: a project that shares a domain's id is the one renamed, so projects keep their domain.
+  const domains = root.domains?.map(fresh);
   return {
     ...root,
+    ...(domains ? { domains } : {}),
     projects: root.projects.map((p) => {
       const project = fresh(p);
       return {

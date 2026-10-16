@@ -1,31 +1,40 @@
 import { useState } from 'preact/hooks';
-import { hasOpenTasks } from '../../../core/attention';
 import { isProjectDone } from '../../../core/completion';
-import { daysUntil } from '../../../core/due';
+import { byDomain } from '../../../core/domains';
 import type { Project, Root } from '../../../core/schema';
-import { createProject, focusShortcut, openBacklog, openProject, reorderProjects } from '../../actions';
-import { useReorder } from '../../components/useReorder';
+import { addDomain, createProject, focusShortcut, groupProjects, moveProject, openBacklog, openProject } from '../../actions';
+import { DropHere } from '../../components/DropHere';
 import type { View } from '../../store';
 import { AddInput } from './AddInput';
-
-const NAV_LIST = 'grid grid-cols-1 gap-2';
-const NAV_ITEM =
-  'flex min-h-(--tap) w-full cursor-pointer items-center gap-10 rounded-10 border px-12 py-4 text-left max-lg:min-h-44';
-const CURRENT = 'border-line bg-card font-medium shadow-card';
-
-/** A row in the list. Completed and archived ones stay muted, even when open. */
-function navItemClass(current: boolean, muted = false): string {
-  const color = muted ? 'text-faint' : current ? 'text-ink' : 'text-body hover:text-primary-ink';
-  return `${NAV_ITEM} ${current ? CURRENT : 'border-transparent bg-transparent'} ${color}`;
-}
+import { AddMenu } from './AddMenu';
+import { DomainHeading } from './DomainHeading';
+import { NAV_LIST, navItemClass } from './navItem';
+import { ProjectDragLayer } from './ProjectDragLayer';
+import { ProjectList, type ListDrag } from './ProjectList';
+import { useProjectDrag } from './useProjectDrag';
 
 const SUMMARY =
   "cursor-pointer list-none px-12 py-4 text-13 text-body before:content-['▸_'] group-open:before:content-['▾_'] [&::-webkit-details-marker]:hidden";
 
+/**
+ * The project list, the backlog, and completed and archived projects. Active
+ * projects can be dragged into a new order, between domains, or onto an
+ * uncategorized project to group the two into a new domain, which then asks
+ * for its name. "+" by the heading makes a project or an empty domain to drag
+ * projects into; "+ project" at the end makes a project.
+ */
 export function Sidebar(props: { root: Root; view: View; open: boolean }) {
   const { root, view } = props;
   const [filter, setFilter] = useState('');
   const [adding, setAdding] = useState(false);
+  /** The domain whose name is being typed: just made, or being renamed. */
+  const [naming, setNaming] = useState<string | null>(null);
+  const { drag, press, suppressClick } = useProjectDrag({
+    onDrop: (id, target) => {
+      if (target.kind === 'merge') setNaming(groupProjects(target.projectId, id));
+      else moveProject(id, target.domainId, target.beforeId);
+    },
+  });
 
   const q = filter.trim().toLowerCase();
   const matches = (p: Project) => !q || p.name.toLowerCase().includes(q);
@@ -35,59 +44,49 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
   const shown = active.filter(matches);
   const shownCompleted = completed.filter(matches);
   const shownArchived = archived.filter(matches);
-  const today = new Date();
-  // Drag active projects to reorder them; not while filtering, when the list is partial.
-  const order = useReorder({ list: 'sidebar-projects', ids: shown.map((p) => p.id), onReorder: reorderProjects });
+  const hasDomains = (root.domains?.length ?? 0) > 0;
+  // With domains, active projects sit under their domain's name (an empty one
+  // too, unless filtering), the uncategorized last. While dragging, every group
+  // shows, so a project can go anywhere.
+  const groups = byDomain(root, shown, (p) => p, !q);
+  if (hasDomains && drag && !groups.some((g) => !g.domain)) groups.push({ domain: null, items: [] });
+  const sameTarget = (domainId: string | undefined) =>
+    drag?.target?.kind === 'insert' && drag.target.domainId === domainId && drag.target.beforeId === null && !drag.line;
 
-  const item = (p: Project, muted = false, draggable = false) => {
-    const current = view.kind === 'project' && view.id === p.id;
-    const open = hasOpenTasks(p);
-    const overdue = isProjectDone(p)
-      ? 0
-      : p.tasks.filter((t) => !t.done && t.due && daysUntil(t.due, today) < 0).length;
-    const shift = draggable ? order.offset(p.id) : 0;
-    const held = draggable && order.held === p.id;
-    return (
-      <li
-        key={p.id}
-        {...(draggable ? { 'data-reorder': p.id } : {})}
-        class={`select-none [-webkit-touch-callout:none] ${
-          held ? 'relative z-10 rounded-10 bg-card shadow-pop' : order.settling ? '' : 'transition-transform duration-200 ease-out'
-        }`}
-        style={shift ? { transform: `translateY(${shift}px)` } : undefined}
-        onPointerDown={draggable ? (e) => order.press(e, p.id) : undefined}
-        onContextMenu={draggable ? (e) => e.preventDefault() : undefined}
-      >
-        <button
-          type="button"
-          class={navItemClass(current, muted)}
-          aria-current={current ? 'page' : undefined}
-          title={draggable ? 'Drag to reorder' : undefined}
-          onClick={() => {
-            if (!order.suppressClick.current) openProject(p.id);
-          }}
-        >
-          <span
-            class={`size-8 flex-none rounded-full border-[1.5px] ${open ? 'border-ink bg-ink' : 'border-line-strong'}`}
-            title={open ? 'Has open tasks' : 'Nothing open'}
-          />
-          <span class="min-w-0 flex-1 truncate" title={p.name}>
-            {p.name}
-          </span>
-          <span class="sr-only">{open ? '(has open tasks)' : '(nothing open)'}</span>
-          {overdue > 0 && (
-            <span
-              class="min-w-22 rounded-full bg-watch-tint px-7 text-center text-12 font-semibold text-watch-ink tabular-nums"
-              title={`${overdue} overdue`}
-            >
-              {overdue}
-              <span class="sr-only"> overdue</span>
-            </span>
-          )}
-        </button>
-      </li>
-    );
+  /** Alt+↑ / Alt+↓ on a project: one place up or down, into the next domain at a group's edge. */
+  const keyMove = (id: string, dir: -1 | 1) => {
+    const seq = byDomain(root, active, (p) => p, true);
+    if (hasDomains && !seq.some((g) => !g.domain)) seq.push({ domain: null, items: [] });
+    const gi = seq.findIndex((g) => g.items.some((p) => p.id === id));
+    const g = seq[gi];
+    if (!g) return;
+    const i = g.items.findIndex((p) => p.id === id);
+    const domainOf = (k: number) => seq[k]?.domain?.id;
+    if (dir < 0) {
+      if (i > 0) moveProject(id, domainOf(gi), g.items[i - 1]!.id);
+      else if (gi > 0) moveProject(id, domainOf(gi - 1), null);
+    } else if (i < g.items.length - 1) moveProject(id, domainOf(gi), g.items[i + 2]?.id ?? null);
+    else if (gi < seq.length - 1) moveProject(id, domainOf(gi + 1), seq[gi + 1]!.items[0]?.id ?? null);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-project-button="${CSS.escape(id)}"]`)?.focus());
   };
+
+  /** Opens the new-project field at the end of the list. */
+  const startProject = () => {
+    setAdding(true);
+    requestAnimationFrame(() => focusShortcut('new-project'));
+  };
+
+  const mergeWith = drag?.target?.kind === 'merge' ? drag.target.projectId : null;
+  // Not while filtering, when the list is partial.
+  const listDrag: ListDrag | undefined = q
+    ? undefined
+    : {
+        held: drag?.id ?? null,
+        mergeWith,
+        press,
+        suppressClick,
+        onKeyMove: keyMove,
+      };
 
   return (
     <nav
@@ -95,7 +94,10 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
       class={`sticky top-20 grid grid-cols-1 gap-10 max-lg:static max-lg:-mt-8 max-lg:rounded-14 max-lg:border max-lg:border-line max-lg:bg-card max-lg:p-12 ${props.open ? '' : 'max-lg:hidden'}`}
       aria-label="Projects and backlog"
     >
-      <h2 class="text-13 font-medium text-body">Projects</h2>
+      <div class="flex items-center justify-between gap-8">
+        <h2 class="text-13 font-medium text-body">Projects</h2>
+        <AddMenu onProject={startProject} onDomain={() => setNaming(addDomain())} />
+      </div>
       {root.projects.length > 0 && (
         <input
           type="search"
@@ -116,9 +118,25 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
           }}
         />
       )}
-      <ul class={NAV_LIST} data-reorder-list="sidebar-projects">
-        {shown.map((p) => item(p, false, !q))}
-      </ul>
+      {hasDomains ? (
+        groups.map((g) => {
+          const domainId = g.domain?.id;
+          const key = domainId ?? 'none';
+          return (
+            <section key={key} class="grid grid-cols-1 gap-4" aria-label={g.domain?.name ?? 'Uncategorized'}>
+              <DomainHeading domain={g.domain} naming={!!domainId && naming === domainId} onNaming={(on) => setNaming(on ? (domainId ?? null) : null)} />
+              <ProjectList projects={g.items} view={view} domainId={domainId} drag={listDrag} />
+              {listDrag && (drag || !g.items.length) && (
+                <div data-group-end="" data-domain={domainId ?? ''}>
+                  <DropHere active={sameTarget(domainId)} label={drag ? 'Drop here' : 'Drag projects here'} class="min-h-32" />
+                </div>
+              )}
+            </section>
+          );
+        })
+      ) : (
+        <ProjectList projects={shown} view={view} drag={listDrag} />
+      )}
 
       {adding ? (
         <AddInput
@@ -132,16 +150,15 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
           onCancel={() => setAdding(false)}
         />
       ) : (
-        <button
-          type="button"
-          class="btn btn-quiet btn-small justify-self-start"
-          onClick={() => {
-            setAdding(true);
-            requestAnimationFrame(() => focusShortcut('new-project'));
-          }}
-        >
+        <button type="button" class="btn btn-quiet btn-small justify-self-start" onClick={startProject}>
           + project
         </button>
+      )}
+      {drag && (
+        <ProjectDragLayer
+          drag={drag}
+          mergeName={mergeWith ? root.projects.find((p) => p.id === mergeWith)?.name : undefined}
+        />
       )}
 
       <hr class="my-6 w-full border-t border-line" />
@@ -165,7 +182,7 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
           <summary class={SUMMARY}>
             Completed ({shownCompleted.length})
           </summary>
-          <ul class={NAV_LIST}>{shownCompleted.map((p) => item(p, true))}</ul>
+          <ProjectList projects={shownCompleted} view={view} muted />
         </details>
       )}
 
@@ -174,7 +191,7 @@ export function Sidebar(props: { root: Root; view: View; open: boolean }) {
           <summary class={SUMMARY}>
             Archived ({shownArchived.length})
           </summary>
-          <ul class={NAV_LIST}>{shownArchived.map((p) => item(p, true))}</ul>
+          <ProjectList projects={shownArchived} view={view} muted />
         </details>
       )}
     </nav>

@@ -7,10 +7,12 @@ import { ChevronIcon } from '../../components/icons';
 import { PriorityChip } from '../../components/PriorityChip';
 import { set, update } from '../../store';
 import { itemKey, where } from '../../components/dueItem';
+import { useLoadFormat } from '../../components/useUnit';
 
 /** A deadline in the day panel: a row that opens to details and quick actions. */
 export function DayItem({ item, now, startOpen }: { item: DueItem; now: Date; startOpen: boolean }) {
   const [open, setOpen] = useState(startOpen);
+  const fmtLoad = useLoadFormat();
   const { project, task, subtask } = item;
   const due = subtask?.due ?? task?.due ?? project.due;
   const status = item.done ? 'Done' : due && item.watch ? dueDistance(daysUntil(due, now)) : null;
@@ -48,7 +50,7 @@ export function DayItem({ item, now, startOpen }: { item: DueItem; now: Date; st
             <>
               <div class="flex flex-wrap gap-6">
                 <PriorityChip priority={task.priority} />
-                {task.effort !== undefined && <span class="pill pill-plain">{task.effort}% allocation</span>}
+                {task.effort !== undefined && <span class="pill pill-plain">{fmtLoad(task.effort)} allocation</span>}
                 {task.subtasks.length > 0 && (
                   <span class="pill pill-plain">
                     {task.subtasks.filter((s) => s.done).length} / {task.subtasks.length} sub-tasks

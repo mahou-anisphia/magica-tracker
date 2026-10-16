@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { dueByDate } from '../../../core/calendar';
 import { dayHeading } from '../../../core/format';
+import { allocationSettings } from '../../../core/schema';
 import type { Member } from '../../../core/team';
 import { GlanceBoard } from '../../components/GlanceBoard';
 import { MonthCalendar } from '../../components/MonthCalendar';
@@ -39,6 +40,7 @@ export function MemberView(props: { member: Member; now: Date }) {
             items={day ? (dueByDate(root, now).get(day) ?? []) : []}
             name={member.name}
             now={now}
+            period={allocationSettings(root).period}
             onClose={() => setDay(null)}
           />
         </>

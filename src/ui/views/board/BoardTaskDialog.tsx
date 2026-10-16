@@ -7,6 +7,7 @@ import { openProject } from '../../actions';
 import { Modal } from '../../components/Modal';
 import { PRIORITY_LABEL } from '../../components/PriorityChip';
 import { STATUS_LABEL } from '../../components/StatusChip';
+import { useLoadFormat } from '../../components/useUnit';
 import { update } from '../../store';
 import { WaitingOnInput } from './WaitingOnInput';
 
@@ -24,6 +25,7 @@ export function BoardTaskDialog(props: {
   onClose: () => void;
 }) {
   const { project: p, task: t, now } = props;
+  const fmtLoad = useLoadFormat();
   const progress = t ? subtaskProgress(t) : { done: 0, total: 0 };
   const rows: [string, string, boolean?][] = t
     ? [
@@ -31,7 +33,7 @@ export function BoardTaskDialog(props: {
         ...(t.due ? [['Deadline', dueLabel(t.due, now, undefined, t.done ? 'ago' : 'overdue'), isDueSoon(t.due, t.done, now)] as [string, string, boolean]] : []),
         ...(t.priority ? [['Priority', PRIORITY_LABEL[t.priority]] as [string, string]] : []),
         ...(progress.total ? [['Sub-tasks', `${progress.done} of ${progress.total} done`] as [string, string]] : []),
-        ...(t.effort !== undefined ? [['Allocation', `${t.effort}%`] as [string, string]] : []),
+        ...(t.effort !== undefined ? [['Allocation', fmtLoad(t.effort)] as [string, string]] : []),
       ]
     : [];
 

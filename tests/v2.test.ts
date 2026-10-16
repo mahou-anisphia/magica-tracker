@@ -93,7 +93,9 @@ describe('v1 → v2 migration', () => {
     };
     expect(bad({ priority: 'critical' })).toMatch(/^Task 'X' in project 'Aegis' has an invalid “priority”/);
     expect(bad({ effort: 150 })).toMatch(/^Task 'X' in project 'Aegis' has an invalid “effort”/);
-    expect(bad({ effort: 12.5 })).toMatch(/invalid “effort”/);
+    expect(bad({ effort: -1 })).toMatch(/invalid “effort”/);
+    // Since v5 a fraction is fine: hours become fractions of a percent.
+    expect(bad({ effort: 12.5 })).toBe('');
   });
 });
 
@@ -114,7 +116,8 @@ describe('priority and effort', () => {
     const r = base();
     expect(setTaskEffort(r, 'p', 't', 101, T1)).toBe(r);
     expect(setTaskEffort(r, 'p', 't', -1, T1)).toBe(r);
-    expect(setTaskEffort(r, 'p', 't', 2.5, T1)).toBe(r);
+    expect(setTaskEffort(r, 'p', 't', Number.NaN, T1)).toBe(r);
+    expect(setTaskEffort(r, 'p', 't', 12.5, T1).projects[0]!.tasks[0]!.effort).toBe(12.5);
   });
 });
 

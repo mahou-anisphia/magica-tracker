@@ -4,7 +4,7 @@ import { newId } from '../core/id';
 import { mergeRoots } from '../core/merge';
 import * as ops from '../core/ops';
 import { addSample, addSampleTeam, isSampleId, removeSample, removeSampleTeam } from '../core/sample';
-import type { Project, Status, Task } from '../core/schema';
+import type { Domain, Project, Status, Task } from '../core/schema';
 import * as team from '../core/team';
 import { parseRootText } from '../core/validate';
 import { writeLastExport } from '../storage/local';
@@ -37,6 +37,33 @@ export function focusShortcut(name: string): boolean {
 }
 
 // ─── Projects ────────────────────────────────────────────────────────────────
+
+/** The name a domain starts with, until you give it one. */
+export const NEW_DOMAIN = 'New domain';
+
+/** Makes an empty domain at the end; returns its id, to name it. */
+export function addDomain(): string {
+  const id = newId();
+  update((r, now) => ops.createDomain(r, id, NEW_DOMAIN, now));
+  return id;
+}
+
+/** Drops one project on another: a new domain with both. Returns its id, to name it. */
+export function groupProjects(targetId: string, droppedId: string): string {
+  const id = newId();
+  update((r, now) => ops.groupProjects(r, id, NEW_DOMAIN, targetId, droppedId, now));
+  return id;
+}
+
+/** Moves a project into a domain (undefined: none), before another or at the end. */
+export function moveProject(projectId: string, domainId: string | undefined, beforeId: string | null): void {
+  update((r, now) => ops.moveProject(r, projectId, domainId, beforeId, now));
+}
+
+/** Deletes a domain, with undo. Its projects stay, ungrouped. */
+export function deleteDomain(domain: Domain): void {
+  updateWithUndo(`Deleted the domain “${domain.name}”; its projects are ungrouped`, (r, now) => ops.deleteDomain(r, domain.id, now));
+}
 
 export function createProject(name: string): void {
   const id = newId();

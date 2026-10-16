@@ -23,11 +23,21 @@ import { isSafeUrl } from './url';
  * 4 gave every task a `status` (To do, Working, Waiting, Done; To do when
  * missing) and replaced `blocked` with `waiting` (since when, and on what).
  * MIGRATIONS[3] works the status out from what a v3 task already says.
+ *
+ * 5 added optional fields only: `domains` on the root and `domainId` on
+ * projects (projects grouped by domain), and `unit` in the allocation
+ * settings (percent or hours). It also lets `effort` hold a fraction of a
+ * percent, so an allocation entered in hours (10h of an 80h fortnight is
+ * 12.5%) is kept exactly. A v4 file is a valid v5 file.
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const ALLOCATION_PERIODS = ['week', 'fortnight'] as const;
 export type AllocationPeriod = (typeof ALLOCATION_PERIODS)[number];
+
+/** How allocation is shown and entered: percent of capacity, or hours (100% is HOURS_PER_WEEK a week). */
+export const ALLOCATION_UNITS = ['percent', 'hours'] as const;
+export type AllocationUnit = (typeof ALLOCATION_UNITS)[number];
 
 export const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
 
@@ -47,10 +57,10 @@ const DueDate = v.optional(v.pipe(v.string(), v.check(isCalendarDate)));
 const PriorityField = v.optional(v.picklist(PRIORITIES));
 /**
  * Allocation: how much of your capacity this task takes in its period, in
- * whole percent. Stored as `effort`; a period's tasks add up on the dashboard,
- * done or not.
+ * percent (a fraction when it was entered in hours). Stored as `effort`; a
+ * period's tasks add up on the dashboard, done or not.
  */
-const Effort = v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(100)));
+const Effort = v.optional(v.pipe(v.number(), v.finite(), v.minValue(0), v.maxValue(100)));
 const Required = v.pipe(v.string(), v.trim(), v.nonEmpty());
 const Optional = v.optional(v.string());
 const Url = v.pipe(v.string(), v.trim(), v.check(isSafeUrl));
@@ -102,9 +112,19 @@ export const TaskSchema = v.object({
   resources: v.optional(v.array(ResourceSchema), () => []),
 });
 
+/** A group of projects, such as an area of work. Order is the list's order. */
+export const DomainSchema = v.object({
+  id: Id,
+  name: Required,
+  createdAt: Stamp,
+  updatedAt: Stamp,
+});
+
 export const ProjectSchema = v.object({
   id: Id,
   name: Required,
+  /** The domain it belongs to; none, or one that no longer exists, means ungrouped. */
+  domainId: Optional,
   description: Optional,
   archived: v.optional(v.boolean(), false),
   /** Set when the project is marked done; absent while it is open. */
@@ -141,6 +161,7 @@ const Settings = v.optional(
         period: v.optional(v.picklist(ALLOCATION_PERIODS), 'fortnight'),
         /** The most this person can carry in a period, in percent of capacity. */
         maxLoad: v.optional(v.pipe(v.number(), v.integer(), v.minValue(100), v.maxValue(300)), DEFAULT_MAX_LOAD),
+        unit: v.optional(v.picklist(ALLOCATION_UNITS), 'percent'),
       }),
     ),
   }),
@@ -151,23 +172,26 @@ export const RootSchema = v.object({
   updatedAt: Stamp,
   owner: Owner,
   settings: Settings,
+  /** Absent until the first domain is made. */
+  domains: v.optional(v.array(DomainSchema)),
   projects: v.optional(v.array(ProjectSchema), () => []),
   backlog: v.optional(v.array(BacklogItemSchema), () => []),
 });
 
 export type Subtask = v.InferOutput<typeof SubtaskSchema>;
 export type Resource = v.InferOutput<typeof ResourceSchema>;
+export type Domain = v.InferOutput<typeof DomainSchema>;
 export type Task = v.InferOutput<typeof TaskSchema>;
 export type Project = v.InferOutput<typeof ProjectSchema>;
 export type BacklogItem = v.InferOutput<typeof BacklogItemSchema>;
 export type Root = v.InferOutput<typeof RootSchema>;
 export type Owner = NonNullable<Root['owner']>;
-export type AllocationSettings = { period: AllocationPeriod; maxLoad: number };
+export type AllocationSettings = { period: AllocationPeriod; maxLoad: number; unit: AllocationUnit };
 
 /** The allocation settings in force: the saved ones, or the defaults. */
 export function allocationSettings(root: Root): AllocationSettings {
   const a = root.settings?.allocation;
-  return { period: a?.period ?? 'fortnight', maxLoad: a?.maxLoad ?? DEFAULT_MAX_LOAD };
+  return { period: a?.period ?? 'fortnight', maxLoad: a?.maxLoad ?? DEFAULT_MAX_LOAD, unit: a?.unit ?? 'percent' };
 }
 
 export function emptyRoot(now: string = nowIso()): Root {
