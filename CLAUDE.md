@@ -31,6 +31,8 @@ src/ui/
     Panel.tsx  ViewHeader.tsx  BackLink.tsx  highlight.tsx
     MonthCalendar.tsx  CalendarItem.tsx  dueItem.ts   (your Timeline and View as)
     Segmented.tsx  StatusChip.tsx  GlanceNumbers.tsx  LabelledBlock.tsx
+    GlanceBoard.tsx   (At a glance with its lists: the Overview and View as share it)
+    ListRow.tsx  ShowMoreRow.tsx   (rows of Needs attention and the glance lists)
     useReorder.ts   (drag to reorder a vertical list: Board lanes, the project list)
   shell/             app frame rendered once by App: top bar (everyday views only), banners,
                      dialogs, toast, the orb (Orb.tsx, orbMenu.tsx) and the search palette
@@ -43,6 +45,7 @@ src/ui/
     observatory/     the leader's view across the team
     board/           the Board: project lanes × status columns (an orb screen); useBoardDrag.ts
                      is its pointer drag (mouse, long-press touch), cards step aside by transform
+    allocation/      Allocation: your load by week or fortnight over time (an orb screen)
 ```
 
 ### Decisions
@@ -67,7 +70,7 @@ src/ui/
    view's folder. If it needs to, the thing belongs in `components/`.
 6. **Everyday views vs. orb screens.** Overview and Timeline are the top bar's
    switch and are remembered (`setMode`). Settings, Team, Observatory and View
-   as, and the Board, are reached with `go(mode, highlight?)` from the orb or
+   as, the Board and Allocation, are reached with `go(mode, highlight?)` from the orb or
    the palette, and start with `ViewHeader` (the "Your tracker" back link, a
    title, a line) or the same pieces (the Board puts its date strip there).
    They have no top bar, and the view-switching keys (`t`, `/`) do nothing

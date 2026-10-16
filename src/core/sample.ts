@@ -172,6 +172,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       task('Oil the dome hinges', { touched: 9 }),
       task('Sweep stardust from the dome', { doneDaysAgo: 4 }),
       task('Fit the new eyepiece', { doneDaysAgo: 11 }),
+      task('Map the winter constellations', { doneDaysAgo: 17, due: -16, effort: 40 }),
     ],
     {
       description: 'Charting the lunar tides from the north tower.',
@@ -209,6 +210,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       task('Distil rosewater for the market', { touched: 5, due: 33 }),
       task('Inventory the herb cabinet', { doneDaysAgo: 3 }),
       task('Season the new cauldron', { doneDaysAgo: 6 }),
+      task('Brew the harvest tonics', { doneDaysAgo: 24, due: -27, effort: 55 }),
     ],
     { description: 'Restocking the apothecary before the winter solstice.', due: 3 },
   );
@@ -235,6 +237,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       }),
       task('Trim the griffin’s claws', { touched: 3, due: 1, priority: 'high' }),
       task('Feeding schedule for the toads', { doneDaysAgo: 2 }),
+      task('Find the runaway owl', { doneDaysAgo: 50, due: -49, effort: 30 }),
     ],
     { description: 'Who lives in the tower, and what they eat.' },
   );
@@ -258,6 +261,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       }),
       task('Mend the torn frontispiece', { touched: 6, due: 11, priority: 'low' }),
       task('Dust the reading room', { doneDaysAgo: 1 }),
+      task('Catalogue the new acquisitions', { doneDaysAgo: 31, due: -30, effort: 45 }),
     ],
     { description: 'Rebinding the old spellbooks from the east library.', due: 30 },
   );
@@ -288,6 +292,7 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
         extra: { waiting: { since: ago(5), on: 'The glazier, away until the full moon' } },
       }),
       task('Map the lantern route', { doneDaysAgo: 2 }),
+      task('Book the fiddlers', { doneDaysAgo: 38, due: -36, effort: 35 }),
     ],
     { description: 'Lighting the old town for the first frost.', due: 18 },
   );
@@ -306,19 +311,27 @@ export function sampleData(now: Date): { projects: Project[]; backlog: BacklogIt
       }),
       task('Prepare the solstice offering', { touched: 2, due: 40, effort: 20 }),
       task('Close the autumn books', { doneDaysAgo: 5 }),
+      task('Audit the summer accounts', { doneDaysAgo: 45, due: -44, effort: 60 }),
     ],
     { description: 'Coins, debts and favours owed.' },
   );
 
   const garden = project(
     'Crystal Garden',
-    [task('Plant the quartz seedlings', { doneDaysAgo: 12 }), task('Build the moonlight trellis', { doneDaysAgo: 9 })],
+    [
+      task('Plant the quartz seedlings', { doneDaysAgo: 12 }),
+      task('Build the moonlight trellis', { doneDaysAgo: 9 }),
+      task('Water the moon ferns', { doneDaysAgo: 72, due: -70, effort: 25 }),
+    ],
     { description: 'Grown, tended, glowing.', doneDaysAgo: 8 },
   );
 
   const wands = project(
     'Wand Inventory',
-    [task('Count the yew wands', { doneDaysAgo: 60 }), task('Restring the willow wands', { doneDaysAgo: 58 })],
+    [
+      task('Count the yew wands', { doneDaysAgo: 60, due: -61, effort: 45 }),
+      task('Restring the willow wands', { doneDaysAgo: 58, due: -57, effort: 40 }),
+    ],
     { description: 'Finished last season.', archived: true },
   );
 
@@ -405,6 +418,14 @@ export function sampleTeam(now: Date): Member[] {
               }),
               task('Test the lens against Polaris', { touched: 2, due: 9, effort: 30, working: true }),
               task('Order the brass fittings', { doneDaysAgo: 4 }),
+              // Earlier weeks, for the Observatory's history: one a week, each on time.
+              ...[90, 100, 70, 95].map((effort, i) =>
+                task(['Polish the old lens', 'Survey the meteor shower', 'Mend the tripod', 'Chart the autumn sky'][i]!, {
+                  doneDaysAgo: 9 + 7 * i,
+                  due: -(9 + 7 * i),
+                  effort,
+                }),
+              ),
             ],
             { description: 'The new lens for the north tower.', due: 12 },
           ),
@@ -426,6 +447,10 @@ export function sampleTeam(now: Date): Member[] {
               }),
               task('Label the shelves', { touched: 11, effort: 30 }),
               task('Clean the copper stills', { doneDaysAgo: 13 }),
+              // Earlier fortnights past his limit: two big batches in each, on time.
+              ...[20, 34, 48, 62].flatMap((days) =>
+                ['Brew the cold remedy', 'Bottle the sleeping draught'].map((title) => task(title, { doneDaysAgo: days, due: -days, effort: 85 })),
+              ),
             ],
             { description: 'Everything the apothecary sells.' },
           ),
@@ -447,6 +472,13 @@ export function sampleTeam(now: Date): Member[] {
               task('Sort the plate boxes', { touched: 2, effort: 25 }),
               task('Cross-check with the old charts', { touched: 3, due: 24, effort: 20 }),
               task('Write the survey summary', { touched: 4, due: 30 }),
+              ...[60, 80, 45].map((effort, i) =>
+                task(['Photograph the north plates', 'Clean the plate glass', 'Label the plate boxes'][i]!, {
+                  doneDaysAgo: 18 + 14 * i,
+                  due: -(18 + 14 * i),
+                  effort,
+                }),
+              ),
             ],
             { description: 'The archive’s count of every star above the town.', due: 30 },
           ),

@@ -1,4 +1,4 @@
-import { allocation, stats, type Allocation, type Stats } from '../../../core/progress';
+import { allocationHistory, stats, type Allocation, type Stats } from '../../../core/progress';
 import type { Root } from '../../../core/schema';
 import { escalations, fileAgeDays, type EscalationRef, type Member, type Team } from '../../../core/team';
 
@@ -9,11 +9,22 @@ export type Person = {
   /** Null for you. */
   member: Member | null;
   /** What we know: null when a member hasn't sent a file yet. */
-  data: { allocation: Allocation; stats: Stats; escalations: EscalationRef[]; fileAge: number | null } | null;
+  data: {
+    allocation: Allocation;
+    /** The periods before this one, oldest first, by their own settings (at most HISTORY_PERIODS). */
+    history: Allocation[];
+    stats: Stats;
+    escalations: EscalationRef[];
+    fileAge: number | null;
+  } | null;
 };
 
+/** How many past periods each row shows. */
+export const HISTORY_PERIODS = 5;
+
 function read(root: Root, now: Date, fileAge: number | null): NonNullable<Person['data']> {
-  return { allocation: allocation(root, now), stats: stats(root, now), escalations: escalations(root), fileAge };
+  const periods = allocationHistory(root, now, HISTORY_PERIODS + 1);
+  return { allocation: periods.at(-1)!, history: periods.slice(0, -1), stats: stats(root, now), escalations: escalations(root), fileAge };
 }
 
 export function people(mine: Root, team: Team, now: Date): Person[] {
@@ -29,3 +40,6 @@ export function people(mine: Root, team: Team, now: Date): Person[] {
 }
 
 export const isPastLimit = (p: Person) => !!p.data && p.data.allocation.total > p.data.allocation.maxLoad;
+
+/** How many of their past periods went past their limit. */
+export const pastLimitBefore = (p: Person) => p.data?.history.filter((a) => a.total > a.maxLoad).length ?? 0;

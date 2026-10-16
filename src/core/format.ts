@@ -34,3 +34,9 @@ export function shortDay(iso: string, locale?: string): string {
   const month = new Intl.DateTimeFormat(locale, { month: 'short' }).format(d);
   return `${d.getDate()} ${month}`;
 }
+
+/** A calendar day ("2026-10-05") the same way, in local time: "5 Oct". */
+export function calendarDay(stamp: string, locale?: string): string {
+  const [y, m, d] = stamp.split('-').map(Number);
+  return shortDay(new Date(y!, m! - 1, d!).toISOString(), locale);
+}

@@ -52,6 +52,21 @@ function entries(root: Root, team: Team): Entry[] {
 const LIMIT = 40;
 
 /**
+ * Entries whose name or hint holds `q`. Groups keep their order; within one,
+ * a name that matches comes before a hint that does ("Allocation" finds the
+ * Allocation screen before Settings, whose hint mentions it).
+ */
+function search(all: Entry[], q: string): Entry[] {
+  const groups = [...new Set(all.map((e) => e.group))];
+  const named = (e: Entry) => e.label.toLowerCase().includes(q);
+  const found = all.filter((e) => named(e) || e.hint.toLowerCase().includes(q));
+  return groups.flatMap((g) => {
+    const inGroup = found.filter((e) => e.group === g);
+    return [...inGroup.filter(named), ...inGroup.filter((e) => !named(e))];
+  });
+}
+
+/**
  * ⌘K on Mac, Ctrl+K elsewhere, or the orb's search button: jump to a place,
  * run an orb action, or open a project or task by typing part of its name.
  */
@@ -73,7 +88,7 @@ export function CommandPalette(props: { open: boolean; root: Root; team: Team })
 
   const all = useMemo(() => (props.open ? entries(props.root, props.team) : []), [props.open, props.root, props.team]);
   const q = query.trim().toLowerCase();
-  const hits = (q ? all.filter((e) => e.label.toLowerCase().includes(q) || e.hint.toLowerCase().includes(q)) : all).slice(0, LIMIT);
+  const hits = (q ? search(all, q) : all).slice(0, LIMIT);
   const active = Math.min(index, Math.max(hits.length - 1, 0));
 
   const close = () => set({ palette: false });

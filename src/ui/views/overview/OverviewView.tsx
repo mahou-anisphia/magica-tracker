@@ -1,10 +1,11 @@
 import type { Root } from '../../../core/schema';
+import { openProject } from '../../actions';
+import { GlanceBoard } from '../../components/GlanceBoard';
 import { set, type View } from '../../store';
 import { BacklogView } from './BacklogView';
 import { NeedsAttention } from './NeedsAttention';
 import { ProjectView } from './ProjectView';
 import { Sidebar } from './Sidebar';
-import { StatsRow } from './StatsRow';
 import { TodayHeading } from './TodayHeading';
 
 /** A missing or deleted project falls back to the first active one. */
@@ -35,7 +36,7 @@ export function OverviewView(props: {
   return (
     <>
       <TodayHeading now={now} />
-      <StatsRow root={root} now={now} />
+      <GlanceBoard root={root} now={now} onOpen={(ref) => openProject(ref.project.id, ref.task?.id ?? null)} />
       <NeedsAttention root={root} now={now} />
       <div class="grid grid-cols-[236px_minmax(0,1fr)] items-start gap-40 max-lg:grid-cols-1 max-lg:gap-16">
         <button

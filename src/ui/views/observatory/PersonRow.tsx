@@ -1,10 +1,13 @@
+import { useState } from 'preact/hooks';
 import { shortDay } from '../../../core/format';
 import { FILE_STALE_DAYS } from '../../../core/team';
 import { viewAs } from '../../actions';
 import { Avatar } from '../../components/Avatar';
+import { ChevronIcon } from '../../components/icons';
 import { go } from '../../store';
 import { LoadMeter } from './LoadMeter';
-import { isPastLimit, type Person } from './people';
+import { isPastLimit, pastLimitBefore, type Person } from './people';
+import { PersonHistory } from './PersonHistory';
 
 function note(p: Person): string {
   if (!p.member) return 'Live: your own data';
@@ -12,11 +15,14 @@ function note(p: Person): string {
   return snap ? `File from ${shortDay(snap.exportedAt)}` : 'No file yet';
 }
 
-/** One person this period: their load against their own limit, and what to look at. */
+/** One person this period: their load against their own limit, what to look at, and the periods before it on request. */
 export function PersonRow(props: { person: Person }) {
   const p = props.person;
   const d = p.data;
   const escalated = d?.escalations.length ?? 0;
+  const before = pastLimitBefore(p);
+  const [earlier, setEarlier] = useState(false);
+  const historyId = `history-${p.key}`;
   const open = () => (p.member ? (d ? viewAs(p.member.id) : go('team', { key: 'team-import', hint: 'Import their file' })) : go('overview'));
 
   return (
@@ -30,11 +36,30 @@ export function PersonRow(props: { person: Person }) {
         {d ? <LoadMeter allocation={d.allocation} name={p.name} /> : <span class="text-13 text-faint">No data yet</span>}
         <span class="flex flex-wrap gap-6 empty:hidden">
           {isPastLimit(p) && <span class="pill pill-watch">Past limit</span>}
+          {before >= 2 && (
+            <span class="pill pill-watch">
+              Past it {before} of the last {d!.history.length}
+            </span>
+          )}
           {escalated > 0 && <span class="pill pill-high">May be escalated{escalated > 1 ? ` · ${escalated}` : ''}</span>}
           {d && d.stats.waiting > 0 && <span class="pill pill-outline">Waiting {d.stats.waiting}</span>}
           {d?.fileAge != null && d.fileAge > FILE_STALE_DAYS && <span class="pill pill-low">File {d.fileAge} days old</span>}
           {p.member && !d && <span class="pill pill-low">Ask for a file</span>}
         </span>
+        {d && d.history.length > 0 && (
+          <button
+            type="button"
+            class="group inline-flex min-h-(--tap) cursor-pointer items-center gap-6 justify-self-start text-13 font-medium text-primary-ink"
+            aria-expanded={earlier}
+            aria-controls={historyId}
+            onClick={() => setEarlier(!earlier)}
+          >
+            Earlier {d.allocation.period}s
+            <span class="inline-flex transition-transform group-aria-expanded:rotate-180">
+              <ChevronIcon dir="down" />
+            </span>
+          </button>
+        )}
       </span>
       <button
         type="button"
@@ -44,6 +69,7 @@ export function PersonRow(props: { person: Person }) {
       >
         {!p.member ? 'Open' : d ? 'View' : 'Import'}
       </button>
+      {earlier && d && <PersonHistory id={historyId} person={p} />}
     </li>
   );
 }

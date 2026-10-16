@@ -46,8 +46,9 @@ const Stamp = v.optional(Timestamp, nowIso);
 const DueDate = v.optional(v.pipe(v.string(), v.check(isCalendarDate)));
 const PriorityField = v.optional(v.picklist(PRIORITIES));
 /**
- * Allocation: how much of your capacity this task takes while it's open, in
- * whole percent. Stored as `effort`; all open tasks add up on the dashboard.
+ * Allocation: how much of your capacity this task takes in its period, in
+ * whole percent. Stored as `effort`; a period's tasks add up on the dashboard,
+ * done or not.
  */
 const Effort = v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(100)));
 const Required = v.pipe(v.string(), v.trim(), v.nonEmpty());

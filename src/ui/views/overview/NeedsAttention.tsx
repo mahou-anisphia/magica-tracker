@@ -4,6 +4,8 @@ import { dueDistance } from '../../../core/due';
 import type { Root } from '../../../core/schema';
 import { openProject } from '../../actions';
 import { LabelledBlock } from '../../components/LabelledBlock';
+import { ListRow } from '../../components/ListRow';
+import { ShowMoreRow } from '../../components/ShowMoreRow';
 
 /** How many items show before "Show more". */
 const FIRST = 3;
@@ -17,12 +19,6 @@ type Item = {
   open: () => void;
 };
 
-const ROW = 'flex w-full cursor-pointer items-center bg-transparent text-left hover:bg-page-70';
-const DOT: Record<Item['tone'], string> = {
-  watch: 'rounded-full border-watch bg-watch',
-  waiting: 'rounded-2 border-ink bg-ink',
-  urgent: 'rounded-full border-primary-strong bg-primary-strong',
-};
 const PILL: Record<Item['tone'], string> = { watch: 'pill-watch', waiting: 'pill-outline', urgent: 'pill-urgent' };
 
 /**
@@ -78,30 +74,14 @@ export function NeedsAttention(props: { root: Root; now: Date }) {
       <ul class="overflow-hidden rounded-14 border border-line bg-card shadow-card [&>li+li]:border-t [&>li+li]:border-line">
         {shown.map((it) => (
           <li key={it.key}>
-            <button type="button" class={`group ${ROW} min-h-64 gap-14 px-20 py-12`} onClick={it.open}>
-              <span class={`size-8 flex-none border-[1.5px] ${DOT[it.tone]}`} aria-hidden="true" />
-              <span class="grid min-w-0 flex-1 grid-cols-1 gap-1">
-                <span class="truncate font-medium text-ink group-hover:text-primary-ink" title={it.title}>
-                  {it.title}
-                </span>
-                <span class="truncate text-13 text-body" title={it.sub}>
-                  {it.sub}
-                </span>
-              </span>
+            <ListRow tone={it.tone} title={it.title} sub={it.sub} onOpen={it.open}>
               <span class={`pill ${PILL[it.tone]}`}>{it.pill}</span>
-            </button>
+            </ListRow>
           </li>
         ))}
         {more > 0 && (
           <li>
-            <button
-              type="button"
-              class={`${ROW} min-h-46 justify-center gap-14 px-20 py-12 text-14 font-medium text-primary-ink`}
-              aria-expanded={expanded}
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? 'Show less' : `Show ${more} more`}
-            </button>
+            <ShowMoreRow more={more} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
           </li>
         )}
       </ul>

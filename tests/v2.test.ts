@@ -131,12 +131,10 @@ describe('allocation adds up across everything', () => {
     expect(allocation(r, NOW)).toMatchObject({ total: 135, tasks: 3 });
   });
 
-  it('finishing a task or its project frees its share', () => {
-    let r = root({ projects: [project('p', { tasks: [task('t', { effort: 70 })] })] });
+  it('marking a project done frees what was left open in it', () => {
+    const r = root({ projects: [project('p', { tasks: [task('t', { effort: 70 })] })] });
     expect(allocation(r, NOW).total).toBe(70);
     expect(allocation(setProjectDone(r, 'p', true, T1), NOW).total).toBe(0);
-    r = root({ projects: [project('p', { tasks: [task('t', { effort: 70, done: true, doneAt: T0 })] })] });
-    expect(allocation(r, NOW).total).toBe(0);
   });
 
   it('is zero with nothing allocated', () => {

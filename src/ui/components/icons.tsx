@@ -174,6 +174,11 @@ export function BoardIcon(props: { size?: number }) {
   return <Line size={props.size} d="M2 2.5h3v11H2zM6.5 2.5h3v7h-3zM11 2.5h3v9h-3z" />;
 }
 
+/** Allocation over time: columns on a baseline. */
+export function ChartIcon(props: { size?: number }) {
+  return <Line size={props.size} d="M2.5 13.5h11M4.5 11.5v-4M8 11.5v-8M11.5 11.5V6" />;
+}
+
 /** The brand mark: a small glowing orb. */
 export function Orb() {
   return <span class="orb" aria-hidden="true" />;

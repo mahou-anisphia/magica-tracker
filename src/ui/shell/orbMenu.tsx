@@ -1,5 +1,5 @@
 import type { JSX } from 'preact';
-import { BoardIcon, GearIcon, TeamIcon, TelescopeIcon } from '../components/icons';
+import { BoardIcon, ChartIcon, GearIcon, TeamIcon, TelescopeIcon } from '../components/icons';
 import { go } from '../store';
 
 /** Something the orb can do, with the one-line explanation it shows beside it. */
@@ -23,11 +23,11 @@ export type OrbSection = {
 
 /**
  * The orb's column, top to bottom. Search sits nearest the orb, then Overview,
- * then Settings; the Board heads the column. 'home' and 'search' are Overview
+ * then Settings and your Allocation; the Board heads the column. 'home' and 'search' are Overview
  * and Search; the rest are section ids. The nearest is the one open when the
  * orb opens.
  */
-export const ORB_COLUMN = ['board', 'team', 'observatory', 'settings', 'home', 'search'] as const;
+export const ORB_COLUMN = ['board', 'team', 'observatory', 'allocation', 'settings', 'home', 'search'] as const;
 
 /**
  * The orb's sections. ORB_COLUMN decides where each sits in the column.
@@ -69,6 +69,28 @@ export function orbSections(): OrbSection[] {
           title: 'Storage and backup',
           text: 'Where your data lives, the export reminder, and wiping this browser.',
           run: () => go('settings', { key: 'settings-data' }),
+        },
+      ],
+    },
+    {
+      id: 'allocation',
+      label: 'Allocation',
+      icon: () => <ChartIcon size={22} />,
+      open: () => go('allocation'),
+      actions: [
+        {
+          id: 'alloc-chart',
+          label: 'Your load over time',
+          title: 'Your allocation over time',
+          text: 'Each week or fortnight against your limit, back to when you started allocating.',
+          run: () => go('allocation', { key: 'alloc-chart', hint: 'Pick a column' }),
+        },
+        {
+          id: 'alloc-detail',
+          label: 'What filled this period',
+          title: 'What filled a period',
+          text: 'The tasks that make up a week or fortnight, when each was done, and its share.',
+          run: () => go('allocation', { key: 'alloc-detail' }),
         },
       ],
     },

@@ -10,6 +10,7 @@ import { Orb } from './shell/Orb';
 import { ToastRegion } from './shell/ToastRegion';
 import { TopBar } from './shell/TopBar';
 import { getState, set, setMode, useStore } from './store';
+import { AllocationView } from './views/allocation/AllocationView';
 import { OverviewView } from './views/overview/OverviewView';
 import { BoardView } from './views/board/BoardView';
 import { MemberView } from './views/member/MemberView';
@@ -112,6 +113,8 @@ export function App() {
 
         {mode === 'board' ? (
           <BoardView root={s.root} now={now} />
+        ) : mode === 'allocation' ? (
+          <AllocationView root={s.root} now={now} />
         ) : mode === 'settings' ? (
           <SettingsView root={s.root} theme={s.theme} storage={s.storage} />
         ) : mode === 'team' ? (

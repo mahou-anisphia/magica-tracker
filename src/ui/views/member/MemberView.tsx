@@ -2,10 +2,10 @@ import { useState } from 'preact/hooks';
 import { dueByDate } from '../../../core/calendar';
 import { dayHeading } from '../../../core/format';
 import type { Member } from '../../../core/team';
+import { GlanceBoard } from '../../components/GlanceBoard';
 import { MonthCalendar } from '../../components/MonthCalendar';
 import { MemberBanner } from './MemberBanner';
 import { MemberDayPanel } from './MemberDayPanel';
-import { MemberGlance } from './MemberGlance';
 import { MemberProjects } from './MemberProjects';
 import { MemberTabs, type MemberTab } from './MemberTabs';
 
@@ -28,7 +28,7 @@ export function MemberView(props: { member: Member; now: Date }) {
           <h1 class="mb-36 text-heading leading-[1.2] tracking-[-0.015em]">
             {member.name}’s {dayHeading(now)}
           </h1>
-          <MemberGlance root={root} name={member.name} now={now} />
+          <GlanceBoard root={root} now={now} whose={member.name} />
           <MemberProjects root={root} name={member.name} now={now} />
         </>
       ) : (

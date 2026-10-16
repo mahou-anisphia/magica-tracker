@@ -33,7 +33,7 @@ export type Toast = { id: number; text: string; action?: { label: string; run: (
  * Which screen is showing. Overview and Timeline are the everyday views and
  * are remembered per browser; the rest are reached from the orb or the palette.
  */
-export type Mode = 'overview' | 'timeline' | 'board' | 'settings' | 'team' | 'observatory' | 'member';
+export type Mode = 'overview' | 'timeline' | 'board' | 'allocation' | 'settings' | 'team' | 'observatory' | 'member';
 
 /**
  * A part of a screen to point at for a moment, after an orb or palette action

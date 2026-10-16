@@ -14,13 +14,13 @@ export function rangeLabel(r: PeriodRange): string {
 }
 
 /**
- * How much of you is spoken for this week or fortnight: every open task's
- * share of the period, on a scale up to the person's own limit. Up to 100%
+ * How much of you is spoken for this week or fortnight: every task's share
+ * of the period, done ones included, on a scale up to the person's own limit. Up to 100%
  * fills in the primary colour; overload past 100% in the theme's highlight.
  * A tick marks 100%. With `whose`, it is someone else's, by their own settings.
  */
 export function AllocationBar(props: { allocation: Allocation; embedded?: boolean; whose?: string }) {
-  const { total, tasks, maxLoad, period, range } = props.allocation;
+  const { total, tasks, done, maxLoad, period, range } = props.allocation;
   const pct = (n: number) => `${(Math.min(Math.max(n, 0), maxLoad) / maxLoad) * 100}%`;
   const over = total > 100;
   const pastLimit = total > maxLoad;
@@ -49,6 +49,7 @@ export function AllocationBar(props: { allocation: Allocation; embedded?: boolea
           class={`text-13 whitespace-nowrap ${over ? 'rounded-full bg-watch-tint px-10 py-1 font-medium text-watch-ink' : 'text-body'}`}
         >
           {note} · {plural(tasks, 'task')}
+          {done > 0 && `, ${done} done`}
         </span>
       </div>
       <div
