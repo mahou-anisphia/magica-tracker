@@ -117,7 +117,7 @@ export function App() {
         ) : mode === 'allocation' ? (
           <AllocationView root={s.root} now={now} />
         ) : mode === 'timelog' ? (
-          <TimeLogView root={s.root} now={now} />
+          <TimeLogView key={s.timelogMonth} root={s.root} now={now} month={s.timelogMonth} />
         ) : mode === 'settings' ? (
           <SettingsView root={s.root} now={now} theme={s.theme} storage={s.storage} />
         ) : mode === 'team' ? (

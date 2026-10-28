@@ -152,11 +152,16 @@ export function timesheetFlags(root: Root, now: Date): MonthBalance[] {
   return out;
 }
 
-/** "3 days short", "1 day over", or "Balanced". */
-export function balanceLabel(diff: number): string {
+/**
+ * "3 days short", "1 day over", or "Balanced". With `now`, a month not over
+ * yet that is short reads "2 days to go" instead.
+ */
+export function balanceLabel(diff: number, month?: string, now?: Date): string {
   if (diff === 0) return 'Balanced';
   const n = Math.abs(diff);
-  return `${n} ${n === 1 ? 'day' : 'days'} ${diff < 0 ? 'short' : 'over'}`;
+  const days = `${n} ${n === 1 ? 'day' : 'days'}`;
+  if (diff < 0 && month && now && month >= monthOf(localDateStamp(now))) return `${days} to go`;
+  return `${days} ${diff < 0 ? 'short' : 'over'}`;
 }
 
 /**

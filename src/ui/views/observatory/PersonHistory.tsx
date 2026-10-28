@@ -1,4 +1,5 @@
 import { plural, shortDay } from '../../../core/format';
+import { isPastLimit } from '../../../core/progress';
 import { rangeLabel } from '../../components/AllocationBar';
 import { useLoadFormat } from '../../components/useUnit';
 import { go } from '../../store';
@@ -16,7 +17,7 @@ export function PersonHistory(props: { id: string; person: Person }) {
   const { period, maxLoad } = d.allocation;
   const fmt = useLoadFormat(period);
   const periods = [...d.history].reverse();
-  const past = periods.filter((a) => a.total > maxLoad).length;
+  const past = periods.filter(isPastLimit).length;
   const whose = p.member ? `${p.name}’s` : 'Your';
   const source = p.member?.snapshot ? ` From their file of ${shortDay(p.member.snapshot.exportedAt)}.` : '';
 

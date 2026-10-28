@@ -64,6 +64,8 @@ export type State = {
   day: string | null;
   /** Whether that panel opens with its "Add to this day" form showing. */
   adding: boolean;
+  /** The month the Time log opens on ("2026-10"); this month when null. */
+  timelogMonth: string | null;
   importState: ImportState | null;
   highlight: Highlight | null;
   /** The ⌘K / Ctrl+K search palette. */
@@ -92,6 +94,7 @@ let state: State = {
   capture: false,
   day: null,
   adding: false,
+  timelogMonth: null,
   importState: null,
   highlight: null,
   palette: false,
@@ -211,7 +214,7 @@ export async function init(): Promise<void> {
 /** Switch screens. Overview and Timeline are remembered per browser. */
 export function setMode(mode: Mode): void {
   if (mode === state.mode) return;
-  set({ mode, drawerOpen: false, day: null, adding: false });
+  set({ mode, drawerOpen: false, day: null, adding: false, timelogMonth: null });
   if (mode === 'overview' || mode === 'timeline') writeMode(mode);
 }
 

@@ -47,7 +47,7 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
             multiline
             onSave={(d) => update((r, n) => ops.setProjectDescription(r, p.id, d, n))}
           />
-          <ProjectMoreDetails project={p} />
+          <ProjectMoreDetails project={p} now={now} />
         </div>
         <div class="flex flex-wrap items-center gap-8">
           <button

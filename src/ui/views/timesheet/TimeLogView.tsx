@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { calendarDay } from '../../../core/format';
+import { calendarDay, monthName } from '../../../core/format';
 import { workdaySettings, type Root } from '../../../core/schema';
 import { localDateStamp } from '../../../core/time';
 import { balanceLabel, monthBalance, monthOf, shiftMonth, timesheetFlags } from '../../../core/workdays';
@@ -10,7 +10,6 @@ import { ViewHeader } from '../../components/ViewHeader';
 import { go } from '../../store';
 import { DaysOff } from './DaysOff';
 import { EarlierMonths } from './EarlierMonths';
-import { monthOnlyName, monthTitle } from './month';
 import { MonthBar } from './MonthBar';
 import { ProjectDays } from './ProjectDays';
 
@@ -21,11 +20,11 @@ import { ProjectDays } from './ProjectDays';
  * where doesn't matter. Months before this one are listed, flagged when they
  * don't add up. Without a start date (Settings) there is nothing to keep yet.
  */
-export function TimeLogView(props: { root: Root; now: Date }) {
+export function TimeLogView(props: { root: Root; now: Date; month: string | null }) {
   const { root, now } = props;
   const today = localDateStamp(now);
   const current = monthOf(today);
-  const [month, setMonth] = useState(current);
+  const [month, setMonth] = useState(props.month ?? current);
   const { from } = workdaySettings(root);
 
   if (!from) {
@@ -47,8 +46,7 @@ export function TimeLogView(props: { root: Root; now: Date }) {
 
   const b = monthBalance(root, month);
   const flagged = timesheetFlags(root, now).some((f) => f.month === month);
-  const ahead = b.diff < 0 && month >= current;
-  const status = ahead ? `${-b.diff} ${b.diff === -1 ? 'day' : 'days'} to go` : balanceLabel(b.diff);
+  const status = balanceLabel(b.diff, month, now);
   const previous = shiftMonth(month, -1);
   const earlier: string[] = [];
   for (let m = shiftMonth(current, -1); m >= monthOf(from); m = shiftMonth(m, -1)) earlier.push(m);
@@ -63,7 +61,7 @@ export function TimeLogView(props: { root: Root; now: Date }) {
             <ChevronIcon dir="left" />
           </button>
           <h2 class="min-w-170 text-center text-22 tracking-[-0.01em]" aria-live="polite">
-            {monthTitle(month)}
+            {monthName(month, true)}
           </h2>
           <button type="button" class="icon-btn min-h-(--tap) min-w-(--tap)" aria-label="Next month" onClick={() => setMonth(shiftMonth(month, 1))}>
             <ChevronIcon dir="right" />
@@ -99,7 +97,7 @@ export function TimeLogView(props: { root: Root; now: Date }) {
       </div>
 
       <div class="grid grid-cols-[minmax(0,1fr)_340px] items-start gap-24 max-lg:grid-cols-1">
-        <ProjectDays root={root} balance={b} previous={{ month: previous, name: monthOnlyName(previous) }} />
+        <ProjectDays root={root} balance={b} previous={{ month: previous, name: monthName(previous) }} />
         <div class="grid grid-cols-1 gap-24">
           <DaysOff balance={b} addOn={month === current ? today : `${month}-01`} />
           <EarlierMonths root={root} months={earlier} shown={month} since={calendarDay(from)} onPick={setMonth} />

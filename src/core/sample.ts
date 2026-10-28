@@ -424,7 +424,7 @@ export function sampleData(now: Date): { domains: Domain[]; projects: Project[];
 
   // The timesheet: last month adds up exactly; this month is two days short.
   const off = new Set(calendar.filter((e) => e.kind !== 'event').flatMap(entryDays));
-  const owed = (month: string) => daysOfMonth(month).filter((d) => isoWeekday(d) <= 5 && !off.has(d)).length;
+  const owed = (month: string) => weekdaysIn(month, off);
   const split = (month: string, days: number) => {
     const shares: [Project, number][] = [[observatory, 6], [workshop, 4], [festival, 3], [grimoire, 3], [familiars, 2], [ledger, 2]];
     const weight = shares.reduce((n, [, w]) => n + w, 0);
@@ -463,21 +463,33 @@ export function sampleData(now: Date): { domains: Domain[]; projects: Project[];
 // ─── Sample teammates ────────────────────────────────────────────────────────
 
 /** A teammate's tracker, as their exported file would hold it. */
-function teammateRoot(now: Date, owner: { id: string; name: string }, allocation: AllocationSettings, projects: Project[]): Root {
+function teammateRoot(
+  now: Date,
+  owner: { id: string; name: string },
+  allocation: AllocationSettings,
+  projects: Project[],
+  extra: { calendar?: CalendarEntry[]; trackingFrom?: string } = {},
+): Root {
   return {
     schemaVersion: SCHEMA_VERSION,
     updatedAt: now.toISOString(),
     owner,
-    settings: { allocation },
+    settings: { allocation, ...(extra.trackingFrom ? { workdays: { from: extra.trackingFrom, weekdays: [1, 2, 3, 4, 5] } } : {}) },
     projects,
     backlog: [],
+    ...(extra.calendar ? { calendar: extra.calendar } : {}),
   };
 }
 
+/** Monday-to-Friday days in a month ("2026-10"), less any in `off`. */
+const weekdaysIn = (month: string, off: Set<string> = new Set()) =>
+  daysOfMonth(month).filter((d) => isoWeekday(d) <= 5 && !off.has(d)).length;
+
 /**
  * Four teammates: one with a fresh file and a flag raised, one past their
- * limit with an old file, one comfortably light, and one who hasn't sent a
- * file yet.
+ * limit with an old file and on leave today, one comfortably light whose
+ * timesheet came up a day short last month, and one who hasn't sent a file
+ * yet.
  */
 export function sampleTeam(now: Date): Member[] {
   const member = (key: string, name: string, role: string, file: { daysAgo: number; root: (m: ReturnType<typeof makers>) => Root } | null): Member => {
@@ -535,7 +547,7 @@ export function sampleTeam(now: Date): Member[] {
     }),
     member('bram', 'Bram', 'Potions', {
       daysAgo: 10,
-      root: ({ task, project, ago }) =>
+      root: ({ task, project, ago, entry }) =>
         teammateRoot(now, { id: `${SAMPLE_PREFIX}owner-bram`, name: 'Bram' }, { period: 'fortnight', maxLoad: 150, unit: 'percent' }, [
           project(
             'Potion stores',
@@ -558,13 +570,13 @@ export function sampleTeam(now: Date): Member[] {
             ],
             { description: 'Everything the apothecary sells.' },
           ),
-        ]),
+        ], { calendar: [entry('Leave', 0, { kind: 'leave' })] }),
     }),
     member('dara', 'Dara', 'Archive', {
       daysAgo: 3,
-      root: ({ task, project, sub }) =>
-        teammateRoot(now, { id: `${SAMPLE_PREFIX}owner-dara`, name: 'Dara' }, { period: 'fortnight', maxLoad: 140, unit: 'hours' }, [
-          project(
+      root: ({ task, project, sub, inDays }) => {
+        const lastMonth = shiftMonth(monthOf(inDays(0)), -1);
+        const survey = project(
             'Star survey',
             [
               task('Index the survey plates', {
@@ -585,8 +597,12 @@ export function sampleTeam(now: Date): Member[] {
               ),
             ],
             { description: 'The archive’s count of every star above the town.', due: 30 },
-          ),
-        ]),
+          );
+        survey.timesheet = [{ month: lastMonth, days: weekdaysIn(lastMonth) - 1 }];
+        return teammateRoot(now, { id: `${SAMPLE_PREFIX}owner-dara`, name: 'Dara' }, { period: 'fortnight', maxLoad: 140, unit: 'hours' }, [survey], {
+          trackingFrom: `${lastMonth}-01`,
+        });
+      },
     }),
     member('chiyo', 'Chiyo', 'Familiars', null),
   ];

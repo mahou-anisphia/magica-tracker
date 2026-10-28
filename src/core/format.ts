@@ -28,6 +28,12 @@ export function monthHeading(d: Date, locale?: string): string {
   return `${month}, ${d.getFullYear()}`;
 }
 
+/** A calendar month ("2026-10") by name: "October", or with `year` "October 2026". */
+export function monthName(month: string, year = false, locale?: string): string {
+  const d = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1);
+  return new Intl.DateTimeFormat(locale, year ? { month: 'long', year: 'numeric' } : { month: 'long' }).format(d);
+}
+
 /** A moment as its day, the way the headings write it: "12 Oct". */
 export function shortDay(iso: string, locale?: string): string {
   const d = new Date(iso);

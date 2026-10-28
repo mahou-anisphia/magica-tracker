@@ -30,6 +30,8 @@ src/ui/
     icons.tsx  Modal.tsx  PriorityChip.tsx  AllocationBar.tsx  Avatar.tsx
     Panel.tsx  ViewHeader.tsx  BackLink.tsx  highlight.tsx
     MonthCalendar.tsx  CalendarItem.tsx  dueItem.ts   (your Timeline and View as)
+    DueDate.tsx  DatePicker.tsx  placePopover.ts  EffortInput.tsx
+                     (dates and allocation: Overview, the Timeline's entry form, Settings)
     Segmented.tsx  StatusChip.tsx  GlanceNumbers.tsx  LabelledBlock.tsx
     GlanceBoard.tsx   (At a glance with its lists: the Overview and View as share it)
     ListRow.tsx  ShowMoreRow.tsx   (rows of Needs attention and the glance lists)
@@ -50,6 +52,7 @@ src/ui/
     board/           the Board: project lanes × status columns (an orb screen); useBoardDrag.ts
                      is its pointer drag (mouse, long-press touch), cards step aside by transform
     allocation/      Allocation: your load by week or fortnight over time (an orb screen)
+    timesheet/       the Time log: each month's working days given to projects (an orb screen)
 ```
 
 ### Decisions
@@ -57,9 +60,10 @@ src/ui/
 1. **Group by folder: one folder per view.** Each page lives in `views/<name>/`,
    with `<Name>View.tsx` as its entry. App only imports the entry.
 2. **Local first, global only when shared.** A component used by a single view
-   lives in that view's folder, even if it is generic (e.g. `DueDate`,
-   `DatePicker`, `AddInput` are Overview-only today, so they sit in
-   `views/overview/`). `components/` is strictly for components used across
+   lives in that view's folder, even if it is generic (e.g. `AddInput` and
+   `EditableText` are Overview-only today, so they sit in `views/overview/`;
+   `DueDate` and `DatePicker` moved to `components/` once the Timeline and
+   Settings needed them). `components/` is strictly for components used across
    views. When a local component starts being used by a second view, move it to
    `components/` in the same change, and move it back if that stops being true.
 3. **The shell is not a view.** Top bar, banners, the confirm/capture/import
@@ -74,7 +78,7 @@ src/ui/
    view's folder. If it needs to, the thing belongs in `components/`.
 6. **Everyday views vs. orb screens.** Overview and Timeline are the top bar's
    switch and are remembered (`setMode`). Settings, Team, Observatory and View
-   as, the Board and Allocation, are reached with `go(mode, highlight?)` from the orb or
+   as, the Board, Allocation and the Time log, are reached with `go(mode, highlight?)` from the orb or
    the palette, and start with `ViewHeader` (the "Your tracker" back link, a
    title, a line) or the same pieces (the Board puts its date strip there).
    They have no top bar, and the view-switching keys (`t`, `/`) do nothing

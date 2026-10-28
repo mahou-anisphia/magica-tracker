@@ -157,6 +157,9 @@ describe('timesheet', () => {
     expect(balanceLabel(-2)).toBe('2 days short');
     expect(balanceLabel(1)).toBe('1 day over');
     expect(balanceLabel(0)).toBe('Balanced');
+    // A month not over yet is still filling up.
+    expect(balanceLabel(-2, '2026-10', new Date(2026, 9, 28))).toBe('2 days to go');
+    expect(balanceLabel(-2, '2026-09', new Date(2026, 9, 28))).toBe('2 days short');
   });
 
   it('flags past months that don’t add up, and this one once over or near its end', () => {

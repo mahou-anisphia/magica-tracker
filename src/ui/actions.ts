@@ -59,6 +59,12 @@ export function deleteEntry(entry: CalendarEntry): void {
 
 // ─── Timesheet and working days ──────────────────────────────────────────────
 
+/** Opens the Time log on a month ("2026-10"). */
+export function openTimeLog(month: string): void {
+  go('timelog');
+  set({ timelogMonth: month });
+}
+
 export function setTimesheetDays(projectId: string, month: string, days: number): void {
   update((r, now) => ops.setTimesheetDays(r, projectId, month, days, now));
 }

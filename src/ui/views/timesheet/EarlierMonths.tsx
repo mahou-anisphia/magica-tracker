@@ -1,7 +1,7 @@
+import { monthName } from '../../../core/format';
 import { balanceLabel, monthBalance } from '../../../core/workdays';
 import type { Root } from '../../../core/schema';
 import { Panel } from '../../components/Panel';
-import { monthTitle } from './month';
 
 /**
  * Every month before this one since tracking started, newest first, and
@@ -23,7 +23,7 @@ export function EarlierMonths(props: { root: Root; months: string[]; shown: stri
                   onClick={() => props.onPick(m)}
                 >
                   <span class="grid min-w-0 flex-1 grid-cols-1">
-                    <span class="font-medium text-ink">{monthTitle(m)}</span>
+                    <span class="font-medium text-ink">{monthName(m, true)}</span>
                     <span class="text-13 text-body tabular-nums">
                       {b.filled} of {b.target}
                     </span>

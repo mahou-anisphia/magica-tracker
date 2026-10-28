@@ -1,5 +1,5 @@
 import { calendarDay } from '../../../core/format';
-import type { Allocation } from '../../../core/progress';
+import { isOver, isPastLimit, type Allocation } from '../../../core/progress';
 import { rangeLabel } from '../../components/AllocationBar';
 import { useLoadFormat } from '../../components/useUnit';
 
@@ -8,8 +8,10 @@ const H = 200;
 
 /**
  * One column per period, oldest on the left and this one ("Now") on the
- * right, against lines at 100% and the person's limit. Up to 100% is the
- * primary colour, overload above it the highlight, as on the allocation bar.
+ * right, against lines at 100% and the person's limit; a period with days
+ * off marks its own, lower capacity across its column. Up to the capacity
+ * is the primary colour, overload above it the highlight, as on the
+ * allocation bar.
  * Each column is a button that picks its period.
  */
 export function AllocationChart(props: { history: Allocation[]; picked: string; onPick: (start: string) => void }) {
@@ -37,20 +39,25 @@ export function AllocationChart(props: { history: Allocation[]; picked: string; 
           <span class="absolute inset-x-0 border-t-2 border-dashed border-watch-mark" style={{ bottom: px(maxLoad) }} aria-hidden="true" />
           <div class="absolute inset-0 grid items-end gap-10 max-md:gap-4" style={columns} role="group" aria-label={`Allocation by ${period}`}>
             {history.map((a, i) => {
-              const over = a.total > 100;
+              const over = isOver(a);
               return (
                 <button
                   key={a.range.start}
                   type="button"
-                  class="flex h-full cursor-pointer flex-col items-center justify-end gap-6 rounded-t-10 focus-visible:-outline-offset-2 hover:not-aria-pressed:bg-page-70 aria-pressed:bg-primary-tint-45 aria-pressed:shadow-[inset_0_0_0_1.5px_var(--color-accent)]"
+                  class="relative flex h-full cursor-pointer flex-col items-center justify-end gap-6 rounded-t-10 focus-visible:-outline-offset-2 hover:not-aria-pressed:bg-page-70 aria-pressed:bg-primary-tint-45 aria-pressed:shadow-[inset_0_0_0_1.5px_var(--color-accent)]"
                   aria-pressed={a.range.start === props.picked}
-                  aria-label={`${i === last ? `This ${period}` : rangeLabel(a.range)}: ${fmt(a.total)}${a.total > maxLoad ? ', past the limit' : ''}`}
+                  aria-label={`${i === last ? `This ${period}` : rangeLabel(a.range)}: ${fmt(a.total)}${a.capacity < 100 ? ` of ${fmt(a.capacity)} capacity` : ''}${isPastLimit(a) ? ', past the limit' : ''}`}
                   onClick={() => props.onPick(a.range.start)}
                 >
+                  {a.capacity < 100 && (
+                    <span class="absolute inset-x-4 border-t-2 border-ink" style={{ bottom: px(a.capacity) }} aria-hidden="true">
+                      <span class="absolute right-2 bottom-2 text-11 font-medium text-ink tabular-nums max-md:hidden">{fmt(a.capacity)}</span>
+                    </span>
+                  )}
                   <span class={`text-12 font-medium tabular-nums max-md:hidden ${over ? 'text-watch-ink' : 'text-body'}`}>{fmt(a.total)}</span>
                   <span class="flex w-full max-w-46 flex-col px-6 max-md:px-0" aria-hidden="true">
-                    {over && <span class="rounded-t-7 bg-watch" style={{ height: px(a.total - 100) }} />}
-                    <span class={`bg-primary-strong ${over ? '' : 'rounded-t-7'}`} style={{ height: px(Math.min(a.total, 100)) }} />
+                    {over && <span class="rounded-t-7 bg-watch" style={{ height: px(a.total - a.capacity) }} />}
+                    <span class={`bg-primary-strong ${over ? '' : 'rounded-t-7'}`} style={{ height: px(Math.min(a.total, a.capacity)) }} />
                   </span>
                 </button>
               );
