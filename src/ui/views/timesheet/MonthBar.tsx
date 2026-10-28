@@ -16,8 +16,9 @@ export const OFF_KEY = 'off';
  * the blocks are counted, not dated. Days past the month's working days
  * (over) take the highlight. `open`, the projects' blocks group by cost
  * center, a shade each, and over days keep their shade with a highlight
- * ring. Each run of blocks is a button (`onPick`) for its cost center (or
- * the days off); while one is `picked` it stays bright and the rest fade.
+ * ring, and each run is labelled with its days and cost center. Each run of
+ * blocks is a button (`onPick`) for its cost center (or the days off); the
+ * `picked` one sits in a tinted box with the accent's outline.
  */
 export function MonthBar(props: {
   balance: MonthBalance;
@@ -33,10 +34,11 @@ export function MonthBar(props: {
     ...props.charges.map((c, i) => ({
       key: chargeKey(c),
       label: c.costCenter ? costCenterLabel(c.costCenter) : 'No cost center',
+      short: c.costCenter ? (c.costCenter.name ?? c.costCenter.code!) : 'None',
       days: c.days,
       tone: props.open ? chargeTone(c, i) : 'bg-primary-strong',
     })),
-    ...(leave + holiday ? [{ key: OFF_KEY, label: 'Leave and holidays', days: leave + holiday, tone: 'bg-card bg-off-mark' }] : []),
+    ...(leave + holiday ? [{ key: OFF_KEY, label: 'Leave and holidays', short: 'Off', days: leave + holiday, tone: 'bg-card bg-off-mark' }] : []),
   ];
   let n = 0;
   /** A block's look: its run's tone and, past the month's working days, the highlight. */
@@ -46,17 +48,37 @@ export function MonthBar(props: {
     return props.open || off ? `${tone} inset-ring-2 inset-ring-watch-mark` : 'bg-watch inset-ring inset-ring-watch-mark';
   };
   const free = Math.max(0, target - filled);
-  const dim = props.picked !== null;
+  // Open, runs stand apart with room for their labels and the picked one's box.
+  const open = props.open;
+  const run = open
+    ? '-m-4 grid min-w-0 content-start gap-6 rounded-8 p-4 text-left'
+    : '-my-3 flex min-w-0 gap-3 rounded-7 py-3';
+  const pickable =
+    'cursor-pointer hover:not-aria-pressed:bg-page-70 aria-pressed:bg-primary-tint-45 aria-pressed:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus-visible:-outline-offset-1';
 
   return (
-    <div class="flex gap-3" role="group" aria-label={`${filled} of ${target} working days accounted for`}>
+    <div class={`flex ${open ? 'gap-10' : 'gap-3'}`} role="group" aria-label={`${filled} of ${target} working days accounted for`}>
       {runs.map((r) => {
         const blocks = Array.from({ length: r.days }, () => block(r.tone, r.key === OFF_KEY));
-        const spans = blocks.map((cls, i) => <span key={i} class={`h-14 min-w-0 flex-1 rounded-4 ${cls}`} />);
+        const inner = (
+          <>
+            <span class="flex w-full min-w-0 gap-3">
+              {blocks.map((cls, i) => (
+                <span key={i} class={`h-14 min-w-0 flex-1 rounded-4 ${cls}`} />
+              ))}
+            </span>
+            {open && (
+              <span class="truncate text-12 text-body">
+                <strong class="font-semibold text-ink tabular-nums">{r.days}</strong> {r.short}
+              </span>
+            )}
+          </>
+        );
+        const flex = { flex: `${r.days} 1 0` };
         if (!onPick) {
           return (
-            <span key={r.key} class="flex min-w-0 gap-3" style={{ flex: `${r.days} 1 0` }}>
-              {spans}
+            <span key={r.key} class={run} style={flex}>
+              {inner}
             </span>
           );
         }
@@ -64,19 +86,23 @@ export function MonthBar(props: {
           <button
             key={r.key}
             type="button"
-            class={`-my-3 flex min-w-0 cursor-pointer gap-3 rounded-7 py-3 transition-opacity focus-visible:-outline-offset-1 ${dim && props.picked !== r.key ? 'opacity-35 hover:opacity-70' : ''}`}
-            style={{ flex: `${r.days} 1 0` }}
+            class={`${run} ${pickable}`}
+            style={flex}
             aria-label={`${r.label}: ${plural(r.days, 'day')}`}
             aria-pressed={props.picked === r.key}
             onClick={() => onPick(r.key)}
           >
-            {spans}
+            {inner}
           </button>
         );
       })}
-      {Array.from({ length: free }, (_, i) => (
-        <span key={`free-${i}`} class={`h-14 min-w-0 flex-1 rounded-4 bg-chip-70 ${dim ? 'opacity-35' : ''}`} aria-hidden="true" />
-      ))}
+      {free > 0 && (
+        <span class="flex min-w-0 gap-3 self-start" style={{ flex: `${free} 1 0` }} aria-hidden="true">
+          {Array.from({ length: free }, (_, i) => (
+            <span key={i} class="h-14 min-w-0 flex-1 rounded-4 bg-chip-70" />
+          ))}
+        </span>
+      )}
     </div>
   );
 }

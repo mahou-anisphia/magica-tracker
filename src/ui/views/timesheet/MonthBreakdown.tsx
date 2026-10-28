@@ -8,15 +8,15 @@ import { chargeKey, chargeTone, OFF_KEY } from './MonthBar';
 // Cards share the row and keep 220px each; more than fit scroll sideways (a cut-off card hints at it).
 const SLOT = 'flex flex-[1_0_220px] snap-start';
 const CARD =
-  'grid w-full cursor-pointer content-start gap-8 rounded-12 border border-line bg-card px-14 py-12 text-left transition-opacity hover:border-accent aria-pressed:outline-2 aria-pressed:outline-offset-1 aria-pressed:outline-accent';
+  'grid w-full cursor-pointer content-start gap-8 rounded-12 border border-line bg-card px-14 py-12 text-left hover:border-accent aria-pressed:outline-2 aria-pressed:outline-offset-1 aria-pressed:outline-accent';
 
 /**
  * The month bar opened: a card per cost center with its shade, its days and
  * the projects behind them, then the leave and holidays, which are never
  * charged, in one row that scrolls sideways when they don't fit. A card is
  * picked from it or from its run of blocks in the bar: picked, it is
- * outlined and scrolled into view, and the others fade. When the month is
- * over, a line says how far.
+ * outlined and scrolled into view. When the month is over, a line says how
+ * far.
  */
 export function MonthBreakdown(props: {
   id: string;
@@ -35,7 +35,7 @@ export function MonthBreakdown(props: {
   const card = (key: string) => ({
     type: 'button' as const,
     'data-charge': key,
-    class: `${CARD} ${picked !== null && picked !== key ? 'opacity-55' : ''}`,
+    class: CARD,
     'aria-pressed': picked === key,
     onClick: () => props.onPick(key),
   });
