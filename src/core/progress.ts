@@ -1,30 +1,65 @@
 import { isInProgress, isProjectDone, isWaiting } from './completion';
 import { daysUntil } from './due';
 import { currentPeriod, dayNumber, overlapDays, periodLength, periodOf, stampOf, type PeriodRange } from './period';
-import { allocationSettings, type AllocationSettings, type Priority, type Project, type Root, type Task } from './schema';
+import {
+  allocationSettings,
+  type AllocationSettings,
+  type CalendarEntry,
+  type Priority,
+  type Project,
+  type Root,
+  type Task,
+} from './schema';
 import { localDateStamp } from './time';
+import { capacityIn } from './workdays';
 
-/**
- * Tasks that count toward a period's load: open ones in a project that's
- * neither archived nor done, and every finished one. Work you finished stays
- * in the period it was done in, whatever happens to its project later.
- */
-function* countedTasks(root: Root): Generator<{ project: Project; task: Task }> {
-  for (const project of root.projects) {
-    const active = !project.archived && !isProjectDone(project);
-    for (const task of project.tasks) if (task.done || active) yield { project, task };
-  }
+/** One task's or event's part of a period's load. */
+export type LoadItem = Counted & { share: number };
+type Counted = { kind: 'task'; project: Project; task: Task } | { kind: 'event'; entry: CalendarEntry };
+
+/** What decides where an allocation lands: a task's fields, or an event's read as a task's. */
+type Work = Pick<Task, 'effort' | 'due' | 'startsOn' | 'done' | 'doneAt'>;
+
+/** An event is a task without a project: its date is the deadline, and `until` spreads it from there. */
+export function eventWork(e: CalendarEntry): Work {
+  return {
+    effort: e.effort,
+    done: e.done,
+    ...(e.doneAt ? { doneAt: e.doneAt } : {}),
+    ...(e.until ? { startsOn: e.date, due: e.until } : { due: e.date }),
+  };
 }
 
-/** One task's part of a period's load. */
-export type LoadItem = { project: Project; task: Task; share: number };
+/**
+ * What counts toward a period's load: tasks left open in a project that's
+ * neither archived nor done, every finished task, and every event. Work you
+ * finished stays in the period it was done in, whatever happens to its
+ * project later.
+ */
+function* counted(root: Root): Generator<{ item: Counted; work: Work }> {
+  for (const project of root.projects) {
+    const active = !project.archived && !isProjectDone(project);
+    for (const task of project.tasks) if (task.done || active) yield { item: { kind: 'task', project, task }, work: task };
+  }
+  for (const entry of root.calendar ?? []) if (entry.kind === 'event') yield { item: { kind: 'event', entry }, work: eventWork(entry) };
+}
 
 export type Allocation = AllocationSettings & {
-  /** This period's load, in percent of your capacity (to a hundredth). Can pass 100 and the limit. */
+  /** This period's load, in percent of a full period (to a hundredth). Can pass the capacity and the limit. */
   total: number;
-  /** How many tasks add to it. */
+  /**
+   * How much of a full period you are in, in percent: 100, or less when it
+   * holds days off (leave and holidays). This is the period's own 100%.
+   */
+  capacity: number;
+  /** Worked weekdays off in the period. */
+  daysOff: number;
+  /** The limit for this period: `maxLoad`, lowered by days off as the capacity is. */
+  limit: number;
+  /** How many tasks add to it, and how many events. */
   tasks: number;
-  /** How many of those are done. */
+  events: number;
+  /** How many of those (tasks and events) are done. */
   done: number;
   /** The period it covers. */
   range: PeriodRange;
@@ -40,7 +75,7 @@ export type Allocation = AllocationSettings & {
  * the share it had on the day it was done, so finished work that was late or
  * undated stays in the period it was finished in.
  */
-export function taskShare(task: Task, range: PeriodRange, today: string = range.start): number {
+export function taskShare(task: Work, range: PeriodRange, today: string = range.start): number {
   const effort = task.effort ?? 0;
   if (!effort) return 0;
   const start = dayNumber(range.start);
@@ -59,21 +94,42 @@ export function taskShare(task: Task, range: PeriodRange, today: string = range.
   return at(due) === 0 ? effort : 0;
 }
 
-/** Every task's share of `range`, added up, as of `today`. */
+const isDone = (i: LoadItem) => (i.kind === 'task' ? i.task.done : i.entry.done);
+
+/** Every task's and event's share of `range`, added up, as of `today`. */
 function loadIn(root: Root, settings: AllocationSettings, range: PeriodRange, today: string): Allocation {
   const items: LoadItem[] = [];
   let total = 0;
-  for (const { project, task } of countedTasks(root)) {
-    const share = taskShare(task, range, today);
+  for (const { item, work } of counted(root)) {
+    const share = taskShare(work, range, today);
     if (share <= 0) continue;
     total += share;
-    items.push({ project, task, share });
+    items.push({ ...item, share });
   }
   items.sort((a, b) => b.share - a.share);
-  const done = items.filter((i) => i.task.done).length;
+  const done = items.filter(isDone).length;
+  const events = items.filter((i) => i.kind === 'event').length;
+  const { capacity, daysOff } = capacityIn(root, range);
   // To a hundredth: shares spread by day are fractions, and float sums shouldn't show.
-  return { ...settings, total: Math.round(total * 100) / 100, tasks: items.length, done, range, items };
+  const round = (n: number) => Math.round(n * 100) / 100;
+  return {
+    ...settings,
+    total: round(total),
+    capacity,
+    daysOff,
+    limit: round((settings.maxLoad * capacity) / 100),
+    tasks: items.length - events,
+    events,
+    done,
+    range,
+    items,
+  };
 }
+
+/** Past this period's capacity (its own 100%). */
+export const isOver = (a: Allocation) => a.total > a.capacity;
+/** Past this period's limit. */
+export const isPastLimit = (a: Allocation) => a.total > a.limit;
 
 /**
  * How much of you is spoken for this week or fortnight: every task's share of
@@ -102,7 +158,7 @@ export function allocationHistory(root: Root, now: Date, count: number): Allocat
   for (let i = count - 1; i >= 0; i--) {
     out.push(loadIn(root, settings, periodOf(stampOf(start - i * len), settings.period), today));
   }
-  const first = out.findIndex((a) => a.tasks > 0);
+  const first = out.findIndex((a) => a.items.length > 0);
   return first < 0 ? out.slice(-1) : out.slice(first);
 }
 

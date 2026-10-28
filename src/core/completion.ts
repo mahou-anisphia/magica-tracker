@@ -1,4 +1,4 @@
-import type { Project, Root, Subtask, Task } from './schema';
+import type { CalendarEntry, Project, Root, Subtask, Task } from './schema';
 
 /**
  * The completion rule (§3). A task with sub-tasks is done exactly when every
@@ -41,9 +41,27 @@ export function normalizeProject(p: Project, now: string): Project {
   return { ...p, tasks: p.tasks.map((t) => normalizeTask(t, now)) };
 }
 
+/**
+ * An event keeps `doneAt` only while done. Leave and holidays are never done
+ * and have no time or allocation. An end on or before the start is dropped.
+ */
+export function normalizeEntry(e: CalendarEntry, now: string): CalendarEntry {
+  const { until, time, effort, doneAt, ...rest } = e;
+  const span = until && until > e.date ? { until } : {};
+  if (e.kind !== 'event') return { ...rest, ...span, done: false };
+  return {
+    ...rest,
+    ...span,
+    ...(time ? { time } : {}),
+    ...(effort !== undefined ? { effort } : {}),
+    ...(e.done ? { doneAt: doneAt ?? now } : {}),
+  };
+}
+
 /** Run by commit() before every save and on every load/import. */
 export function normalizeRoot(root: Root, now: string): Root {
-  return { ...root, projects: root.projects.map((p) => normalizeProject(p, now)) };
+  const next = { ...root, projects: root.projects.map((p) => normalizeProject(p, now)) };
+  return root.calendar ? { ...next, calendar: root.calendar.map((e) => normalizeEntry(e, now)) } : next;
 }
 
 export function subtaskProgress(task: Task): { done: number; total: number } {

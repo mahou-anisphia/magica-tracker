@@ -27,7 +27,7 @@ export function parseRoot(raw: unknown, now: string = nowIso()): ParseResult {
     return { ok: false, error: describeIssue(first) + more };
   }
 
-  const duplicate = findDuplicateId(result.output);
+  const duplicate = findDuplicateId(result.output) ?? findDuplicateMonth(result.output);
   if (duplicate) return { ok: false, error: duplicate };
 
   return { ok: true, root: normalizeRoot(result.output, now) };
@@ -54,6 +54,8 @@ const KINDS: Record<string, Kind> = {
   resources: { noun: 'resource', nameField: 'header' },
   backlog: { noun: 'backlog item', nameField: 'title' },
   domains: { noun: 'domain', nameField: 'name' },
+  calendar: { noun: 'calendar entry', nameField: 'title' },
+  timesheet: { noun: 'timesheet month', nameField: 'month' },
 };
 
 const FIELD_NOUNS: Record<string, string> = {
@@ -128,6 +130,7 @@ function* labelledIds(root: Root): Generator<[id: string, label: string]> {
   }
   for (const b of root.backlog) yield [b.id, `backlog item '${b.title}'`];
   for (const d of root.domains ?? []) yield [d.id, `domain '${d.name}'`];
+  for (const e of root.calendar ?? []) yield [e.id, `${e.kind} '${e.title}'`];
 }
 
 function findDuplicateId(root: Root): string | null {
@@ -136,6 +139,18 @@ function findDuplicateId(root: Root): string | null {
     const prior = seen.get(id);
     if (prior) return `Two items share the id “${id}”: ${prior} and ${label}.`;
     seen.set(id, label);
+  }
+  return null;
+}
+
+/** A project is given days at most once per month. */
+function findDuplicateMonth(root: Root): string | null {
+  for (const p of root.projects) {
+    const seen = new Set<string>();
+    for (const { month } of p.timesheet ?? []) {
+      if (seen.has(month)) return `Project '${p.name}' has two timesheet entries for ${month}.`;
+      seen.add(month);
+    }
   }
   return null;
 }

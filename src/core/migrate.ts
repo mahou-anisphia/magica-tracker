@@ -54,6 +54,11 @@ export const MIGRATIONS: Record<number, Migration> = {
    * shape.
    */
   4: (raw) => raw,
+  /**
+   * v5 → v6. Only new optional fields (calendar entries, project timesheets,
+   * the workday settings), so a v5 file is already a valid v6 shape.
+   */
+  5: (raw) => raw,
 };
 
 export class MigrationError extends Error {}

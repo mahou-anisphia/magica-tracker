@@ -136,7 +136,7 @@ describe('allocation history', () => {
     const h = allocationHistory(r, NOW, 3);
     expect(h.map((a) => a.range.start)).toEqual(['2026-09-07', '2026-09-21', '2026-10-05']);
     expect(h.map((a) => a.total)).toEqual([30, 10, 60]);
-    expect(h.map((a) => a.items.map((i) => i.task.id))).toEqual([['sep'], ['spread'], ['late', 'spread', 'undated']]);
+    expect(h.map((a) => a.items.map((i) => (i.kind === 'task' ? i.task.id : i.entry.id)))).toEqual([['sep'], ['spread'], ['late', 'spread', 'undated']]);
     expect(h.at(-1)).toEqual(allocation(r, NOW));
   });
 

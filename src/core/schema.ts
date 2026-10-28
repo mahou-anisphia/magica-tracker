@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { isCalendarDate } from './due';
+import { isCalendarDate, isCalendarMonth } from './due';
 import { newId } from './id';
 import { nowIso } from './time';
 import { isSafeUrl } from './url';
@@ -29,8 +29,14 @@ import { isSafeUrl } from './url';
  * settings (percent or hours). It also lets `effort` hold a fraction of a
  * percent, so an allocation entered in hours (10h of an 80h fortnight is
  * 12.5%) is kept exactly. A v4 file is a valid v5 file.
+ *
+ * 6 added optional fields only: `calendar` on the root (events, leave and
+ * holidays, which belong to no project), `timesheet` on projects (whole days
+ * given to the project per calendar month) and `workdays` in the settings
+ * (when the timesheet starts, and which weekdays are worked). A v5 file is a
+ * valid v6 file.
  */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const ALLOCATION_PERIODS = ['week', 'fortnight'] as const;
 export type AllocationPeriod = (typeof ALLOCATION_PERIODS)[number];
@@ -46,6 +52,13 @@ export const STATUSES = ['todo', 'working', 'waiting', 'done'] as const;
 export type Status = (typeof STATUSES)[number];
 export type Priority = (typeof PRIORITIES)[number];
 
+/** What a calendar entry is: an event (a task with no project), or a day off. */
+export const ENTRY_KINDS = ['event', 'leave', 'holiday'] as const;
+export type EntryKind = (typeof ENTRY_KINDS)[number];
+
+/** Weekdays as in ISO 8601: 1 is Monday, 7 is Sunday. */
+export const DEFAULT_WEEKDAYS = [1, 2, 3, 4, 5];
+
 const Id = v.optional(v.pipe(v.string(), v.nonEmpty()), newId);
 const Timestamp = v.pipe(
   v.string(),
@@ -55,6 +68,8 @@ const Stamp = v.optional(Timestamp, nowIso);
 /** A calendar day with no time or zone, e.g. "2026-10-03". */
 const DueDate = v.optional(v.pipe(v.string(), v.check(isCalendarDate)));
 const PriorityField = v.optional(v.picklist(PRIORITIES));
+/** A time of day, "09:30". */
+const TimeOfDay = v.optional(v.pipe(v.string(), v.regex(/^([01]\d|2[0-3]):[0-5]\d$/)));
 /**
  * Allocation: how much of your capacity this task takes in its period, in
  * percent (a fraction when it was entered in hours). Stored as `effort`; a
@@ -120,6 +135,12 @@ export const DomainSchema = v.object({
   updatedAt: Stamp,
 });
 
+/** Whole days given to a project in one calendar month ("2026-10"), for the finance timesheet. */
+export const TimesheetMonthSchema = v.object({
+  month: v.pipe(v.string(), v.check(isCalendarMonth)),
+  days: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(31)),
+});
+
 export const ProjectSchema = v.object({
   id: Id,
   name: Required,
@@ -136,6 +157,31 @@ export const ProjectSchema = v.object({
   updatedAt: Stamp,
   tasks: v.optional(v.array(TaskSchema), () => []),
   resources: v.optional(v.array(ResourceSchema), () => []),
+  /** Absent until the project is given days; at most one entry per month. */
+  timesheet: v.optional(v.array(TimesheetMonthSchema)),
+});
+
+/**
+ * Something on the calendar that belongs to no project. An event is a task
+ * without one: it can be ticked done and carry an allocation, landing like a
+ * task with its date as the deadline (and `until`, the spread). Leave and
+ * holidays are days off: they count toward the month's timesheet and lower
+ * the period's capacity. Only events use `time`, `effort` and `done`.
+ */
+export const CalendarEntrySchema = v.object({
+  id: Id,
+  kind: v.picklist(ENTRY_KINDS),
+  title: Required,
+  date: v.pipe(v.string(), v.check(isCalendarDate)),
+  /** The last day, for an entry over several days. */
+  until: DueDate,
+  time: TimeOfDay,
+  effort: Effort,
+  done: v.optional(v.boolean(), false),
+  doneAt: v.optional(Timestamp),
+  notes: Optional,
+  createdAt: Stamp,
+  updatedAt: Stamp,
 });
 
 export const BacklogItemSchema = v.object({
@@ -164,6 +210,13 @@ const Settings = v.optional(
         unit: v.optional(v.picklist(ALLOCATION_UNITS), 'percent'),
       }),
     ),
+    /** The timesheet: from which day it counts (none: not kept), and the weekdays worked. */
+    workdays: v.optional(
+      v.object({
+        from: DueDate,
+        weekdays: v.optional(v.array(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(7))), () => [...DEFAULT_WEEKDAYS]),
+      }),
+    ),
   }),
 );
 
@@ -176,6 +229,8 @@ export const RootSchema = v.object({
   domains: v.optional(v.array(DomainSchema)),
   projects: v.optional(v.array(ProjectSchema), () => []),
   backlog: v.optional(v.array(BacklogItemSchema), () => []),
+  /** Absent until the first entry is added. */
+  calendar: v.optional(v.array(CalendarEntrySchema)),
 });
 
 export type Subtask = v.InferOutput<typeof SubtaskSchema>;
@@ -183,15 +238,25 @@ export type Resource = v.InferOutput<typeof ResourceSchema>;
 export type Domain = v.InferOutput<typeof DomainSchema>;
 export type Task = v.InferOutput<typeof TaskSchema>;
 export type Project = v.InferOutput<typeof ProjectSchema>;
+export type TimesheetMonth = v.InferOutput<typeof TimesheetMonthSchema>;
+export type CalendarEntry = v.InferOutput<typeof CalendarEntrySchema>;
 export type BacklogItem = v.InferOutput<typeof BacklogItemSchema>;
 export type Root = v.InferOutput<typeof RootSchema>;
 export type Owner = NonNullable<Root['owner']>;
 export type AllocationSettings = { period: AllocationPeriod; maxLoad: number; unit: AllocationUnit };
+export type WorkdaySettings = { from?: string; weekdays: number[] };
 
 /** The allocation settings in force: the saved ones, or the defaults. */
 export function allocationSettings(root: Root): AllocationSettings {
   const a = root.settings?.allocation;
   return { period: a?.period ?? 'fortnight', maxLoad: a?.maxLoad ?? DEFAULT_MAX_LOAD, unit: a?.unit ?? 'percent' };
+}
+
+/** The timesheet settings in force. Without `from` no timesheet is kept. */
+export function workdaySettings(root: Root): WorkdaySettings {
+  const w = root.settings?.workdays;
+  const weekdays = [...new Set(w?.weekdays ?? DEFAULT_WEEKDAYS)].sort((a, b) => a - b);
+  return { ...(w?.from ? { from: w.from } : {}), weekdays };
 }
 
 export function emptyRoot(now: string = nowIso()): Root {

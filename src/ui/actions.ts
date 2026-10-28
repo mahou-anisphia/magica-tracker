@@ -25,6 +25,12 @@ export function openProject(projectId: string, taskId: string | null = null): vo
   }
 }
 
+/** Shows a day on the Timeline, with its side panel open. */
+export function openDay(date: string): void {
+  setMode('timeline');
+  set({ day: date });
+}
+
 export function openBacklog(): void {
   setMode('overview');
   set({ view: { kind: 'backlog' }, expandedTaskId: null, drawerOpen: false });
