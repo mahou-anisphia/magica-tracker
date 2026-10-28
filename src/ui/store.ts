@@ -33,7 +33,7 @@ export type Toast = { id: number; text: string; action?: { label: string; run: (
  * Which screen is showing. Overview and Timeline are the everyday views and
  * are remembered per browser; the rest are reached from the orb or the palette.
  */
-export type Mode = 'overview' | 'timeline' | 'board' | 'allocation' | 'settings' | 'team' | 'observatory' | 'member';
+export type Mode = 'overview' | 'timeline' | 'board' | 'allocation' | 'timelog' | 'settings' | 'team' | 'observatory' | 'member';
 
 /**
  * A part of a screen to point at for a moment, after an orb or palette action
@@ -62,6 +62,10 @@ export type State = {
   capture: boolean;
   /** The day open in the Timeline's side panel, as "2026-10-04". */
   day: string | null;
+  /** Whether that panel opens with its "Add to this day" form showing. */
+  adding: boolean;
+  /** The month the Time log opens on ("2026-10"); this month when null. */
+  timelogMonth: string | null;
   importState: ImportState | null;
   highlight: Highlight | null;
   /** The ⌘K / Ctrl+K search palette. */
@@ -89,6 +93,8 @@ let state: State = {
   confirm: null,
   capture: false,
   day: null,
+  adding: false,
+  timelogMonth: null,
   importState: null,
   highlight: null,
   palette: false,
@@ -110,9 +116,13 @@ export function set(patch: Partial<State>): void {
 
 export function useStore(): State {
   const [, force] = useReducer((n: number) => n + 1, 0);
+  const rendered = state;
   useEffect(() => {
     const l = () => force(undefined);
     listeners.add(l);
+    // Effects run after paint: anything set before now (the data loading
+    // quickly, say) had no listener to hear it, so catch up once.
+    if (state !== rendered) l();
     return () => void listeners.delete(l);
   }, []);
   return state;
@@ -204,7 +214,7 @@ export async function init(): Promise<void> {
 /** Switch screens. Overview and Timeline are remembered per browser. */
 export function setMode(mode: Mode): void {
   if (mode === state.mode) return;
-  set({ mode, drawerOpen: false, day: null });
+  set({ mode, drawerOpen: false, day: null, adding: false, timelogMonth: null });
   if (mode === 'overview' || mode === 'timeline') writeMode(mode);
 }
 

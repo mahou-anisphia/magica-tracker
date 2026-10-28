@@ -1,17 +1,22 @@
 import { newId } from './id';
-import type { BacklogItem, Domain, Project, Root } from './schema';
+import type { BacklogItem, CalendarEntry, Domain, Project, Root } from './schema';
 import { isNewer } from './time';
 
 /**
- * Merge import (§6): add incoming domains, projects and backlog items. On an
- * id collision the copy with the newer `updatedAt` wins (a tie keeps the
- * current one). Backlog items compare `updatedAt`, falling back to `createdAt`.
+ * Merge import (§6): add incoming domains, projects, backlog items and
+ * calendar entries. On an id collision the copy with the newer `updatedAt`
+ * wins (a tie keeps the current one). Backlog items compare `updatedAt`,
+ * falling back to `createdAt`. A project's timesheet comes with its copy.
  */
 export function mergeRoots(current: Root, incoming: Root, makeId: () => string = newId): Root {
   const projects = mergeById<Project>(current.projects, incoming.projects, (p) => p.updatedAt);
   const backlog = mergeById<BacklogItem>(current.backlog, incoming.backlog, (b) => b.updatedAt ?? b.createdAt);
   const domains = mergeById<Domain>(current.domains ?? [], incoming.domains ?? [], (d) => d.updatedAt);
-  return dedupeIds({ ...current, ...(domains.length ? { domains } : {}), projects, backlog }, makeId);
+  const calendar = mergeById<CalendarEntry>(current.calendar ?? [], incoming.calendar ?? [], (e) => e.updatedAt);
+  return dedupeIds(
+    { ...current, ...(domains.length ? { domains } : {}), projects, backlog, ...(calendar.length ? { calendar } : {}) },
+    makeId,
+  );
 }
 
 function mergeById<T extends { id: string }>(current: T[], incoming: T[], stamp: (x: T) => string): T[] {
@@ -63,5 +68,6 @@ export function dedupeIds(root: Root, makeId: () => string = newId): Root {
       };
     }),
     backlog: root.backlog.map(fresh),
+    ...(root.calendar ? { calendar: root.calendar.map(fresh) } : {}),
   };
 }

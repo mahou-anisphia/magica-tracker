@@ -1,11 +1,12 @@
 import { useState } from 'preact/hooks';
 import { dueByDate, monthGrid } from '../../core/calendar';
-import { monthHeading, plural } from '../../core/format';
+import { monthHeading } from '../../core/format';
 import type { Root } from '../../core/schema';
 import { localDateStamp } from '../../core/time';
-import { ChevronIcon } from './icons';
+import { daysOff } from '../../core/workdays';
+import { ChevronIcon, PlusIcon } from './icons';
 import { CalendarItem } from './CalendarItem';
-import { itemKey, itemTone, panelDay, parseDay } from './dueItem';
+import { dayCount, itemKey, itemTone, panelDay, parseDay } from './dueItem';
 
 const weekdayShort = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const agendaDay = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
@@ -22,9 +23,9 @@ const DOT = { done: 'bg-line-strong', urgent: 'bg-primary-strong', watch: 'bg-wa
  * A day cell. 132px fits the date and CELL_ITEMS (3) items exactly, so every
  * week is one height; anything beyond goes behind "+N more".
  */
-function cellClass(opts: { inMonth: boolean; selected: boolean }): string {
+function cellClass(opts: { inMonth: boolean; selected: boolean; off: boolean }): string {
   const bg = opts.selected ? 'bg-primary-tint' : `${opts.inMonth ? '' : 'bg-page-60'} hover:bg-page-80`;
-  return `h-132 cursor-pointer overflow-hidden border-x border-b border-line p-8 align-top first:border-l-0 last:border-r-0 group-last/week:border-b-0 max-sm:h-64 max-sm:px-2 max-sm:py-4 max-sm:text-center ${bg}`;
+  return `h-132 cursor-pointer overflow-hidden border-x border-b border-line p-8 align-top first:border-l-0 last:border-r-0 group-last/week:border-b-0 max-sm:h-64 max-sm:px-2 max-sm:py-4 max-sm:text-center ${bg} ${opts.off ? 'bg-off' : ''}`;
 }
 
 function dateClass(opts: { inMonth: boolean; today: boolean }): string {
@@ -33,12 +34,15 @@ function dateClass(opts: { inMonth: boolean; today: boolean }): string {
 }
 
 /**
- * Deadlines on a month grid, Monday first, today circled. Unfinished items in
- * a soft chip, approaching or overdue ones in the highlight colour, done ones recede. A cell shows
- * its 3 most urgent deadlines and "+N more", so every week keeps one height.
- * Clicking a day (or anything on it) calls `onOpenDay`; the caller shows that
- * day. Below 640px the cells show dots and an agenda lists the month. Your
- * Timeline and a member's ("View as") both use it; `whose` names the member.
+ * Deadlines and events on a month grid, Monday first, today circled.
+ * Unfinished items in a soft chip (events outlined), approaching or overdue
+ * ones in the highlight colour, done ones recede. Leave and holidays stripe
+ * their day and name it. A cell shows its 3 most urgent items and "+N more",
+ * so every week keeps one height. Clicking a day (or anything on it) calls
+ * `onOpenDay`; the caller shows that day. Below 640px the cells show dots and
+ * an agenda lists the month. Your Timeline and a member's ("View as") both
+ * use it; `whose` names the member, and `onAdd` (yours only) adds the + Add
+ * button.
  */
 export function MonthCalendar(props: {
   root: Root;
@@ -47,11 +51,17 @@ export function MonthCalendar(props: {
   day: string | null;
   onOpenDay: (date: string, itemKey: string | null) => void;
   whose?: string;
+  onAdd?: () => void;
 }) {
   const { root, now } = props;
-  const [cursor, setCursor] = useState(() => ({ y: now.getFullYear(), m: now.getMonth() }));
+  // Opened on a day (from Allocation, say): start on that day's month.
+  const [cursor, setCursor] = useState(() => {
+    const d = props.day ? parseDay(props.day) : now;
+    return { y: d.getFullYear(), m: d.getMonth() };
+  });
   const weeks = monthGrid(cursor.y, cursor.m);
   const items = dueByDate(root, now);
+  const off = daysOff(root);
   const today = localDateStamp(now);
   const isThisMonth = cursor.y === now.getFullYear() && cursor.m === now.getMonth();
 
@@ -62,7 +72,7 @@ export function MonthCalendar(props: {
     });
   const openDay = (date: string, key: string | null = null) => props.onOpenDay(date, key);
 
-  const monthDays = weeks.flat().filter((d) => d.inMonth && items.has(d.date));
+  const monthDays = weeks.flat().filter((d) => d.inMonth && (items.has(d.date) || off.has(d.date)));
 
   return (
     <section aria-labelledby="timeline-h">
@@ -84,8 +94,22 @@ export function MonthCalendar(props: {
             <span class="h-10 w-14 rounded-2 bg-chip" aria-hidden="true" />
             Other
           </li>
+          <li class="inline-flex items-center gap-6">
+            <span class="h-10 w-14 rounded-2 bg-card inset-ring inset-ring-line-strong" aria-hidden="true" />
+            Event
+          </li>
+          <li class="inline-flex items-center gap-6">
+            <span class="h-10 w-14 rounded-2 bg-card bg-off inset-ring inset-ring-line" aria-hidden="true" />
+            Leave or holiday
+          </li>
         </ul>
         <div class="flex items-center gap-4">
+          {props.onAdd && (
+            <button type="button" class="btn btn-small mr-6" data-shortcut="add-entry" onClick={props.onAdd}>
+              <PlusIcon size={14} />
+              Add
+            </button>
+          )}
           <button
             type="button"
             class="icon-btn min-h-(--tap) min-w-(--tap)"
@@ -133,12 +157,13 @@ export function MonthCalendar(props: {
               <tr key={week[0]!.date} class="group/week">
                 {week.map((d) => {
                   const list = items.get(d.date) ?? [];
+                  const dayOff = off.get(d.date);
                   const isToday = d.date === today;
                   const hidden = Math.max(0, list.length - CELL_ITEMS);
                   return (
                     <td
                       key={d.date}
-                      class={cellClass({ inMonth: d.inMonth, selected: props.day === d.date })}
+                      class={cellClass({ inMonth: d.inMonth, selected: props.day === d.date, off: !!dayOff })}
                       aria-current={isToday ? 'date' : undefined}
                       onClick={() => openDay(d.date)}
                     >
@@ -146,7 +171,7 @@ export function MonthCalendar(props: {
                         <button
                           type="button"
                           class={dateClass({ inMonth: d.inMonth, today: isToday })}
-                          aria-label={`${panelDay.format(parseDay(d.date))}${isToday ? ', today' : ''}: ${plural(list.length, 'deadline')}`}
+                          aria-label={`${panelDay.format(parseDay(d.date))}${isToday ? ', today' : ''}${dayOff ? `, ${dayOff.title}` : ''}: ${dayCount(list)}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             openDay(d.date);
@@ -154,6 +179,11 @@ export function MonthCalendar(props: {
                         >
                           {d.day}
                         </button>
+                        {dayOff && (
+                          <span class="min-w-0 flex-1 truncate text-12 font-medium text-body max-sm:hidden" title={dayOff.title} aria-hidden="true">
+                            {dayOff.title}
+                          </span>
+                        )}
                         {hidden > 0 && (
                           <button
                             type="button"
@@ -206,9 +236,10 @@ export function MonthCalendar(props: {
             <li key={d.date} class="grid grid-cols-1 gap-6">
               <span class={`text-13 font-medium ${d.date === today ? 'text-ink' : 'text-body'}`}>
                 {agendaDay.format(new Date(cursor.y, cursor.m, d.day))}
+                {off.has(d.date) && ` · ${off.get(d.date)!.title}`}
               </span>
               <ul class="grid grid-cols-1 gap-6">
-                {items.get(d.date)!.map((it) => (
+                {(items.get(d.date) ?? []).map((it) => (
                   <li key={itemKey(it)}>
                     <CalendarItem item={it} agenda onClick={() => openDay(d.date, itemKey(it))} />
                   </li>

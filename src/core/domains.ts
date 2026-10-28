@@ -29,11 +29,12 @@ export function byDomain<T>(root: Root, items: T[], projectOf: (item: T) => Proj
   return [...groups.filter((g) => keepEmpty || g.items.length), ...(none.items.length ? [none] : [])];
 }
 
-/** Part of a period's load: one domain's tasks, or one project's when it has no domain. */
+/** Part of a period's load: one domain's tasks, one project's when it has no domain, or the events. */
 export type LoadGroup = {
   key: string;
   name: string;
-  /** Set for a domain's group; null for a project's own. */
+  kind: 'domain' | 'project' | 'events';
+  /** Set for a domain's group; null for a project's own and for the events. */
   domain: Domain | null;
   /** How many projects add to it. */
   projects: number;
@@ -42,20 +43,23 @@ export type LoadGroup = {
 };
 
 /**
- * What filled a period, grouped: by domain, and a project with no domain on
- * its own. Largest share first; each group's tasks keep their order.
+ * What filled a period, grouped: by domain, a project with no domain on its
+ * own, and the events (which have no project) together. Largest share first;
+ * each group's items keep their order.
  */
 export function loadGroups(root: Root, items: LoadItem[]): LoadGroup[] {
   const groups = new Map<string, LoadGroup & { ids: Set<string> }>();
   for (const item of items) {
-    const domain = domainOf(root, item.project) ?? null;
-    const key = domain ? `domain:${domain.id}` : `project:${item.project.id}`;
+    const project = item.kind === 'task' ? item.project : null;
+    const domain = project ? (domainOf(root, project) ?? null) : null;
+    const key = domain ? `domain:${domain.id}` : project ? `project:${project.id}` : 'events';
     let g = groups.get(key);
     if (!g) {
-      g = { key, name: domain?.name ?? item.project.name, domain, projects: 0, share: 0, items: [], ids: new Set() };
+      const kind = domain ? 'domain' : project ? 'project' : 'events';
+      g = { key, name: domain?.name ?? project?.name ?? 'Events', kind, domain, projects: 0, share: 0, items: [], ids: new Set() };
       groups.set(key, g);
     }
-    g.ids.add(item.project.id);
+    if (project) g.ids.add(project.id);
     g.projects = g.ids.size;
     g.share += item.share;
     g.items.push(item);

@@ -1,15 +1,16 @@
 import type { DueItem } from '../../../core/calendar';
-import { plural } from '../../../core/format';
-import type { AllocationPeriod } from '../../../core/schema';
-import { itemKey, panelDay, parseDay } from '../../components/dueItem';
+import type { AllocationPeriod, CalendarEntry } from '../../../core/schema';
+import { dayCount, ENTRY_NOUN, entrySpan, itemKey, panelDay, parseDay } from '../../components/dueItem';
 import { CrossIcon } from '../../components/icons';
 import { Modal } from '../../components/Modal';
 import { MemberDayItem } from './MemberDayItem';
 
-/** One day of their deadlines, from the right, read-only. */
+/** One day of their deadlines, events, leave and holidays, from the right, read-only. */
 export function MemberDayPanel(props: {
   date: string | null;
   items: DueItem[];
+  /** Their leave and holidays on the day. */
+  off: CalendarEntry[];
   name: string;
   now: Date;
   /** Their allocation period, which their tasks' allocations are shares of. */
@@ -27,7 +28,7 @@ export function MemberDayPanel(props: {
                 {panelDay.format(parseDay(date))}
               </h2>
               <p class="text-13 text-body">
-                {props.name}: {items.length ? plural(items.length, 'deadline') : 'no deadlines'} · read-only
+                {props.name}: {dayCount(items, props.off)} · read-only
               </p>
             </div>
             <button type="button" class="icon-btn" aria-label="Close" onClick={props.onClose}>
@@ -35,6 +36,14 @@ export function MemberDayPanel(props: {
             </button>
           </header>
           <ul class="overflow-y-auto">
+            {props.off.map((e) => (
+              <li key={e.id} class="grid grid-cols-1 gap-1 border-b border-line bg-off py-14 pr-18 pl-24">
+                <span class="truncate font-medium text-ink">{e.title}</span>
+                <span class="truncate text-13 text-body">
+                  {ENTRY_NOUN[e.kind]} · {entrySpan(e)}
+                </span>
+              </li>
+            ))}
             {items.map((it) => (
               <MemberDayItem key={itemKey(it)} item={it} now={props.now} period={props.period} />
             ))}

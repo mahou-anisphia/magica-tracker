@@ -13,6 +13,11 @@ export function isCalendarDate(s: string): boolean {
   return date.getFullYear() === y && date.getMonth() === mo - 1 && date.getDate() === d;
 }
 
+/** A calendar month, e.g. "2026-10". */
+export function isCalendarMonth(s: string): boolean {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(s);
+}
+
 function localDay(s: string): Date {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y!, m! - 1, d!);

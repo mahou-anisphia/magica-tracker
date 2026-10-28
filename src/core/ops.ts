@@ -1,13 +1,17 @@
-import { normalizeTask } from './completion';
-import { isCalendarDate } from './due';
+import { normalizeEntry, normalizeTask } from './completion';
+import { isCalendarDate, isCalendarMonth } from './due';
 import {
   ALLOCATION_PERIODS,
   ALLOCATION_UNITS,
   allocationSettings,
+  ENTRY_KINDS,
   PRIORITIES,
+  workdaySettings,
   type AllocationSettings,
   type BacklogItem,
+  type CalendarEntry,
   type Domain,
+  type EntryKind,
   type Priority,
   type Project,
   type Resource,
@@ -15,6 +19,8 @@ import {
   type Status,
   type Subtask,
   type Task,
+  type TimesheetMonth,
+  type WorkdaySettings,
 } from './schema';
 
 /**
@@ -78,8 +84,12 @@ export function setProjectText(root: Root, projectId: string, key: TaskText, tex
   return mapProject(root, projectId, (p) => ({ ...withOptional(p, key, text), updatedAt: now }));
 }
 
+/** Archive a project (remembering when) or bring it back. */
 export function setProjectArchived(root: Root, projectId: string, archived: boolean, now: string): Root {
-  return mapProject(root, projectId, (p) => ({ ...p, archived, updatedAt: now }));
+  return mapProject(root, projectId, (p) => {
+    const { archivedAt: _, ...rest } = p;
+    return archived ? { ...rest, archived, archivedAt: p.archivedAt ?? now, updatedAt: now } : { ...rest, archived, updatedAt: now };
+  });
 }
 
 /** `due` is a calendar day ("2026-10-03"); empty or undefined clears it. */
@@ -560,6 +570,133 @@ export function setProjectDomain(root: Root, projectId: string, domainId: string
   });
 }
 
+// ─── Calendar entries ────────────────────────────────────────────────────────
+
+/** What a calendar entry is made of. `time`, `effort` and `done` only apply to events. */
+export type EntryInput = {
+  kind: EntryKind;
+  title: string;
+  date: string;
+  until?: string;
+  time?: string;
+  effort?: number;
+  notes?: string;
+};
+
+const validEntry = (e: EntryInput) =>
+  ENTRY_KINDS.includes(e.kind) &&
+  !!e.title.trim() &&
+  isCalendarDate(e.date) &&
+  (!e.until || isCalendarDate(e.until)) &&
+  (e.time === undefined || e.time === '' || /^([01]\d|2[0-3]):[0-5]\d$/.test(e.time)) &&
+  (e.effort === undefined || (Number.isFinite(e.effort) && e.effort >= 0 && e.effort <= 100));
+
+/** Keys in schema order, so an import of an export is identical byte for byte. */
+function buildEntry(base: Pick<CalendarEntry, 'id' | 'done' | 'doneAt' | 'createdAt'>, input: EntryInput, now: string): CalendarEntry {
+  const until = clean(input.until);
+  const time = clean(input.time);
+  const notes = clean(input.notes);
+  return normalizeEntry(
+    {
+      id: base.id,
+      kind: input.kind,
+      title: input.title.trim(),
+      date: input.date,
+      ...(until ? { until } : {}),
+      ...(time ? { time } : {}),
+      ...(input.effort !== undefined ? { effort: input.effort } : {}),
+      done: base.done,
+      ...(base.doneAt ? { doneAt: base.doneAt } : {}),
+      ...(notes ? { notes } : {}),
+      createdAt: base.createdAt,
+      updatedAt: now,
+    },
+    now,
+  );
+}
+
+/** Adds an event, leave or a holiday. Anything invalid (a blank title, a bad date) changes nothing. */
+export function addEntry(root: Root, id: string, input: EntryInput, now: string): Root {
+  if (!validEntry(input)) return root;
+  const entry = buildEntry({ id, done: false, createdAt: now }, input, now);
+  return { ...root, calendar: [...(root.calendar ?? []), entry] };
+}
+
+/** Replaces an entry's fields, keeping whether it is done. */
+export function updateEntry(root: Root, id: string, input: EntryInput, now: string): Root {
+  if (!validEntry(input) || !root.calendar?.some((e) => e.id === id)) return root;
+  return { ...root, calendar: root.calendar.map((e) => (e.id === id ? buildEntry(e, input, now) : e)) };
+}
+
+/** Ticks an event done, or reopens it. Leave and holidays are never done. */
+export function setEntryDone(root: Root, id: string, done: boolean, now: string): Root {
+  const entry = root.calendar?.find((e) => e.id === id);
+  if (!entry || entry.kind !== 'event' || entry.done === done) return root;
+  const { doneAt: _, ...rest } = entry;
+  const next: CalendarEntry = done ? { ...rest, done, doneAt: now, updatedAt: now } : { ...rest, done, updatedAt: now };
+  return { ...root, calendar: root.calendar!.map((e) => (e.id === id ? next : e)) };
+}
+
+export function deleteEntry(root: Root, id: string): Root {
+  if (!root.calendar?.some((e) => e.id === id)) return root;
+  return { ...root, calendar: root.calendar.filter((e) => e.id !== id) };
+}
+
+/**
+ * An event → a task at the end of a project, as promoting a backlog item does.
+ * Its date becomes the deadline (with `until`, the start and the deadline),
+ * and its allocation, notes and done state come along. The task keeps its id.
+ */
+export function moveEntryToProject(root: Root, id: string, projectId: string, now: string): Root {
+  const entry = root.calendar?.find((e) => e.id === id);
+  if (!entry || entry.kind !== 'event' || !root.projects.some((p) => p.id === projectId)) return root;
+  const task: Task = normalizeTask(
+    {
+      id: entry.id,
+      title: entry.title,
+      done: entry.done,
+      ...(entry.doneAt ? { doneAt: entry.doneAt } : {}),
+      status: entry.done ? 'done' : 'todo',
+      due: entry.until ?? entry.date,
+      ...(entry.until ? { startsOn: entry.date } : {}),
+      ...(entry.effort !== undefined ? { effort: entry.effort } : {}),
+      ...(entry.notes ? { notes: entry.notes } : {}),
+      createdAt: entry.createdAt,
+      updatedAt: now,
+      subtasks: [],
+      resources: [],
+    },
+    now,
+  );
+  const next = mapProject(root, projectId, (p) => ({ ...p, updatedAt: now, tasks: [...p.tasks, task] }));
+  return deleteEntry(next, id);
+}
+
+// ─── Timesheet ───────────────────────────────────────────────────────────────
+
+/**
+ * Whole days given to a project in a month ("2026-10"). Zero removes the
+ * month; the project's months stay in order.
+ */
+export function setTimesheetDays(root: Root, projectId: string, month: string, days: number, now: string): Root {
+  if (!isCalendarMonth(month) || !Number.isInteger(days) || days < 0 || days > 31) return root;
+  const project = root.projects.find((p) => p.id === projectId);
+  if (!project || (project.timesheet?.find((t) => t.month === month)?.days ?? 0) === days) return root;
+  return mapProject(root, projectId, (p) => {
+    const current = p.timesheet ?? [];
+    const others = current.filter((t) => t.month !== month);
+    const timesheet: TimesheetMonth[] = days ? [...others, { month, days }].sort((a, b) => a.month.localeCompare(b.month)) : others;
+    const { timesheet: _, ...rest } = p;
+    return timesheet.length ? { ...rest, timesheet, updatedAt: now } : { ...rest, updatedAt: now };
+  });
+}
+
+/** Gives every project in `to` the days it had in `from`, replacing what `to` held. */
+export function copyTimesheetMonth(root: Root, from: string, to: string, now: string): Root {
+  if (!isCalendarMonth(from) || !isCalendarMonth(to) || from === to) return root;
+  return root.projects.reduce((r, p) => setTimesheetDays(r, p.id, to, p.timesheet?.find((t) => t.month === from)?.days ?? 0, now), root);
+}
+
 // ─── Owner and settings ──────────────────────────────────────────────────────
 
 /** Your name on your exports. The id stays the same across renames; empty removes it. */
@@ -568,6 +705,21 @@ export function setOwnerName(root: Root, name: string, makeId: () => string, now
   const { owner, ...rest } = root;
   if (!n) return { ...rest, updatedAt: now };
   return { ...rest, owner: { id: owner?.id ?? makeId(), name: n }, updatedAt: now };
+}
+
+/**
+ * When the timesheet starts (null stops keeping one) and which weekdays are
+ * worked (1 Monday … 7 Sunday). Days off and capacity follow the weekdays
+ * whether or not a timesheet is kept.
+ */
+export function setWorkdays(root: Root, patch: { from?: string | null; weekdays?: number[] }, now: string): Root {
+  if (patch.from && !isCalendarDate(patch.from)) return root;
+  if (patch.weekdays && !patch.weekdays.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)) return root;
+  const current = workdaySettings(root);
+  const from = patch.from === undefined ? current.from : (patch.from ?? undefined);
+  const weekdays = patch.weekdays ? [...new Set(patch.weekdays)].sort((a, b) => a - b) : current.weekdays;
+  const workdays: WorkdaySettings = { ...(from ? { from } : {}), weekdays };
+  return { ...root, settings: { ...root.settings, workdays }, updatedAt: now };
 }
 
 export function setAllocationSettings(root: Root, patch: Partial<AllocationSettings>, now: string): Root {

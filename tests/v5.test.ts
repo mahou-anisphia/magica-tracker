@@ -82,7 +82,7 @@ describe('domains', () => {
     r = createDomain(r, 'd', 'Sky', T0);
     r = setProjectDomain(setProjectDomain(r, 'p1', 'd', T1), 'p2', 'd', T1);
     const groups = loadGroups(r, allocation(r, NOW).items);
-    expect(groups.map((g) => [g.key, g.name, g.projects, g.share, g.items.map((i) => i.task.id)])).toEqual([
+    expect(groups.map((g) => [g.key, g.name, g.projects, g.share, g.items.map((i) => (i.kind === 'task' ? i.task.id : i.entry.id))])).toEqual([
       ['domain:d', 'Sky', 2, 50, ['b', 'a']],
       ['project:p3', 'Project p3', 1, 40, ['c']],
     ]);

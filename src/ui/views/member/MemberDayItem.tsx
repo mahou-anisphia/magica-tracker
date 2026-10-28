@@ -6,11 +6,33 @@ import { PriorityChip } from '../../components/PriorityChip';
 import { StatusChip } from '../../components/StatusChip';
 import { useLoadFormat } from '../../components/useUnit';
 
-/** One of their deadlines on a day, with its details shown and nothing to press. */
+/** One of their deadlines or events on a day, with its details shown and nothing to press. */
 /** `period`: theirs, which their allocations are shares of. */
 export function MemberDayItem(props: { item: DueItem; now: Date; period: AllocationPeriod }) {
   const { item, now } = props;
   const fmtLoad = useLoadFormat(props.period);
+  if (item.kind === 'event') {
+    const e = item.entry;
+    const status = e.done ? 'Done' : item.watch ? dueDistance(daysUntil(e.until ?? e.date, now)) : null;
+    return (
+      <li class="grid grid-cols-1 gap-8 border-b border-line py-14 pr-18 pl-24">
+        <div class="flex items-center gap-12">
+          <span class="grid min-w-0 flex-1 grid-cols-1 gap-1">
+            <span class={`truncate font-medium ${e.done ? 'text-faint' : 'text-ink'}`} title={e.title}>
+              {e.title}
+            </span>
+            <span class="truncate text-13 text-body">{where(item)}</span>
+          </span>
+          {status && <span class={`pill ${e.done ? 'pill-plain' : 'pill-watch'}`}>{status}</span>}
+        </div>
+        {e.effort !== undefined && (
+          <div class="flex flex-wrap gap-6">
+            <span class="pill pill-plain">{fmtLoad(e.effort)} allocation</span>
+          </div>
+        )}
+      </li>
+    );
+  }
   const { task, subtask } = item;
   const due = subtask?.due ?? task?.due ?? item.project.due;
   const status = item.done ? 'Done' : due && item.watch ? dueDistance(daysUntil(due, now)) : null;

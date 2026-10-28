@@ -1,16 +1,15 @@
 import { useState } from 'preact/hooks';
-import type { DueItem } from '../../../core/calendar';
 import { daysUntil, dueDistance } from '../../../core/due';
 import * as ops from '../../../core/ops';
 import { openProject, setProjectDone, toggleTask } from '../../actions';
 import { ChevronIcon } from '../../components/icons';
 import { PriorityChip } from '../../components/PriorityChip';
 import { set, update } from '../../store';
-import { itemKey, where } from '../../components/dueItem';
+import { itemKey, where, type Deadline } from '../../components/dueItem';
 import { useLoadFormat } from '../../components/useUnit';
 
 /** A deadline in the day panel: a row that opens to details and quick actions. */
-export function DayItem({ item, now, startOpen }: { item: DueItem; now: Date; startOpen: boolean }) {
+export function DayItem({ item, now, startOpen }: { item: Deadline; now: Date; startOpen: boolean }) {
   const [open, setOpen] = useState(startOpen);
   const fmtLoad = useLoadFormat();
   const { project, task, subtask } = item;

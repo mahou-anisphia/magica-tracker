@@ -7,7 +7,7 @@ import { addTask, deleteProject, setArchived, setProjectDone } from '../../actio
 import { ArchiveIcon, CheckIcon, TrashIcon } from '../../components/icons';
 import { update } from '../../store';
 import { AddInput } from './AddInput';
-import { DueDate } from './DueDate';
+import { DueDate } from '../../components/DueDate';
 import { EditableText } from './EditableText';
 import { PaneSection } from './PaneSection';
 import { ProjectMoreDetails } from './ProjectMoreDetails';
@@ -47,7 +47,6 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
             multiline
             onSave={(d) => update((r, n) => ops.setProjectDescription(r, p.id, d, n))}
           />
-          <ProjectMoreDetails project={p} />
         </div>
         <div class="flex flex-wrap items-center gap-8">
           <button
@@ -81,6 +80,10 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
           >
             <TrashIcon />
           </button>
+        </div>
+        {/* Its own row under the title and actions, so its tiles get the card's full width. */}
+        <div class="min-w-0 basis-full">
+          <ProjectMoreDetails project={p} now={now} />
         </div>
       </header>
 

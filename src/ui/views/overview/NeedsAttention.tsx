@@ -1,8 +1,11 @@
 import { useState } from 'preact/hooks';
 import { attention } from '../../../core/attention';
 import { dueDistance } from '../../../core/due';
+import { calendarDay, monthName } from '../../../core/format';
 import type { Root } from '../../../core/schema';
-import { openProject } from '../../actions';
+import { localDateStamp } from '../../../core/time';
+import { balanceLabel, monthOf, timesheetFlags } from '../../../core/workdays';
+import { openDay, openProject, openTimeLog } from '../../actions';
 import { LabelledBlock } from '../../components/LabelledBlock';
 import { ListRow } from '../../components/ListRow';
 import { ShowMoreRow } from '../../components/ShowMoreRow';
@@ -22,8 +25,9 @@ type Item = {
 const PILL: Record<Item['tone'], string> = { watch: 'pill-watch', waiting: 'pill-outline', urgent: 'pill-urgent' };
 
 /**
- * What needs you, most pressing first: overdue and approaching deadlines,
- * then waiting tasks, then urgent ones, then tasks gone quiet. Three at a time, so a busy week
+ * What needs you, most pressing first: timesheet months that don't add up,
+ * overdue and approaching deadlines, overdue events, then waiting tasks,
+ * then urgent ones, then tasks gone quiet. Three at a time, so a busy week
  * doesn't flood the page. Hidden entirely when nothing qualifies.
  */
 export function NeedsAttention(props: { root: Root; now: Date }) {
@@ -31,6 +35,17 @@ export function NeedsAttention(props: { root: Root; now: Date }) {
   const a = attention(props.root, props.now);
 
   const items: Item[] = [
+    ...timesheetFlags(props.root, props.now).map((b) => {
+      const ahead = b.diff < 0 && b.month === monthOf(localDateStamp(props.now));
+      return {
+        key: `timesheet-${b.month}`,
+        title: `${monthName(b.month)} timesheet`,
+        sub: `${b.filled} of ${b.target} working days${ahead && b.lastDay ? ` · ends ${calendarDay(b.lastDay)}` : ''}`,
+        pill: balanceLabel(b.diff, b.month, props.now),
+        tone: 'watch' as const,
+        open: () => openTimeLog(b.month),
+      };
+    }),
     ...a.due.map(({ project, task, subtask, days }) => ({
       key: subtask?.id ?? task?.id ?? `project-${project.id}`,
       title: subtask?.title ?? task?.title ?? project.name,
@@ -38,6 +53,14 @@ export function NeedsAttention(props: { root: Root; now: Date }) {
       pill: dueDistance(days),
       tone: 'watch' as const,
       open: () => openProject(project.id, task?.id ?? null),
+    })),
+    ...a.events.map(({ entry, days }) => ({
+      key: `event-${entry.id}`,
+      title: entry.title,
+      sub: 'Event, no project',
+      pill: dueDistance(days),
+      tone: 'watch' as const,
+      open: () => openDay(entry.until ?? entry.date),
     })),
     ...a.waiting.map(({ project, task, days }) => ({
       key: task.id,

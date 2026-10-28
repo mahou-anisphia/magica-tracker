@@ -37,7 +37,7 @@ export function ObservatoryView(props: { root: Root; team: Team; now: Date }) {
         <Panel id="people-h" title="Everyone this period" highlight="obs-load" note="Each by their own period and limit.">
           <ul class="-mx-22 -mb-20 border-t border-line max-md:-mx-16">
             {all.map((p) => (
-              <PersonRow key={p.key} person={p} />
+              <PersonRow key={p.key} person={p} now={props.now} />
             ))}
           </ul>
         </Panel>

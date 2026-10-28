@@ -6,10 +6,12 @@ import { AllocationCard } from './AllocationCard';
 import { AppearanceCard } from './AppearanceCard';
 import { ProfileCard } from './ProfileCard';
 import { StorageCard } from './StorageCard';
+import { WorkdaysCard } from './WorkdaysCard';
 
-/** Settings: the theme (moved here from the top bar), allocation, your name, and storage. */
+/** Settings: the theme (moved here from the top bar), allocation, working days, your name, and storage. */
 export function SettingsView(props: {
   root: Root;
+  now: Date;
   theme: ThemeChoice;
   storage: { backend: Backend; migratedAt?: string } | null;
 }) {
@@ -20,6 +22,7 @@ export function SettingsView(props: {
         <AppearanceCard choice={props.theme} />
         <div class="grid grid-cols-1 gap-24">
           <AllocationCard root={props.root} />
+          <WorkdaysCard root={props.root} now={props.now} />
           <ProfileCard root={props.root} />
           <StorageCard storage={props.storage} />
         </div>

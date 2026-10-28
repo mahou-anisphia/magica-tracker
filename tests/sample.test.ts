@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { attention } from '../src/core/attention';
-import { allocation } from '../src/core/progress';
+import { allocation, isPastLimit } from '../src/core/progress';
 import { normalizeRoot } from '../src/core/completion';
 import { dueByDate } from '../src/core/calendar';
 import { addSample, addSampleTeam, hasSample, hasSampleTeam, isSampleId, removeSample, removeSampleTeam, sampleData } from '../src/core/sample';
 import { addMember, emptyTeam, escalations, FILE_STALE_DAYS, fileAgeDays, parseTeamText } from '../src/core/team';
+import { localDateStamp } from '../src/core/time';
 import { parseRoot } from '../src/core/validate';
+import { daysOffOn, timesheetFlags } from '../src/core/workdays';
 import { T0, project, root, task } from './fixtures';
 
 const NOW = new Date(2026, 9, 4, 10, 0, 0);
@@ -68,8 +70,8 @@ describe('sample allocation', () => {
     for (let d = 0; d < 14; d++) {
       const now = new Date(2026, 9, 5 + d, 12);
       const a = allocation(addSample(root(), now), now);
-      expect(a.total).toBeGreaterThan(100);
-      expect(a.total).toBeLessThan(a.maxLoad);
+      expect(a.total).toBeGreaterThan(a.capacity);
+      expect(a.total).toBeLessThan(a.limit);
     }
   });
 });
@@ -92,10 +94,13 @@ describe('sample teammates', () => {
   it('show every Observatory state: past limit, a flag, blocked, an old file and no file', () => {
     const withFile = team.members.filter((m) => m.snapshot);
     const past = withFile.filter((m) => {
-      const a = allocation(m.snapshot!.root, NOW);
-      return a.total > a.maxLoad;
+      return isPastLimit(allocation(m.snapshot!.root, NOW));
     });
     expect(past.map((m) => m.name)).toEqual(['Bram']);
+    const onLeave = withFile.filter((m) => daysOffOn(m.snapshot!.root, localDateStamp(NOW)).length > 0);
+    expect(onLeave.map((m) => m.name)).toEqual(['Bram']);
+    const short = withFile.filter((m) => timesheetFlags(m.snapshot!.root, NOW).length > 0);
+    expect(short.map((m) => [m.name, timesheetFlags(m.snapshot!.root, NOW).map((b) => b.diff)])).toEqual([['Dara', [-1]]]);
     expect(withFile.some((m) => escalations(m.snapshot!.root).length > 0)).toBe(true);
     expect(withFile.some((m) => attention(m.snapshot!.root, NOW).waiting.length > 0)).toBe(true);
     expect(withFile.some((m) => (fileAgeDays(m, NOW) ?? 0) > FILE_STALE_DAYS)).toBe(true);

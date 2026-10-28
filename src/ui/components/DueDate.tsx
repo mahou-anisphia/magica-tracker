@@ -1,6 +1,6 @@
 import { useId, useRef } from 'preact/hooks';
-import { dueLabel, isDueSoon } from '../../../core/due';
-import { CalendarIcon } from '../../components/icons';
+import { dueLabel, isDueSoon } from '../../core/due';
+import { CalendarIcon } from './icons';
 import { DatePicker } from './DatePicker';
 
 const CHIP =

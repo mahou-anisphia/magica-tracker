@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
-import { shortDay } from '../../../core/format';
+import { monthName, shortDay } from '../../../core/format';
+import { balanceLabel } from '../../../core/workdays';
 import { FILE_STALE_DAYS } from '../../../core/team';
 import { viewAs } from '../../actions';
 import { Avatar } from '../../components/Avatar';
@@ -16,7 +17,7 @@ function note(p: Person): string {
 }
 
 /** One person this period: their load against their own limit, what to look at, and the periods before it on request. */
-export function PersonRow(props: { person: Person }) {
+export function PersonRow(props: { person: Person; now: Date }) {
   const p = props.person;
   const d = p.data;
   const escalated = d?.escalations.length ?? 0;
@@ -35,10 +36,22 @@ export function PersonRow(props: { person: Person }) {
       <span class="grid min-w-0 grid-cols-1 gap-8 max-lg:col-span-full max-lg:row-start-2">
         {d ? <LoadMeter allocation={d.allocation} name={p.name} /> : <span class="text-13 text-faint">No data yet</span>}
         <span class="flex flex-wrap gap-6 empty:hidden">
+          {d?.offToday && (
+            <span class="pill bg-card bg-off text-ink inset-ring inset-ring-line">
+              {d.offToday.kind === 'leave' ? 'On leave today' : `${d.offToday.title} today`}
+            </span>
+          )}
           {isPastLimit(p) && <span class="pill pill-watch">Past limit</span>}
           {before >= 2 && (
             <span class="pill pill-watch">
               Past it {before} of the last {d!.history.length}
+            </span>
+          )}
+          {d && d.timesheet.length > 0 && (
+            <span class="pill pill-watch">
+              {d.timesheet.length === 1
+                ? `${monthName(d.timesheet[0]!.month)} timesheet: ${balanceLabel(d.timesheet[0]!.diff, d.timesheet[0]!.month, props.now)}`
+                : `Timesheet: ${d.timesheet.length} months off`}
             </span>
           )}
           {escalated > 0 && <span class="pill pill-high">May be escalated{escalated > 1 ? ` · ${escalated}` : ''}</span>}

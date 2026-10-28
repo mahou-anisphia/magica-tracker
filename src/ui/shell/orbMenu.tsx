@@ -1,5 +1,5 @@
 import type { JSX } from 'preact';
-import { BoardIcon, ChartIcon, GearIcon, TeamIcon, TelescopeIcon } from '../components/icons';
+import { BoardIcon, ChartIcon, GearIcon, LedgerIcon, TeamIcon, TelescopeIcon } from '../components/icons';
 import { go } from '../store';
 
 /** Something the orb can do, with the one-line explanation it shows beside it. */
@@ -23,11 +23,11 @@ export type OrbSection = {
 
 /**
  * The orb's column, top to bottom. Search sits nearest the orb, then Overview,
- * then Settings and your Allocation; the Board heads the column. 'home' and 'search' are Overview
+ * then Settings, your Allocation and the Time log; the Board heads the column. 'home' and 'search' are Overview
  * and Search; the rest are section ids. The nearest is the one open when the
  * orb opens.
  */
-export const ORB_COLUMN = ['board', 'team', 'observatory', 'allocation', 'settings', 'home', 'search'] as const;
+export const ORB_COLUMN = ['board', 'team', 'observatory', 'timelog', 'allocation', 'settings', 'home', 'search'] as const;
 
 /**
  * The orb's sections. ORB_COLUMN decides where each sits in the column.
@@ -55,6 +55,13 @@ export function orbSections(): OrbSection[] {
           title: 'Setting the allocation period',
           text: 'Weekly or fortnightly, and the most you can carry before your team sees “past limit”.',
           run: () => go('settings', { key: 'settings-alloc' }),
+        },
+        {
+          id: 'settings-workdays',
+          label: 'Working days',
+          title: 'Setting your working days',
+          text: 'When the timesheet starts, and which weekdays you work.',
+          run: () => go('settings', { key: 'settings-workdays' }),
         },
         {
           id: 'settings-profile',
@@ -91,6 +98,28 @@ export function orbSections(): OrbSection[] {
           title: 'What filled a period',
           text: 'The tasks that make up a week or fortnight, when each was done, and its share.',
           run: () => go('allocation', { key: 'alloc-detail' }),
+        },
+      ],
+    },
+    {
+      id: 'timelog',
+      label: 'Time log',
+      icon: () => <LedgerIcon size={22} />,
+      open: () => go('timelog'),
+      actions: [
+        {
+          id: 'timelog-projects',
+          label: 'Give days to projects',
+          title: 'Filling in the month',
+          text: 'Whole days to each project, until the month’s working days add up. Leave and holidays already count.',
+          run: () => go('timelog', { key: 'timelog-projects', hint: 'Use the steppers' }),
+        },
+        {
+          id: 'timelog-earlier',
+          label: 'Months that don’t add up',
+          title: 'Earlier months',
+          text: 'Every month since tracking started, and whether it balances.',
+          run: () => go('timelog', { key: 'timelog-earlier' }),
         },
       ],
     },

@@ -1,9 +1,9 @@
 import type { RefObject } from 'preact';
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { monthGrid } from '../../../core/calendar';
-import { monthHeading } from '../../../core/format';
-import { localDateStamp } from '../../../core/time';
-import { ChevronIcon } from '../../components/icons';
+import { monthGrid } from '../../core/calendar';
+import { monthHeading } from '../../core/format';
+import { localDateStamp } from '../../core/time';
+import { ChevronIcon } from './icons';
 import { placePopover, useFollowAnchor } from './placePopover';
 
 const weekdayShort = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
