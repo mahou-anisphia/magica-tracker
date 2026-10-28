@@ -64,13 +64,6 @@ export function orbSections(): OrbSection[] {
           run: () => go('settings', { key: 'settings-workdays' }),
         },
         {
-          id: 'settings-costcenters',
-          label: 'Cost centers',
-          title: 'Cost centers',
-          text: 'What timesheet days are charged to, by code or name. Projects pick theirs in More details.',
-          run: () => go('settings', { key: 'settings-costcenters', hint: 'Add one here' }),
-        },
-        {
           id: 'settings-profile',
           label: 'Your name',
           title: 'Naming yourself',
@@ -120,6 +113,13 @@ export function orbSections(): OrbSection[] {
           title: 'Filling in the month',
           text: 'Whole days to each project, until the month’s working days add up. Leave and holidays already count.',
           run: () => go('timelog', { key: 'timelog-projects', hint: 'Use the steppers' }),
+        },
+        {
+          id: 'timelog-costcenters',
+          label: 'Cost centers',
+          title: 'Cost centers',
+          text: 'What timesheet days are charged to, by code or name. Projects pick theirs in More details.',
+          run: () => go('timelog', { key: 'timelog-costcenters', hint: 'Add one here' }),
         },
         {
           id: 'timelog-earlier',

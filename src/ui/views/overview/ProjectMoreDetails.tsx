@@ -124,7 +124,7 @@ export function ProjectMoreDetails(props: { project: Project; now: Date }) {
               <button
                 type="button"
                 class="justify-self-start text-13 font-medium text-primary-ink hover:underline"
-                onClick={() => go('settings', { key: 'settings-costcenters' })}
+                onClick={() => go('timelog', { key: 'timelog-costcenters' })}
               >
                 Manage cost centers
               </button>

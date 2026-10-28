@@ -62,8 +62,8 @@ export function CostCentersCard(props: { root: Root }) {
     <Panel
       id="cost-centers-h"
       title="Cost centers"
-      highlight="settings-costcenters"
-      note="What timesheet days are charged to. A project picks one in More details, or has none; leave and holidays are never charged."
+      highlight="timelog-costcenters"
+      note="What timesheet days are charged to. A project picks one in its More details, or has none; leave and holidays are never charged."
     >
       {centers.length > 0 && (
         <ul class="-mx-22 max-md:-mx-16">

@@ -4,12 +4,11 @@ import { ViewHeader } from '../../components/ViewHeader';
 import type { ThemeChoice } from '../../themes';
 import { AllocationCard } from './AllocationCard';
 import { AppearanceCard } from './AppearanceCard';
-import { CostCentersCard } from './CostCentersCard';
 import { ProfileCard } from './ProfileCard';
 import { StorageCard } from './StorageCard';
 import { WorkdaysCard } from './WorkdaysCard';
 
-/** Settings: the theme (moved here from the top bar), allocation, working days, cost centers, your name, and storage. */
+/** Settings: the theme (moved here from the top bar), allocation, working days, your name, and storage. */
 export function SettingsView(props: {
   root: Root;
   now: Date;
@@ -24,7 +23,6 @@ export function SettingsView(props: {
         <div class="grid grid-cols-1 gap-24">
           <AllocationCard root={props.root} />
           <WorkdaysCard root={props.root} now={props.now} />
-          <CostCentersCard root={props.root} />
           <ProfileCard root={props.root} />
           <StorageCard storage={props.storage} />
         </div>
