@@ -47,7 +47,6 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
             multiline
             onSave={(d) => update((r, n) => ops.setProjectDescription(r, p.id, d, n))}
           />
-          <ProjectMoreDetails project={p} now={now} />
         </div>
         <div class="flex flex-wrap items-center gap-8">
           <button
@@ -81,6 +80,10 @@ export function ProjectView(props: { project: Project; expandedTaskId: string | 
           >
             <TrashIcon />
           </button>
+        </div>
+        {/* Its own row under the title and actions, so its tiles get the card's full width. */}
+        <div class="min-w-0 basis-full">
+          <ProjectMoreDetails project={p} now={now} />
         </div>
       </header>
 

@@ -26,6 +26,7 @@ export function ProjectMoreDetails(props: { project: Project; now: Date }) {
   const tile = (id: Tile) => ({ open: open === id, controls: editorId, onToggle: () => setOpen(open === id ? null : id) });
   const month = monthOf(localDateStamp(props.now));
   const months = [...(p.timesheet ?? [])].reverse();
+  const first = p.timesheet?.[0]?.month;
   const total = timesheetDays(p);
   const thisMonth = timesheetDays(p, month);
   const showTimesheet = isTracking(root) || months.length > 0;
@@ -34,7 +35,8 @@ export function ProjectMoreDetails(props: { project: Project; now: Date }) {
   );
   return (
     <MoreDetails summary={summary}>
-      <div class="grid grid-cols-4 gap-10 max-md:grid-cols-2">
+      {/* With the Timesheet, three tiles share the row, so "5 days in October" fits. */}
+      <div class={`grid gap-10 max-md:grid-cols-2 ${showTimesheet ? 'grid-cols-3' : 'grid-cols-4'}`}>
         <DetailTile label="Definition of done" tone={p.definitionOfDone ? 'set' : 'empty'} {...tile('done')}>
           <TileValue main={p.definitionOfDone} />
         </DetailTile>
@@ -43,11 +45,18 @@ export function ProjectMoreDetails(props: { project: Project; now: Date }) {
         </DetailTile>
         {showTimesheet && (
           <DetailTile label="Timesheet" tone={total ? 'set' : 'empty'} {...tile('timesheet')}>
-            <TileValue
-              main={total ? plural(thisMonth, 'day') : undefined}
-              sub={total ? `in ${monthName(month)} · ${total} in all` : undefined}
-              add="Give days"
-            />
+            {total && first ? (
+              <>
+                <span class="text-14 text-ink">
+                  <strong class="font-semibold">{plural(thisMonth, 'day')}</strong> in {monthName(month)}
+                </span>
+                <span class="truncate text-12 text-body">
+                  {total} since {monthName(first, 'short')}
+                </span>
+              </>
+            ) : (
+              <TileValue add="Give days" />
+            )}
           </DetailTile>
         )}
       </div>
@@ -59,7 +68,7 @@ export function ProjectMoreDetails(props: { project: Project; now: Date }) {
                 <ul class="grid grid-cols-1 gap-4 text-14 tabular-nums">
                   {months.slice(0, 6).map((t) => (
                     <li key={t.month} class="flex justify-between gap-12">
-                      <span class="text-ink">{monthName(t.month, true)}</span>
+                      <span class="text-ink">{monthName(t.month, t.month.slice(0, 4) !== month.slice(0, 4))}</span>
                       <span class="text-body">{plural(t.days, 'day')}</span>
                     </li>
                   ))}
