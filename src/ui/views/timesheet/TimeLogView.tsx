@@ -31,6 +31,8 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
   const current = monthOf(today);
   const [month, setMonth] = useState(props.month ?? current);
   const [opened, setOpened] = useState(false);
+  /** The cost center (or days off) picked in the opened bar, for the month it was picked in. */
+  const [pick, setPick] = useState<{ month: string; key: string } | null>(null);
   const { from } = workdaySettings(root);
 
   if (!from) {
@@ -60,6 +62,12 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
   const charges = chargesIn(root, month);
   const canOpen = !!root.costCenters?.length && b.filled > 0;
   const open = opened && canOpen;
+  const picked = open && pick?.month === month ? pick.key : null;
+  // A run of blocks or a card picks its cost center (opening the bar first); picking it again lets go.
+  const onPick = (key: string) => {
+    setOpened(true);
+    setPick(picked === key ? null : { month, key });
+  };
   const summary = (
     <span>
       <strong class="font-medium text-ink tabular-nums">
@@ -104,7 +112,7 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
           ]}
         />
         <div class="grid grid-cols-1 gap-8 border-t border-line bg-page-40 px-26 pt-16 pb-18 max-md:px-18">
-          <MonthBar balance={b} charges={open ? charges : undefined} />
+          <MonthBar balance={b} charges={charges} open={open} picked={picked} onPick={canOpen ? onPick : undefined} />
           <div class="flex flex-wrap justify-between gap-x-16 gap-y-4 text-13 text-body">
             {canOpen ? (
               <button
@@ -125,7 +133,7 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
             )}
             {b.lastDay && <span>{calendarDay(b.lastDay)} is the month’s last working day</span>}
           </div>
-          {open && <MonthBreakdown id="month-breakdown" balance={b} charges={charges} now={now} />}
+          {open && <MonthBreakdown id="month-breakdown" balance={b} charges={charges} now={now} picked={picked} onPick={onPick} />}
         </div>
       </div>
 
