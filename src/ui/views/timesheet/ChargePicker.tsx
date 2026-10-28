@@ -2,7 +2,7 @@ import { chargedTo, costCenterLabel, costCenterOf } from '../../../core/costCent
 import { monthName } from '../../../core/format';
 import type { Project, Root } from '../../../core/schema';
 import { chargeProject } from '../../actions';
-import { ChevronIcon } from '../../components/icons';
+import { Select } from '../../components/Select';
 
 /**
  * Where a project's days in the shown month are charged, as a quiet picker
@@ -19,23 +19,13 @@ export function ChargePicker(props: { root: Root; project: Project; month: strin
     return <span class="truncate text-12 text-body">{charged ? costCenterLabel(charged) : 'No cost center'}</span>;
   }
   return (
-    <span class="relative inline-flex max-w-full items-center gap-2 justify-self-start text-12 text-body hover:text-primary-ink">
-      <select
-        class="field-sizing-content max-w-full cursor-pointer appearance-none truncate bg-transparent pr-16 text-12 text-inherit"
-        aria-label={`Cost center for ${p.name} in ${monthName(month)}`}
-        value={charged?.id ?? ''}
-        onChange={(e) => chargeProject(p.id, month, e.currentTarget.value || undefined)}
-      >
-        <option value="">No cost center</option>
-        {centers.map((c) => (
-          <option key={c.id} value={c.id}>
-            {costCenterLabel(c)}
-          </option>
-        ))}
-      </select>
-      <span class="pointer-events-none absolute right-0 inline-flex scale-75" aria-hidden="true">
-        <ChevronIcon dir="down" />
-      </span>
-    </span>
+    <Select
+      variant="quiet"
+      class="max-w-full justify-self-start"
+      label={`Cost center for ${p.name} in ${monthName(month)}`}
+      value={charged?.id ?? ''}
+      options={[{ value: '', label: 'No cost center' }, ...centers.map((c) => ({ value: c.id, label: costCenterLabel(c) }))]}
+      onChange={(id) => chargeProject(p.id, month, id || undefined)}
+    />
   );
 }

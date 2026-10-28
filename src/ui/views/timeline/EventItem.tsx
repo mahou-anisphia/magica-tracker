@@ -6,6 +6,7 @@ import { entrySpan, itemKey, type EventDue } from '../../components/dueItem';
 import { ChevronIcon } from '../../components/icons';
 import { useLoadFormat } from '../../components/useUnit';
 import { useStore } from '../../store';
+import { Select } from '../../components/Select';
 import { EntryForm } from './EntryForm';
 
 /**
@@ -71,22 +72,17 @@ export function EventItem({ item, now, startOpen }: { item: EventDue; now: Date;
               {e.done ? 'Reopen' : 'Mark done'}
             </button>
             {projects.length > 0 && (
-              <select
-                class="min-h-30 cursor-pointer rounded-10 border border-line bg-card px-10 text-13 font-medium text-ink hover:border-accent max-lg:min-h-44 max-lg:text-16"
-                aria-label={`Move “${e.title}” into a project`}
+              <Select
+                size="small"
+                label={`Move “${e.title}” into a project`}
+                placeholder="Move to a project…"
                 value=""
-                onChange={(ev) => {
-                  const p = projects.find((x) => x.id === ev.currentTarget.value);
+                options={projects.map((p) => ({ value: p.id, label: p.name }))}
+                onChange={(id) => {
+                  const p = projects.find((x) => x.id === id);
                   if (p) moveEntryToProject(e, p);
                 }}
-              >
-                <option value="">Move to a project…</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              />
             )}
             <button type="button" class="btn btn-quiet btn-small" onClick={() => setEditing(true)}>
               Change

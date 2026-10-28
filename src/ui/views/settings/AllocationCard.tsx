@@ -4,6 +4,7 @@ import { formatLoad, HOURS_PER_WEEK } from '../../../core/units';
 import { update } from '../../store';
 import { Segmented } from '../../components/Segmented';
 import { Panel } from '../../components/Panel';
+import { Select } from '../../components/Select';
 
 /** 100% to 300%, in steps of 10. */
 const LIMITS = Array.from({ length: 21 }, (_, i) => 100 + i * 10);
@@ -54,21 +55,14 @@ export function AllocationCard(props: { root: Root }) {
         <label for="max-load" class="font-medium text-ink">
           The most I can carry
         </label>
-        <select
+        <Select
           id="max-load"
-          class="min-h-30 rounded-8 border border-line bg-card px-10 py-2 text-14 text-ink tabular-nums max-lg:min-h-44 max-lg:text-16"
-          value={a.maxLoad}
-          onChange={(e) => {
-            const maxLoad = Number(e.currentTarget.value);
-            update((r, n) => ops.setAllocationSettings(r, { maxLoad }, n));
-          }}
-        >
-          {LIMITS.map((v) => (
-            <option key={v} value={v}>
-              {a.unit === 'hours' ? `${fmt(v)} (${v}%)` : fmt(v)}
-            </option>
-          ))}
-        </select>
+          label="The most I can carry"
+          class="tabular-nums"
+          value={String(a.maxLoad)}
+          options={LIMITS.map((v) => ({ value: String(v), label: a.unit === 'hours' ? `${fmt(v)} (${v}%)` : fmt(v) }))}
+          onChange={(v) => update((r, n) => ops.setAllocationSettings(r, { maxLoad: Number(v) }, n))}
+        />
       </div>
       <p class="text-12 text-body">
         {a.unit === 'hours' ? `${fmt(100)} (${HOURS_PER_WEEK} hours a week) is` : '100% is'} a full {a.period}. Past it the bar

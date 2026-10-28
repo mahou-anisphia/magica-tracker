@@ -4,6 +4,7 @@ import type { BacklogItem, Project } from '../../../core/schema';
 import { deleteBacklogItem, promote } from '../../actions';
 import { TrashIcon } from '../../components/icons';
 import { update } from '../../store';
+import { Select } from '../../components/Select';
 import { EditableText } from './EditableText';
 import { RowAction, RowActions } from './RowActions';
 
@@ -34,18 +35,14 @@ export function BacklogRow(props: { item: BacklogItem; projects: Project[] }) {
       <div class="mt-4 flex flex-wrap items-center justify-end gap-x-10 gap-y-6">
         {targetProject && (
           <div class="mr-auto flex items-center gap-6">
-            <select
-              class="min-h-30 max-w-200 rounded-8 border border-line bg-card px-10 py-2 text-13 text-ink max-lg:min-h-44 max-lg:text-16"
-              aria-label={`Project to promote “${item.title}” into`}
+            <Select
+              label={`Project to promote “${item.title}” into`}
+              size="small"
+              class="max-w-200"
               value={targetProject.id}
-              onChange={(e) => setTarget(e.currentTarget.value)}
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              options={projects.map((p) => ({ value: p.id, label: p.name }))}
+              onChange={setTarget}
+            />
             <button type="button" class="btn btn-small" onClick={() => promote(item.id, targetProject)}>
               Promote →
             </button>

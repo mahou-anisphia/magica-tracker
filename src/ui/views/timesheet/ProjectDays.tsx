@@ -5,6 +5,7 @@ import { onTimesheet, timesheetDays, type MonthBalance } from '../../../core/wor
 import { copyTimesheetMonth, setTimesheetDays } from '../../actions';
 import { Panel } from '../../components/Panel';
 import { DayStepper } from '../../components/DayStepper';
+import { Select } from '../../components/Select';
 import { ChargePicker } from './ChargePicker';
 
 /**
@@ -69,22 +70,14 @@ export function ProjectDays(props: { root: Root; balance: MonthBalance; current:
         ))}
       </div>
       {others.length > 0 && (
-        <select
-          class="min-h-40 cursor-pointer rounded-10 border border-dashed border-line-strong bg-transparent px-12 text-14 text-body hover:border-accent hover:text-primary-ink max-lg:min-h-44 max-lg:text-16"
-          aria-label="Give days to another project"
+        <Select
+          variant="dashed"
+          label="Give days to another project"
+          placeholder="+ Other project (archived or done)"
           value=""
-          onChange={(e) => {
-            const id = e.currentTarget.value;
-            if (id) setTimesheetDays(id, month, 1);
-          }}
-        >
-          <option value="">+ Other project (archived or done)</option>
-          {others.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+          options={others.map((p) => ({ value: p.id, label: p.name }))}
+          onChange={(id) => setTimesheetDays(id, month, 1)}
+        />
       )}
     </Panel>
   );
