@@ -70,6 +70,27 @@ export function workingDaysIn(root: Root, start: string, end: string = start): n
 /** Whether a timesheet is kept: once the day it starts from is set. */
 export const isTracking = (root: Root) => !!workdaySettings(root).from;
 
+/**
+ * The month a project stopped being active: when it was marked done or
+ * archived, whichever came first. Archived without a date (before schema 6)
+ * counts as long ago; still active, undefined.
+ */
+export function endedIn(project: Project): string | undefined {
+  const months: string[] = [];
+  if (project.doneAt) months.push(monthOf(localDateStamp(new Date(project.doneAt))));
+  if (project.archived) months.push(project.archivedAt ? monthOf(localDateStamp(new Date(project.archivedAt))) : '0000-00');
+  return months.sort()[0];
+}
+
+/**
+ * Whether a project belongs on a month's timesheet: while active, through
+ * the month it was done or archived in, and in any month it has days.
+ */
+export function onTimesheet(project: Project, month: string): boolean {
+  const ended = endedIn(project);
+  return ended === undefined || ended >= month || timesheetDays(project, month) > 0;
+}
+
 /** Days given to a project in one month, or in all of them. */
 export function timesheetDays(project: Project, month?: string): number {
   return (project.timesheet ?? []).reduce((n, t) => (month === undefined || t.month === month ? n + t.days : n), 0);

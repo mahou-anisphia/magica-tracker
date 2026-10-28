@@ -11,12 +11,14 @@ import {
   deleteProject,
   moveEntryToProject,
   setEntryDone,
+  setProjectArchived,
+  setProjectDone,
   setTimesheetDays,
   setWorkdays,
   updateEntry,
 } from '../src/core/ops';
 import { allocation, isOver, isPastLimit } from '../src/core/progress';
-import { workdaySettings, type CalendarEntry } from '../src/core/schema';
+import { workdaySettings, type CalendarEntry, type Project } from '../src/core/schema';
 import { parseRoot } from '../src/core/validate';
 import { addSample, hasSample, removeSample } from '../src/core/sample';
 import {
@@ -25,6 +27,7 @@ import {
   daysOffOn,
   isoWeekday,
   monthBalance,
+  onTimesheet,
   shiftMonth,
   timesheetDays,
   timesheetFlags,
@@ -185,6 +188,21 @@ describe('timesheet', () => {
     r = setWorkdays(r, { from: '2026-09-01' }, T0);
     expect(workdaySettings(r)).toEqual({ from: '2026-09-01', weekdays: [1, 3, 5] });
     expect(workdaySettings(root())).toEqual({ weekdays: [1, 2, 3, 4, 5] });
+  });
+
+  it('lists a done or archived project through the month it ended in, then only where it has days', () => {
+    let r = root({ projects: [project('d'), project('a'), project('old', { archived: true })] });
+    r = setProjectDone(r, 'd', true, '2026-10-20T09:00:00.000Z');
+    r = setProjectArchived(r, 'a', true, '2026-09-30T09:00:00.000Z');
+    const [done, archived, old] = r.projects as [Project, Project, Project];
+    expect(archived.archivedAt).toBe('2026-09-30T09:00:00.000Z');
+    expect(['2026-09', '2026-10', '2026-11'].map((m) => onTimesheet(done, m))).toEqual([true, true, false]);
+    expect(['2026-09', '2026-10'].map((m) => onTimesheet(archived, m))).toEqual([true, false]);
+    // Archived before archiving had a date: gone, unless it has days that month.
+    expect(onTimesheet(old, '2026-10')).toBe(false);
+    expect(onTimesheet({ ...old, timesheet: [{ month: '2026-10', days: 2 }] }, '2026-10')).toBe(true);
+    // Bringing it back forgets when it was archived.
+    expect('archivedAt' in setProjectArchived(r, 'a', false, T2).projects[1]!).toBe(false);
   });
 
   it('goes with its project when the project is deleted', () => {

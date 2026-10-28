@@ -84,8 +84,12 @@ export function setProjectText(root: Root, projectId: string, key: TaskText, tex
   return mapProject(root, projectId, (p) => ({ ...withOptional(p, key, text), updatedAt: now }));
 }
 
+/** Archive a project (remembering when) or bring it back. */
 export function setProjectArchived(root: Root, projectId: string, archived: boolean, now: string): Root {
-  return mapProject(root, projectId, (p) => ({ ...p, archived, updatedAt: now }));
+  return mapProject(root, projectId, (p) => {
+    const { archivedAt: _, ...rest } = p;
+    return archived ? { ...rest, archived, archivedAt: p.archivedAt ?? now, updatedAt: now } : { ...rest, archived, updatedAt: now };
+  });
 }
 
 /** `due` is a calendar day ("2026-10-03"); empty or undefined clears it. */

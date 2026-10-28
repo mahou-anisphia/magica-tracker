@@ -31,8 +31,9 @@ import { isSafeUrl } from './url';
  * 12.5%) is kept exactly. A v4 file is a valid v5 file.
  *
  * 6 added optional fields only: `calendar` on the root (events, leave and
- * holidays, which belong to no project), `timesheet` on projects (whole days
- * given to the project per calendar month) and `workdays` in the settings
+ * holidays, which belong to no project), `timesheet` and `archivedAt` on
+ * projects (whole days given to the project per calendar month; when it was
+ * archived) and `workdays` in the settings
  * (when the timesheet starts, and which weekdays are worked). A v5 file is a
  * valid v6 file.
  */
@@ -148,6 +149,8 @@ export const ProjectSchema = v.object({
   domainId: Optional,
   description: Optional,
   archived: v.optional(v.boolean(), false),
+  /** Set when the project is archived; absent while it isn't (and on projects archived before schema 6). */
+  archivedAt: v.optional(Timestamp),
   /** Set when the project is marked done; absent while it is open. */
   doneAt: v.optional(Timestamp),
   due: DueDate,

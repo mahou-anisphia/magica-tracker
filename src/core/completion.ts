@@ -37,8 +37,11 @@ function latestDoneAt(subtasks: Subtask[]): string | undefined {
   return latest;
 }
 
+/** `archivedAt` exists only while archived. */
 export function normalizeProject(p: Project, now: string): Project {
-  return { ...p, tasks: p.tasks.map((t) => normalizeTask(t, now)) };
+  const { archivedAt, ...rest } = p;
+  const tasks = p.tasks.map((t) => normalizeTask(t, now));
+  return archivedAt && p.archived ? { ...rest, archivedAt, tasks } : { ...rest, tasks };
 }
 
 /**

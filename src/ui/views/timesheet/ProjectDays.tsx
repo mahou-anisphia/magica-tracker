@@ -1,21 +1,22 @@
 import { isProjectDone } from '../../../core/completion';
 import { byDomain } from '../../../core/domains';
 import type { Root } from '../../../core/schema';
-import { timesheetDays, type MonthBalance } from '../../../core/workdays';
+import { onTimesheet, timesheetDays, type MonthBalance } from '../../../core/workdays';
 import { copyTimesheetMonth, setTimesheetDays } from '../../actions';
 import { Panel } from '../../components/Panel';
 import { DayStepper } from './DayStepper';
 
 /**
  * Whole days to each project this month, grouped by domain. Active projects
- * are always listed, and so is any project already given days this month
- * (archived or done ones too); "Other project" brings in one more of those.
+ * are listed, a done or archived one through the month it ended in, and any
+ * project already given days this month; "Other project" brings in one more
+ * of the rest.
  */
 export function ProjectDays(props: { root: Root; balance: MonthBalance; previous: { month: string; name: string } }) {
   const { root, balance } = props;
   const { month } = balance;
   const isActive = (p: Root['projects'][number]) => !p.archived && !isProjectDone(p);
-  const shown = root.projects.filter((p) => isActive(p) || timesheetDays(p, month) > 0);
+  const shown = root.projects.filter((p) => onTimesheet(p, month));
   const others = root.projects.filter((p) => !shown.includes(p));
   const groups = byDomain(root, shown, (p) => p);
   const hadDays = root.projects.some((p) => timesheetDays(p, props.previous.month) > 0);
