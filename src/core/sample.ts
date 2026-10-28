@@ -13,7 +13,7 @@ import {
 } from './schema';
 import type { Member, Team } from './team';
 import { DAY_MS, localDateStamp } from './time';
-import { isoWeekday } from './workdays';
+import { daysOfMonth, entryDays, isoWeekday, monthOf, shiftMonth } from './workdays';
 
 /**
  * Sample data for seeing how the tracker looks when it's lived in. Every id
@@ -411,6 +411,34 @@ export function sampleData(now: Date): { domains: Domain[]; projects: Project[];
     updatedAt: ago(opts.daysAgo ?? 3),
   });
 
+  const calendar = [
+    // Days off in earlier fortnights, so the Allocation chart shows a lowered capacity.
+    entry('Harvest Moon', weekdayBefore(-30), { kind: 'holiday' }),
+    entry('Coven sync', -22, { time: '09:30', doneDaysAgo: 22 }),
+    entry('Leave', weekdayBefore(-18, 2), { kind: 'leave', days: 2 }),
+    entry('Renew the guild licence', -8, { notes: 'The form is in the top drawer.' }),
+    entry('Wand fitting', 0, { time: '16:00' }),
+    entry('Festival committee', 1, { time: '10:00', effort: 2, notes: 'Bring the lantern budget and the route map.' }),
+    entry('Herbalists’ fair', 9, { days: 2 }),
+  ];
+
+  // The timesheet: last month adds up exactly; this month is two days short.
+  const off = new Set(calendar.filter((e) => e.kind !== 'event').flatMap(entryDays));
+  const owed = (month: string) => daysOfMonth(month).filter((d) => isoWeekday(d) <= 5 && !off.has(d)).length;
+  const split = (month: string, days: number) => {
+    const shares: [Project, number][] = [[observatory, 6], [workshop, 4], [festival, 3], [grimoire, 3], [familiars, 2], [ledger, 2]];
+    const weight = shares.reduce((n, [, w]) => n + w, 0);
+    const given = shares.map(([p, w]) => [p, Math.floor((days * w) / weight)] as const);
+    const rest = days - given.reduce((n, [, d]) => n + d, 0);
+    given.forEach(([p, d], i) => {
+      const total = d + (i === 0 ? rest : 0);
+      if (total > 0) p.timesheet = [...(p.timesheet ?? []), { month, days: total }];
+    });
+  };
+  const thisMonth = monthOf(inDays(0));
+  split(shiftMonth(thisMonth, -1), owed(shiftMonth(thisMonth, -1)));
+  split(thisMonth, Math.max(0, owed(thisMonth) - 2));
+
   inDomain(sky, observatory, grimoire);
   inDomain(craft, workshop, ledger, garden, wands);
   inDomain(town, familiars, festival);
@@ -418,16 +446,7 @@ export function sampleData(now: Date): { domains: Domain[]; projects: Project[];
   return {
     domains: [sky, craft, town],
     projects: [observatory, workshop, familiars, festival, grimoire, ledger, garden, wands],
-    calendar: [
-      // Days off in earlier fortnights, so the Allocation chart shows a lowered capacity.
-      entry('Harvest Moon', weekdayBefore(-30), { kind: 'holiday' }),
-      entry('Coven sync', -22, { time: '09:30', doneDaysAgo: 22 }),
-      entry('Leave', weekdayBefore(-18, 2), { kind: 'leave', days: 2 }),
-      entry('Renew the guild licence', -8, { notes: 'The form is in the top drawer.' }),
-      entry('Wand fitting', 0, { time: '16:00' }),
-      entry('Festival committee', 1, { time: '10:00', effort: 2, notes: 'Bring the lantern budget and the route map.' }),
-      entry('Herbalists’ fair', 9, { days: 2 }),
-    ],
+    calendar,
     backlog: [
       idea('Learn to read tea leaves', { notes: 'Start with the chipped blue cup.', daysAgo: 9 }),
       idea('Enchanted irrigation for the herb garden', { suggested: workshop, daysAgo: 5 }),

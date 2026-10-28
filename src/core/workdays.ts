@@ -85,6 +85,8 @@ export type MonthBalance = {
   /** Worked weekdays taken as leave, and as holidays. */
   leave: number;
   holiday: number;
+  /** The leave and holidays behind them, with the working days each takes this month, in date order. */
+  off: { entry: CalendarEntry; days: number }[];
   /** Given plus days off. */
   filled: number;
   /** Filled minus target: below zero short, above it over. */
@@ -101,13 +103,16 @@ export function monthBalance(root: Root, month: string): MonthBalance {
   let leave = 0;
   let holiday = 0;
   let lastDay: string | undefined;
+  const taken = new Map<CalendarEntry, number>();
   for (const day of daysOfMonth(month)) {
     if (!isWorked(s, day) || (s.from && day < s.from)) continue;
     target++;
     lastDay = day;
     const e = off.get(day);
-    if (e?.kind === 'holiday') holiday++;
-    else if (e) leave++;
+    if (!e) continue;
+    if (e.kind === 'holiday') holiday++;
+    else leave++;
+    taken.set(e, (taken.get(e) ?? 0) + 1);
   }
   const projects = root.projects.flatMap((project) => {
     const days = timesheetDays(project, month);
@@ -115,7 +120,18 @@ export function monthBalance(root: Root, month: string): MonthBalance {
   });
   const given = projects.reduce((n, p) => n + p.days, 0);
   const filled = given + leave + holiday;
-  return { month, target, projects, given, leave, holiday, filled, diff: filled - target, ...(lastDay ? { lastDay } : {}) };
+  return {
+    month,
+    target,
+    projects,
+    given,
+    leave,
+    holiday,
+    off: [...taken].map(([entry, days]) => ({ entry, days })),
+    filled,
+    diff: filled - target,
+    ...(lastDay ? { lastDay } : {}),
+  };
 }
 
 /**

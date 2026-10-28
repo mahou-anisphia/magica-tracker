@@ -273,6 +273,10 @@ describe('on the calendar', () => {
     expect(withSample.calendar!.length).toBeGreaterThan(1);
     expect(hasSample(withSample)).toBe(true);
     expect(removeSample(withSample).calendar).toEqual([mine]);
+    // The sample timesheet: last month adds up, this month is two days short.
+    const tracked = setWorkdays(addSample(root(), NOW), { from: '2026-09-01' }, T0);
+    expect(monthBalance(tracked, '2026-09').diff).toBe(0);
+    expect(monthBalance(tracked, '2026-10').diff).toBe(-2);
     expect(parseRoot(JSON.parse(JSON.stringify(withSample))).ok).toBe(true);
   });
 });

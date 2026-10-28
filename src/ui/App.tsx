@@ -18,6 +18,7 @@ import { ObservatoryView } from './views/observatory/ObservatoryView';
 import { SettingsView } from './views/settings/SettingsView';
 import { TeamView } from './views/team/TeamView';
 import { TimelineView } from './views/timeline/TimelineView';
+import { TimeLogView } from './views/timesheet/TimeLogView';
 
 /** Re-render each minute so the date, deadlines and "n days ago" stay true. */
 function useNow(): Date {
@@ -115,8 +116,10 @@ export function App() {
           <BoardView root={s.root} now={now} />
         ) : mode === 'allocation' ? (
           <AllocationView root={s.root} now={now} />
+        ) : mode === 'timelog' ? (
+          <TimeLogView root={s.root} now={now} />
         ) : mode === 'settings' ? (
-          <SettingsView root={s.root} theme={s.theme} storage={s.storage} />
+          <SettingsView root={s.root} now={now} theme={s.theme} storage={s.storage} />
         ) : mode === 'team' ? (
           <TeamView root={s.root} team={s.team} teamImport={s.teamImport} now={now} />
         ) : mode === 'observatory' ? (

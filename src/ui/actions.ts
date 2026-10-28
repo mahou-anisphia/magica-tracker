@@ -57,6 +57,31 @@ export function deleteEntry(entry: CalendarEntry): void {
   updateWithUndo(`Deleted “${entry.title}”`, (r) => ops.deleteEntry(r, entry.id));
 }
 
+// ─── Timesheet and working days ──────────────────────────────────────────────
+
+export function setTimesheetDays(projectId: string, month: string, days: number): void {
+  update((r, now) => ops.setTimesheetDays(r, projectId, month, days, now));
+}
+
+/** Gives every project this month what it had in `from`, with Undo. */
+export function copyTimesheetMonth(from: string, to: string, label: string): void {
+  updateWithUndo(`Copied ${label}’s days`, (r, now) => ops.copyTimesheetMonth(r, from, to, now));
+}
+
+export function setTrackingFrom(from: string | undefined): void {
+  update((r, now) => ops.setWorkdays(r, { from: from ?? null }, now));
+}
+
+/** Weekdays are 1 (Monday) to 7 (Sunday). Working a weekend is allowed, but not without comment. */
+export function setWeekdays(weekdays: number[], before: number[]): void {
+  const weekend = weekdays.some((d) => d > 5 && !before.includes(d));
+  if (!weekend) {
+    update((r, now) => ops.setWorkdays(r, { weekdays }, now));
+    return;
+  }
+  updateWithUndo('Working weekends? We don’t do that here.', (r, now) => ops.setWorkdays(r, { weekdays }, now));
+}
+
 /** An event becomes a task in a project, and the project opens on it. */
 export function moveEntryToProject(entry: CalendarEntry, project: Project): void {
   update((r, now) => ops.moveEntryToProject(r, entry.id, project.id, now));

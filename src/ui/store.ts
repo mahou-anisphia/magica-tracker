@@ -33,7 +33,7 @@ export type Toast = { id: number; text: string; action?: { label: string; run: (
  * Which screen is showing. Overview and Timeline are the everyday views and
  * are remembered per browser; the rest are reached from the orb or the palette.
  */
-export type Mode = 'overview' | 'timeline' | 'board' | 'allocation' | 'settings' | 'team' | 'observatory' | 'member';
+export type Mode = 'overview' | 'timeline' | 'board' | 'allocation' | 'timelog' | 'settings' | 'team' | 'observatory' | 'member';
 
 /**
  * A part of a screen to point at for a moment, after an orb or palette action
@@ -113,9 +113,13 @@ export function set(patch: Partial<State>): void {
 
 export function useStore(): State {
   const [, force] = useReducer((n: number) => n + 1, 0);
+  const rendered = state;
   useEffect(() => {
     const l = () => force(undefined);
     listeners.add(l);
+    // Effects run after paint: anything set before now (the data loading
+    // quickly, say) had no listener to hear it, so catch up once.
+    if (state !== rendered) l();
     return () => void listeners.delete(l);
   }, []);
   return state;

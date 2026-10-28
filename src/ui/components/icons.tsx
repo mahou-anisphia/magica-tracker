@@ -68,6 +68,15 @@ export function PlusIcon(props: { size?: number }) {
   );
 }
 
+export function MinusIcon(props: { size?: number }) {
+  const s = props.size ?? 14;
+  return (
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <path d="M3 8h10" stroke-linecap="round" />
+    </svg>
+  );
+}
+
 export function CheckIcon(props: { size?: number }) {
   const s = props.size ?? 14;
   return (
@@ -177,6 +186,11 @@ export function BoardIcon(props: { size?: number }) {
 /** Allocation over time: columns on a baseline. */
 export function ChartIcon(props: { size?: number }) {
   return <Line size={props.size} d="M2.5 13.5h11M4.5 11.5v-4M8 11.5v-8M11.5 11.5V6" />;
+}
+
+/** The Time log: a ledger page, days tallied on it. */
+export function LedgerIcon(props: { size?: number }) {
+  return <Line size={props.size} d="M3.5 2.5h9v11h-9zM6 5.5h4M6 8h4M6 10.5h2.5" />;
 }
 
 /** The brand mark: a small glowing orb. */
