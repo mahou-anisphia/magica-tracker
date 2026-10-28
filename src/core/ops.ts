@@ -766,6 +766,26 @@ export function setProjectCostCenter(root: Root, projectId: string, costCenterId
   });
 }
 
+/**
+ * Re-charges one month's days to another cost center (undefined: none), as a
+ * correction: only that month moves, and the project keeps its own cost
+ * center. A month without days, or an unknown cost center, changes nothing.
+ */
+export function setTimesheetCharge(root: Root, projectId: string, month: string, costCenterId: string | undefined, now: string): Root {
+  if (costCenterId !== undefined && !root.costCenters?.some((c) => c.id === costCenterId)) return root;
+  const entry = root.projects.find((p) => p.id === projectId)?.timesheet?.find((t) => t.month === month);
+  if (!entry || entry.costCenterId === costCenterId) return root;
+  return mapProject(root, projectId, (p) => ({
+    ...p,
+    timesheet: p.timesheet!.map((t) => {
+      if (t.month !== month) return t;
+      const { costCenterId: _, ...rest } = t;
+      return costCenterId ? { ...rest, costCenterId } : rest;
+    }),
+    updatedAt: now,
+  }));
+}
+
 // ─── Owner and settings ──────────────────────────────────────────────────────
 
 /** Your name on your exports. The id stays the same across renames; empty removes it. */

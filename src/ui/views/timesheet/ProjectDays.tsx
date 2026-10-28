@@ -1,19 +1,20 @@
 import { isProjectDone } from '../../../core/completion';
-import { chargedTo, costCenterLabel, costCenterOf } from '../../../core/costCenters';
 import { byDomain } from '../../../core/domains';
 import type { Root } from '../../../core/schema';
 import { onTimesheet, timesheetDays, type MonthBalance } from '../../../core/workdays';
 import { copyTimesheetMonth, setTimesheetDays } from '../../actions';
 import { Panel } from '../../components/Panel';
-import { DayStepper } from './DayStepper';
+import { DayStepper } from '../../components/DayStepper';
+import { ChargePicker } from './ChargePicker';
 
 /**
  * Whole days to each project this month, grouped by domain. Active projects
  * are listed, a done or archived one through the month it ended in, and any
  * project already given days this month; "Other project" brings in one more
- * of the rest.
+ * of the rest. Once there are cost centers, each row picks where its days
+ * are charged.
  */
-export function ProjectDays(props: { root: Root; balance: MonthBalance; previous: { month: string; name: string } }) {
+export function ProjectDays(props: { root: Root; balance: MonthBalance; current: string; previous: { month: string; name: string } }) {
   const { root, balance } = props;
   const { month } = balance;
   const isActive = (p: Root['projects'][number]) => !p.archived && !isProjectDone(p);
@@ -22,12 +23,6 @@ export function ProjectDays(props: { root: Root; balance: MonthBalance; previous
   const groups = byDomain(root, shown, (p) => p);
   const hadDays = root.projects.some((p) => timesheetDays(p, props.previous.month) > 0);
   const hasCenters = !!root.costCenters?.length;
-  // Where this month's days are charged (they keep it if the project changes later), or where new days would go.
-  const centerOf = (p: Root['projects'][number]) => {
-    const entry = p.timesheet?.find((t) => t.month === month);
-    const c = entry ? chargedTo(root, entry) : costCenterOf(root, p);
-    return c ? costCenterLabel(c) : 'No cost center';
-  };
 
   return (
     <Panel
@@ -63,11 +58,8 @@ export function ProjectDays(props: { root: Root; balance: MonthBalance; previous
                     <span class="truncate font-medium text-ink" title={p.name}>
                       {p.name}
                     </span>
-                    {(!isActive(p) || hasCenters) && (
-                      <span class="truncate text-12 text-body">
-                        {[!isActive(p) && (p.archived ? 'Archived' : 'Done'), hasCenters && centerOf(p)].filter(Boolean).join(' · ')}
-                      </span>
-                    )}
+                    {!isActive(p) && <span class="text-12 text-body">{p.archived ? 'Archived' : 'Done'}</span>}
+                    {hasCenters && <ChargePicker root={root} project={p} month={month} current={props.current} />}
                   </span>
                   <DayStepper name={p.name} days={timesheetDays(p, month)} onChange={(d) => setTimesheetDays(p.id, month, d)} />
                 </li>

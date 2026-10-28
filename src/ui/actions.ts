@@ -107,6 +107,17 @@ export function setProjectCostCenter(projectId: string, costCenterId: string | u
   update((r, now) => ops.setProjectCostCenter(r, projectId, costCenterId, now));
 }
 
+/**
+ * Charges a project's days in `month` to a cost center, as picked on the Time
+ * log: from this month on that is the project's cost center (later months
+ * follow); for a month already over it re-charges that month alone.
+ */
+export function chargeProject(projectId: string, month: string, costCenterId: string | undefined): void {
+  const current = localDateStamp(new Date()).slice(0, 7);
+  if (month >= current) update((r, now) => ops.setProjectCostCenter(r, projectId, costCenterId, now));
+  else update((r, now) => ops.setTimesheetCharge(r, projectId, month, costCenterId, now));
+}
+
 /** Deletes a cost center; when projects or charged days use it, asks first. Undo for a few seconds. */
 export async function deleteCostCenter(c: CostCenter): Promise<void> {
   const { projects } = getState().root;

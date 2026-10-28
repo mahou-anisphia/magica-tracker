@@ -8,8 +8,7 @@ import { ChevronIcon } from '../../components/icons';
 import { Panel } from '../../components/Panel';
 import { ViewHeader } from '../../components/ViewHeader';
 import { go } from '../../store';
-import { ByCostCenter } from './ByCostCenter';
-import { CostCentersCard } from './CostCentersCard';
+import { CostCenters } from './CostCenters';
 import { DaysOff } from './DaysOff';
 import { EarlierMonths } from './EarlierMonths';
 import { MonthBar } from './MonthBar';
@@ -44,8 +43,8 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
             Set the start date
           </button>
         </Panel>
-        <div class="mt-24">
-          <CostCentersCard root={root} />
+        <div class="mt-24 max-w-560">
+          <CostCenters root={root} month={current} daysOff={0} />
         </div>
       </>
     );
@@ -104,12 +103,9 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
       </div>
 
       <div class="grid grid-cols-[minmax(0,1fr)_340px] items-start gap-24 max-lg:grid-cols-1">
+        <ProjectDays root={root} balance={b} current={current} previous={{ month: previous, name: monthName(previous) }} />
         <div class="grid grid-cols-1 gap-24">
-          <ProjectDays root={root} balance={b} previous={{ month: previous, name: monthName(previous) }} />
-          <CostCentersCard root={root} />
-        </div>
-        <div class="grid grid-cols-1 gap-24">
-          {!!root.costCenters?.length && <ByCostCenter root={root} balance={b} />}
+          <CostCenters root={root} month={month} daysOff={b.leave + b.holiday} />
           <DaysOff balance={b} addOn={month === current ? today : `${month}-01`} />
           <EarlierMonths root={root} months={earlier} shown={month} since={calendarDay(from)} onPick={setMonth} />
         </div>

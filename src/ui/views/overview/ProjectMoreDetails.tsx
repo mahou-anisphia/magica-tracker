@@ -5,7 +5,8 @@ import * as ops from '../../../core/ops';
 import type { Project, TimesheetMonth } from '../../../core/schema';
 import { localDateStamp } from '../../../core/time';
 import { isTracking, monthOf, timesheetDays } from '../../../core/workdays';
-import { openTimeLog, setProjectCostCenter } from '../../actions';
+import { openTimeLog, setProjectCostCenter, setTimesheetDays } from '../../actions';
+import { DayStepper } from '../../components/DayStepper';
 import { go, update, useStore } from '../../store';
 import { DetailField } from './DetailField';
 import { DetailTile } from './DetailTile';
@@ -20,8 +21,8 @@ const COLUMNS: Record<number, string> = { 2: 'grid-cols-4', 3: 'grid-cols-3', 4:
 /**
  * A project's definition of done and related people, folded away as tiles;
  * once a timesheet is kept (or the project has days on it), the days it was
- * given, this month's and in all; and, once there are cost centers, the one
- * its days are charged to.
+ * given, this month's (set right there) and in all; and, once there are cost
+ * centers, the one its days are charged to.
  */
 export function ProjectMoreDetails(props: { project: Project; now: Date }) {
   const p = props.project;
@@ -31,6 +32,8 @@ export function ProjectMoreDetails(props: { project: Project; now: Date }) {
   const tile = (id: Tile) => ({ open: open === id, controls: editorId, onToggle: () => setOpen(open === id ? null : id) });
   const month = monthOf(localDateStamp(props.now));
   const months = [...(p.timesheet ?? [])].reverse();
+  /** Every month but this one (it has its own stepper), newest first. */
+  const earlier = months.filter((t) => t.month !== month);
   const first = p.timesheet?.[0]?.month;
   const total = timesheetDays(p);
   const thisMonth = timesheetDays(p, month);
@@ -84,9 +87,13 @@ export function ProjectMoreDetails(props: { project: Project; now: Date }) {
         <div id={editorId} class="grid grid-cols-1 gap-10 rounded-12 border border-line bg-card px-14 py-12">
           {open === 'timesheet' ? (
             <>
-              {months.length > 0 ? (
-                <ul class="grid grid-cols-1 gap-4 text-14 tabular-nums">
-                  {months.slice(0, 6).map((t) => (
+              <div class="flex flex-wrap items-center justify-between gap-12">
+                <span class="text-14 font-medium text-ink">{monthName(month)}</span>
+                <DayStepper name={p.name} days={thisMonth} onChange={(d) => setTimesheetDays(p.id, month, d)} />
+              </div>
+              {earlier.length > 0 ? (
+                <ul class="grid grid-cols-1 gap-4 border-t border-line pt-10 text-14 tabular-nums">
+                  {earlier.slice(0, 6).map((t) => (
                     <li key={t.month} class="flex justify-between gap-12">
                       <span class="text-ink">{monthName(t.month, t.month.slice(0, 4) !== month.slice(0, 4))}</span>
                       <span class="text-body">
@@ -97,10 +104,10 @@ export function ProjectMoreDetails(props: { project: Project; now: Date }) {
                   ))}
                 </ul>
               ) : (
-                <p class="text-14 text-body">No days given to this project yet.</p>
+                !thisMonth && <p class="text-14 text-body">No days given to this project yet.</p>
               )}
               <button type="button" class="justify-self-start text-13 font-medium text-primary-ink hover:underline" onClick={() => openTimeLog(month)}>
-                Change on the Time log
+                Open the Time log
               </button>
             </>
           ) : open === 'center' ? (

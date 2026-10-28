@@ -7,6 +7,7 @@ import {
   createCostCenter,
   deleteCostCenter,
   setProjectCostCenter,
+  setTimesheetCharge,
   setTimesheetDays,
   updateCostCenter,
 } from '../src/core/ops';
@@ -98,6 +99,20 @@ describe('cost centers', () => {
       ['2026-09', 'a'],
       ['2026-10', 'b'],
     ]);
+  });
+
+  it('re-charge one month as a correction, leaving the project and its other months alone', () => {
+    let r = setProjectCostCenter(withCenters(), 'p', 'a', '2026-09-10T09:00:00.000Z');
+    r = setTimesheetDays(setTimesheetDays(r, 'p', '2026-09', 4, T0), 'p', '2026-10', 3, OCT);
+    r = setTimesheetCharge(r, 'p', '2026-09', 'b', OCT);
+    expect(r.projects[0]!.timesheet!.map((t) => [t.month, t.costCenterId])).toEqual([
+      ['2026-09', 'b'],
+      ['2026-10', 'a'],
+    ]);
+    expect(r.projects[0]!.costCenterId).toBe('a');
+    expect(setTimesheetCharge(r, 'p', '2026-08', 'b', OCT)).toBe(r);
+    expect(setTimesheetCharge(r, 'p', '2026-09', 'nope', OCT)).toBe(r);
+    expect(setTimesheetCharge(r, 'p', '2026-09', undefined, OCT).projects[0]!.timesheet![0]).toEqual({ month: '2026-09', days: 4 });
   });
 
   it('add up a month by cost center, most days first, charged to none last', () => {

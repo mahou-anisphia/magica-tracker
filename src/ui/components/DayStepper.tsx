@@ -1,5 +1,5 @@
-import { plural } from '../../../core/format';
-import { MinusIcon, PlusIcon } from '../../components/icons';
+import { plural } from '../../core/format';
+import { MinusIcon, PlusIcon } from './icons';
 
 /** Whole days for one project: − and + around the count ("5 days", or a dash for none). */
 export function DayStepper(props: { name: string; days: number; onChange: (days: number) => void }) {
