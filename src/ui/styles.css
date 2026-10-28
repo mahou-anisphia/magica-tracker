@@ -86,6 +86,11 @@
   /* One-off mixes. */
   --color-primary-pressed: color-mix(in srgb, var(--color-accent) 30%, var(--color-primary-tint)); /* pressed toggle border */
   --color-accent-line: color-mix(in srgb, var(--color-accent) 45%, var(--color-line)); /* open form border */
+  /* The Time log's month bar, opened by cost center: shades of the bar's own colour, one per cost center (repeating past three). */
+  --color-charge-1: color-mix(in srgb, var(--color-primary-strong) 72%, var(--color-ink));
+  --color-charge-2: var(--color-primary-strong);
+  --color-charge-3: color-mix(in srgb, var(--color-primary-strong) 52%, var(--color-card));
+  --color-off-mark: color-mix(in srgb, var(--color-accent) 55%, var(--color-card)); /* days off in the month bar */
 
   /* Plain CSS defaults to ease; Tailwind's would be ease-in-out. */
   --default-transition-timing-function: ease;
@@ -109,6 +114,7 @@
 
   --radius-*: initial;
   --radius-2: 2px;
+  --radius-4: 4px; /* the Time log's day blocks */
   --radius-7: 7px;
   --radius-8: 8px;
   --radius-9: 9px;
@@ -187,6 +193,11 @@
  */
 @utility bg-off {
   background-image: repeating-linear-gradient(135deg, var(--color-chip-70) 0 5px, transparent 5px 11px);
+}
+
+/* The same stripes in the accent, for days off among the Time log's month blocks. */
+@utility bg-off-mark {
+  background-image: repeating-linear-gradient(135deg, var(--color-off-mark) 0 4px, transparent 4px 8px);
 }
 
 /* ─── Element defaults ──────────────────────────────────────────────────── */

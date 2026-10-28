@@ -134,6 +134,7 @@ and nothing else.
    | `primary-tint` | pale fill: selected, high priority, pressed |
    | `accent` | focus ring, focused and hovered borders |
    | `watch`, `watch-mark`, `watch-tint`, `watch-ink` | worth watching (the theme's highlight): fill, small marks, pill/banner fill, text on that fill |
+   | `charge-1`…`charge-3`, `off-mark` | the Time log's month bar opened: a shade per cost center (they repeat), days off (with `bg-off-mark` stripes) |
    | `shadow`, `scrim` | shadow colour; behind dialogs |
 
    `primary` and `primary-ink` differ on purpose: pale primaries (Euphie,
