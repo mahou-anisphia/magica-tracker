@@ -3,7 +3,7 @@ import { domainOf } from '../../core/domains';
 import { shortDay } from '../../core/format';
 import type { Root } from '../../core/schema';
 import type { Team } from '../../core/team';
-import { exportNow, openProject, viewAs } from '../actions';
+import { exportNow, openProject, startAddingEntry, viewAs } from '../actions';
 import { SearchIcon } from '../components/icons';
 import { getState, go, set, setTheme } from '../store';
 import { THEMES } from '../themes';
@@ -16,7 +16,7 @@ type Entry = { group: string; label: string; hint: string; run: () => void };
 function entries(root: Root, team: Team): Entry[] {
   const out: Entry[] = [
     { group: 'Places', label: 'Overview', hint: 'Your tracker', run: () => go('overview') },
-    { group: 'Places', label: 'Timeline', hint: 'Deadlines by month', run: () => go('timeline') },
+    { group: 'Places', label: 'Timeline', hint: 'Deadlines, events and days off by month', run: () => go('timeline') },
   ];
   for (const s of orbSections()) {
     out.push({ group: 'Places', label: s.label, hint: s.actions.map((a) => a.label).join(', '), run: s.open });
@@ -24,6 +24,7 @@ function entries(root: Root, team: Team): Entry[] {
   for (const s of orbSections()) {
     for (const a of s.actions) out.push({ group: 'Actions', label: a.label, hint: s.label, run: a.run });
   }
+  out.push({ group: 'Actions', label: 'Add to the calendar', hint: 'An event, leave or a holiday, on the Timeline', run: () => startAddingEntry() });
   out.push({ group: 'Actions', label: 'Export', hint: 'Download a backup file', run: exportNow });
   for (const t of THEMES) {
     out.push({

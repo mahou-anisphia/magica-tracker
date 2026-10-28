@@ -62,6 +62,8 @@ export type State = {
   capture: boolean;
   /** The day open in the Timeline's side panel, as "2026-10-04". */
   day: string | null;
+  /** Whether that panel opens with its "Add to this day" form showing. */
+  adding: boolean;
   importState: ImportState | null;
   highlight: Highlight | null;
   /** The ⌘K / Ctrl+K search palette. */
@@ -89,6 +91,7 @@ let state: State = {
   confirm: null,
   capture: false,
   day: null,
+  adding: false,
   importState: null,
   highlight: null,
   palette: false,
@@ -204,7 +207,7 @@ export async function init(): Promise<void> {
 /** Switch screens. Overview and Timeline are remembered per browser. */
 export function setMode(mode: Mode): void {
   if (mode === state.mode) return;
-  set({ mode, drawerOpen: false, day: null });
+  set({ mode, drawerOpen: false, day: null, adding: false });
   if (mode === 'overview' || mode === 'timeline') writeMode(mode);
 }
 

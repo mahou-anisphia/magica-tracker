@@ -124,7 +124,7 @@ export function App() {
         ) : member ? (
           <MemberView key={member.id} member={member} now={now} />
         ) : mode === 'timeline' ? (
-          <TimelineView root={s.root} now={now} day={s.day} />
+          <TimelineView root={s.root} now={now} day={s.day} adding={s.adding} />
         ) : (
           <OverviewView
             root={s.root}

@@ -52,7 +52,20 @@ export function daysOff(root: Root): Map<string, CalendarEntry> {
   return out;
 }
 
+/** The leave and holidays on one day: usually none, or one. */
+export function daysOffOn(root: Root, day: string): CalendarEntry[] {
+  return (root.calendar ?? []).filter((e) => e.kind !== 'event' && day >= e.date && day <= (e.until ?? e.date));
+}
+
 const isWorked = (s: WorkdaySettings, day: string) => s.weekdays.includes(isoWeekday(day));
+
+/** Worked weekdays from `start` to `end`, inclusive: what a stretch of leave takes off. */
+export function workingDaysIn(root: Root, start: string, end: string = start): number {
+  const s = workdaySettings(root);
+  let n = 0;
+  for (let d = dayNumber(start); d <= dayNumber(end); d++) if (isWorked(s, stampOf(d))) n++;
+  return n;
+}
 
 /** Whether a timesheet is kept: once the day it starts from is set. */
 export const isTracking = (root: Root) => !!workdaySettings(root).from;

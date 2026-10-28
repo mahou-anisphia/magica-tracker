@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { dueByDate } from '../../../core/calendar';
+import { daysOffOn } from '../../../core/workdays';
 import { dayHeading } from '../../../core/format';
 import { allocationSettings } from '../../../core/schema';
 import type { Member } from '../../../core/team';
@@ -38,6 +39,7 @@ export function MemberView(props: { member: Member; now: Date }) {
           <MemberDayPanel
             date={day}
             items={day ? (dueByDate(root, now).get(day) ?? []) : []}
+            off={day ? daysOffOn(root, day) : []}
             name={member.name}
             now={now}
             period={allocationSettings(root).period}

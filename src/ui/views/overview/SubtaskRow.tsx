@@ -4,7 +4,7 @@ import type { Project, Subtask, Task } from '../../../core/schema';
 import { CrossIcon, PencilIcon } from '../../components/icons';
 import { update, updateWithUndo } from '../../store';
 import { controlledCheck } from './controlledCheck';
-import { DueDate } from './DueDate';
+import { DueDate } from '../../components/DueDate';
 import { InlineInput } from './InlineInput';
 import { RowAction, RowActions } from './RowActions';
 

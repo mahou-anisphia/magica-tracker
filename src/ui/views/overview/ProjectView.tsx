@@ -7,7 +7,7 @@ import { addTask, deleteProject, setArchived, setProjectDone } from '../../actio
 import { ArchiveIcon, CheckIcon, TrashIcon } from '../../components/icons';
 import { update } from '../../store';
 import { AddInput } from './AddInput';
-import { DueDate } from './DueDate';
+import { DueDate } from '../../components/DueDate';
 import { EditableText } from './EditableText';
 import { PaneSection } from './PaneSection';
 import { ProjectMoreDetails } from './ProjectMoreDetails';

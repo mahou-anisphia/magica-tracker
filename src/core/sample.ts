@@ -1,6 +1,19 @@
-import { SCHEMA_VERSION, type AllocationSettings, type BacklogItem, type Domain, type Priority, type Project, type Resource, type Root, type Subtask, type Task } from './schema';
+import {
+  SCHEMA_VERSION,
+  type AllocationSettings,
+  type BacklogItem,
+  type CalendarEntry,
+  type Domain,
+  type Priority,
+  type Project,
+  type Resource,
+  type Root,
+  type Subtask,
+  type Task,
+} from './schema';
 import type { Member, Team } from './team';
 import { DAY_MS, localDateStamp } from './time';
+import { isoWeekday } from './workdays';
 
 /**
  * Sample data for seeing how the tracker looks when it's lived in. Every id
@@ -19,20 +32,24 @@ export function hasSample(root: Root): boolean {
   return (
     root.backlog.some((b) => isSampleId(b.id)) ||
     !!root.domains?.some((d) => isSampleId(d.id)) ||
+    !!root.calendar?.some((e) => isSampleId(e.id)) ||
     root.projects.some((p) => isSampleId(p.id) || p.tasks.some((t) => isSampleId(t.id)))
   );
 }
 
 /**
- * Remove every sample domain, project, task and backlog item; leave everything
- * else as it is. Your own projects in a sample domain stay, ungrouped.
+ * Remove every sample domain, project, task, backlog item and calendar entry;
+ * leave everything else as it is. Your own projects in a sample domain stay,
+ * ungrouped.
  */
 export function removeSample(root: Root): Root {
-  const { domains, ...rest } = root;
+  const { domains, calendar, ...rest } = root;
   const own = domains?.filter((d) => !isSampleId(d.id));
+  const ownEntries = calendar?.filter((e) => !isSampleId(e.id));
   return {
     ...rest,
     ...(own?.length ? { domains: own } : {}),
+    ...(ownEntries?.length ? { calendar: ownEntries } : {}),
     projects: root.projects
       .filter((p) => !isSampleId(p.id))
       .map((p) => {
@@ -53,6 +70,7 @@ export function addSample(root: Root, now: Date): Root {
     domains: [...(base.domains ?? []), ...sample.domains],
     projects: [...base.projects, ...sample.projects],
     backlog: [...base.backlog, ...sample.backlog],
+    calendar: [...(base.calendar ?? []), ...sample.calendar],
   };
 }
 
@@ -143,11 +161,38 @@ function makers(now: Date, scope: string) {
     resources: opts.resources ?? [],
   });
 
-  return { id, ago, inDays, sub, res, task, project };
+  /** An event (or, with `kind`, a day off) `day` days from today, lasting `days` days. */
+  const entry = (
+    title: string,
+    day: number,
+    opts: { kind?: CalendarEntry['kind']; days?: number; time?: string; effort?: number; doneDaysAgo?: number; notes?: string } = {},
+  ): CalendarEntry => ({
+    id: id('entry'),
+    kind: opts.kind ?? 'event',
+    title,
+    date: inDays(day),
+    ...(opts.days && opts.days > 1 ? { until: inDays(day + opts.days - 1) } : {}),
+    ...(opts.time ? { time: opts.time } : {}),
+    ...(opts.effort !== undefined ? { effort: opts.effort } : {}),
+    done: opts.doneDaysAgo !== undefined,
+    ...(opts.doneDaysAgo !== undefined ? { doneAt: ago(opts.doneDaysAgo) } : {}),
+    ...(opts.notes ? { notes: opts.notes } : {}),
+    createdAt: ago(20),
+    updatedAt: ago(1),
+  });
+
+  /** The latest day at or before `day` days from today on which `length` weekdays in a row start. */
+  const weekdayBefore = (day: number, length = 1) => {
+    let d = day;
+    while (isoWeekday(inDays(d)) + length - 1 > 5) d--;
+    return d;
+  };
+
+  return { id, ago, inDays, sub, res, task, project, entry, weekdayBefore };
 }
 
-export function sampleData(now: Date): { domains: Domain[]; projects: Project[]; backlog: BacklogItem[] } {
-  const { id, ago, inDays, sub, res, task, project } = makers(now, '');
+export function sampleData(now: Date): { domains: Domain[]; projects: Project[]; backlog: BacklogItem[]; calendar: CalendarEntry[] } {
+  const { id, ago, inDays, sub, res, task, project, entry, weekdayBefore } = makers(now, '');
   const domain = (name: string): Domain => ({ id: id('domain'), name, createdAt: ago(40), updatedAt: ago(40) });
   const sky = domain('Sky and archive');
   const craft = domain('Workshop');
@@ -373,6 +418,16 @@ export function sampleData(now: Date): { domains: Domain[]; projects: Project[];
   return {
     domains: [sky, craft, town],
     projects: [observatory, workshop, familiars, festival, grimoire, ledger, garden, wands],
+    calendar: [
+      // Days off in earlier fortnights, so the Allocation chart shows a lowered capacity.
+      entry('Harvest Moon', weekdayBefore(-30), { kind: 'holiday' }),
+      entry('Coven sync', -22, { time: '09:30', doneDaysAgo: 22 }),
+      entry('Leave', weekdayBefore(-18, 2), { kind: 'leave', days: 2 }),
+      entry('Renew the guild licence', -8, { notes: 'The form is in the top drawer.' }),
+      entry('Wand fitting', 0, { time: '16:00' }),
+      entry('Festival committee', 1, { time: '10:00', effort: 2, notes: 'Bring the lantern budget and the route map.' }),
+      entry('Herbalists’ fair', 9, { days: 2 }),
+    ],
     backlog: [
       idea('Learn to read tea leaves', { notes: 'Start with the chipped blue cup.', daysAgo: 9 }),
       idea('Enchanted irrigation for the herb garden', { suggested: workshop, daysAgo: 5 }),

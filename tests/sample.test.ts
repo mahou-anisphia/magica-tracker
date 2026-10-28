@@ -68,8 +68,8 @@ describe('sample allocation', () => {
     for (let d = 0; d < 14; d++) {
       const now = new Date(2026, 9, 5 + d, 12);
       const a = allocation(addSample(root(), now), now);
-      expect(a.total).toBeGreaterThan(100);
-      expect(a.total).toBeLessThan(a.maxLoad);
+      expect(a.total).toBeGreaterThan(a.capacity);
+      expect(a.total).toBeLessThan(a.limit);
     }
   });
 });

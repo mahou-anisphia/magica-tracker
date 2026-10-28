@@ -4,7 +4,8 @@ import { newId } from '../core/id';
 import { mergeRoots } from '../core/merge';
 import * as ops from '../core/ops';
 import { addSample, addSampleTeam, isSampleId, removeSample, removeSampleTeam } from '../core/sample';
-import type { Domain, Project, Status, Task } from '../core/schema';
+import type { CalendarEntry, Domain, Project, Status, Task } from '../core/schema';
+import { localDateStamp } from '../core/time';
 import * as team from '../core/team';
 import { parseRootText } from '../core/validate';
 import { writeLastExport } from '../storage/local';
@@ -28,7 +29,38 @@ export function openProject(projectId: string, taskId: string | null = null): vo
 /** Shows a day on the Timeline, with its side panel open. */
 export function openDay(date: string): void {
   setMode('timeline');
-  set({ day: date });
+  set({ day: date, adding: false });
+}
+
+/** Opens a day (today unless given) on the Timeline with "Add to this day" showing. */
+export function startAddingEntry(date: string = localDateStamp(new Date())): void {
+  setMode('timeline');
+  set({ day: date, adding: true, palette: false });
+}
+
+// ─── Calendar entries ────────────────────────────────────────────────────────
+
+export function addEntry(input: ops.EntryInput): void {
+  const id = newId();
+  update((r, now) => ops.addEntry(r, id, input, now));
+}
+
+export function saveEntry(id: string, input: ops.EntryInput): void {
+  update((r, now) => ops.updateEntry(r, id, input, now));
+}
+
+export function toggleEntry(entry: CalendarEntry): void {
+  update((r, now) => ops.setEntryDone(r, entry.id, !entry.done, now));
+}
+
+export function deleteEntry(entry: CalendarEntry): void {
+  updateWithUndo(`Deleted “${entry.title}”`, (r) => ops.deleteEntry(r, entry.id));
+}
+
+/** An event becomes a task in a project, and the project opens on it. */
+export function moveEntryToProject(entry: CalendarEntry, project: Project): void {
+  update((r, now) => ops.moveEntryToProject(r, entry.id, project.id, now));
+  toast(`Moved “${entry.title}” to ${project.name}`, { label: 'Open', run: () => openProject(project.id, entry.id) });
 }
 
 export function openBacklog(): void {

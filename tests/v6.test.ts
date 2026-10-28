@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { attention } from '../src/core/attention';
+import { dueByDate } from '../src/core/calendar';
 import { loadGroups } from '../src/core/domains';
 import { mergeRoots } from '../src/core/merge';
 import { migrate } from '../src/core/migrate';
@@ -16,7 +18,18 @@ import {
 import { allocation, isOver, isPastLimit } from '../src/core/progress';
 import { workdaySettings, type CalendarEntry } from '../src/core/schema';
 import { parseRoot } from '../src/core/validate';
-import { balanceLabel, capacityIn, isoWeekday, monthBalance, shiftMonth, timesheetDays, timesheetFlags } from '../src/core/workdays';
+import { addSample, hasSample, removeSample } from '../src/core/sample';
+import {
+  balanceLabel,
+  capacityIn,
+  daysOffOn,
+  isoWeekday,
+  monthBalance,
+  shiftMonth,
+  timesheetDays,
+  timesheetFlags,
+  workingDaysIn,
+} from '../src/core/workdays';
 import { getTask, project, root, T0, T1, T2, task } from './fixtures';
 
 function entry(id: string, extra: Partial<CalendarEntry> & Pick<CalendarEntry, 'kind' | 'date'>): CalendarEntry {
@@ -214,5 +227,52 @@ describe('allocation with events and days off', () => {
       ['project:p', 'project', 40, 1],
       ['events', 'events', 30, 2],
     ]);
+  });
+});
+
+describe('on the calendar', () => {
+  const NOW = new Date(2026, 9, 28, 12, 0, 0);
+
+  it('shows an event on each of its days, after deadlines of higher priority, timed ones in order', () => {
+    const r = root({
+      calendar: [
+        entry('late', { kind: 'event', date: '2026-10-29', time: '16:00' }),
+        entry('early', { kind: 'event', date: '2026-10-29', time: '09:00' }),
+        entry('fair', { kind: 'event', date: '2026-10-29', until: '2026-10-30' }),
+        ...OCTOBER,
+      ],
+      projects: [project('p', { tasks: [task('t', { due: '2026-10-29', priority: 'high' })] })],
+    });
+    const byDate = dueByDate(r, NOW);
+    expect(byDate.get('2026-10-29')!.map((it) => (it.kind === 'event' ? it.entry.id : it.task?.id))).toEqual(['t', 'fair', 'early', 'late']);
+    expect(byDate.get('2026-10-30')!.map((it) => it.title)).toEqual(['Entry fair']);
+    // Days off aren't items; they are marked apart.
+    expect(byDate.has('2026-10-12')).toBe(false);
+    expect(daysOffOn(r, '2026-10-23').map((e) => e.id)).toEqual(['l']);
+    expect(workingDaysIn(r, '2026-10-22', '2026-10-26')).toBe(3);
+  });
+
+  it('turns an unfinished event past its last day to the highlight and lists it in Needs attention', () => {
+    const r = root({
+      calendar: [
+        entry('late', { kind: 'event', date: '2026-10-20' }),
+        entry('done', { kind: 'event', date: '2026-10-20', done: true, doneAt: T1 }),
+        entry('running', { kind: 'event', date: '2026-10-26', until: '2026-10-29' }),
+      ],
+    });
+    expect(dueByDate(r, NOW).get('2026-10-20')!.map((it) => [it.title, it.watch])).toEqual([
+      ['Entry late', true],
+      ['Entry done', false],
+    ]);
+    expect(attention(r, NOW).events.map((x) => [x.entry.id, x.days])).toEqual([['late', -8]]);
+  });
+
+  it('wipes sample entries with the rest of the sample, keeping your own', () => {
+    const mine = entry('mine', { kind: 'leave', date: '2026-10-22' });
+    const withSample = addSample(root({ calendar: [mine] }), NOW);
+    expect(withSample.calendar!.length).toBeGreaterThan(1);
+    expect(hasSample(withSample)).toBe(true);
+    expect(removeSample(withSample).calendar).toEqual([mine]);
+    expect(parseRoot(JSON.parse(JSON.stringify(withSample))).ok).toBe(true);
   });
 });

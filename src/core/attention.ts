@@ -1,6 +1,6 @@
 import { isInProgress, isProjectDone, isWaiting } from './completion';
 import { daysUntil, isDueSoon } from './due';
-import type { Project, Root, Subtask, Task } from './schema';
+import type { CalendarEntry, Project, Root, Subtask, Task } from './schema';
 import { daysSince } from './time';
 
 /** An unfinished task untouched this many days is stale. Fixed on purpose. */
@@ -21,6 +21,8 @@ export type WaitingRef = TaskRef & { days: number };
  * own). `days` is days until due: 0 today, negative when overdue.
  */
 export type DueRef = { project: Project; task?: Task; subtask?: Subtask; days: number };
+/** An unfinished event past its last day: `days` is how many days ago that was, as a negative. */
+export type EventRef = { entry: CalendarEntry; days: number };
 
 export type Attention = {
   inProgress: TaskRef[];
@@ -28,6 +30,8 @@ export type Attention = {
   inProgressProjects: number;
   /** Unfinished projects, tasks and sub-tasks overdue, due today or due soon, most urgent first. */
   due: DueRef[];
+  /** Unfinished events past their last day, most overdue first. */
+  events: EventRef[];
   /** Waiting open tasks not already listed for a deadline, longest-waiting first. */
   waiting: WaitingRef[];
   /** Open tasks marked urgent that aren't already listed for a deadline or as waiting. */
@@ -66,13 +70,21 @@ export function attention(root: Root, now: Date): Attention {
       }
     }
   }
+  const events: EventRef[] = [];
+  for (const entry of root.calendar ?? []) {
+    if (entry.kind !== 'event' || entry.done) continue;
+    const days = daysUntil(entry.until ?? entry.date, now);
+    if (days < 0) events.push({ entry, days });
+  }
   due.sort((a, b) => a.days - b.days);
+  events.sort((a, b) => a.days - b.days);
   waiting.sort((a, b) => b.days - a.days);
   stale.sort((a, b) => b.days - a.days);
   return {
     inProgress,
     inProgressProjects: new Set(inProgress.map((r) => r.project.id)).size,
     due,
+    events,
     waiting,
     urgent,
     stale,
@@ -81,7 +93,7 @@ export function attention(root: Root, now: Date): Attention {
 
 export function isQuiet(a: Attention): boolean {
   return (
-    a.inProgress.length === 0 && a.due.length === 0 && a.waiting.length === 0 && a.urgent.length === 0 && a.stale.length === 0
+    a.inProgress.length === 0 && a.due.length === 0 && a.events.length === 0 && a.waiting.length === 0 && a.urgent.length === 0 && a.stale.length === 0
   );
 }
 

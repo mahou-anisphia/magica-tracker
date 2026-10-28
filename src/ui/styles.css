@@ -180,6 +180,15 @@
   }
 }
 
+/*
+ * A day off (leave, a holiday): soft diagonal stripes in the chip colour over
+ * whatever background the element has, so it reads as "not a working day"
+ * without looking like something to watch.
+ */
+@utility bg-off {
+  background-image: repeating-linear-gradient(135deg, var(--color-chip-70) 0 5px, transparent 5px 11px);
+}
+
 /* ─── Element defaults ──────────────────────────────────────────────────── */
 
 @layer base {

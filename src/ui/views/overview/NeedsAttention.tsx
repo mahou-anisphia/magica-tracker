@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import { attention } from '../../../core/attention';
 import { dueDistance } from '../../../core/due';
 import type { Root } from '../../../core/schema';
-import { openProject } from '../../actions';
+import { openDay, openProject } from '../../actions';
 import { LabelledBlock } from '../../components/LabelledBlock';
 import { ListRow } from '../../components/ListRow';
 import { ShowMoreRow } from '../../components/ShowMoreRow';
@@ -38,6 +38,14 @@ export function NeedsAttention(props: { root: Root; now: Date }) {
       pill: dueDistance(days),
       tone: 'watch' as const,
       open: () => openProject(project.id, task?.id ?? null),
+    })),
+    ...a.events.map(({ entry, days }) => ({
+      key: `event-${entry.id}`,
+      title: entry.title,
+      sub: 'Event, no project',
+      pill: dueDistance(days),
+      tone: 'watch' as const,
+      open: () => openDay(entry.until ?? entry.date),
     })),
     ...a.waiting.map(({ project, task, days }) => ({
       key: task.id,
