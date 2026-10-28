@@ -4,15 +4,17 @@ import type { Root } from '../../../core/schema';
 import { onTimesheet, timesheetDays, type MonthBalance } from '../../../core/workdays';
 import { copyTimesheetMonth, setTimesheetDays } from '../../actions';
 import { Panel } from '../../components/Panel';
-import { DayStepper } from './DayStepper';
+import { DayStepper } from '../../components/DayStepper';
+import { ChargePicker } from './ChargePicker';
 
 /**
  * Whole days to each project this month, grouped by domain. Active projects
  * are listed, a done or archived one through the month it ended in, and any
  * project already given days this month; "Other project" brings in one more
- * of the rest.
+ * of the rest. Once there are cost centers, each row picks where its days
+ * are charged.
  */
-export function ProjectDays(props: { root: Root; balance: MonthBalance; previous: { month: string; name: string } }) {
+export function ProjectDays(props: { root: Root; balance: MonthBalance; current: string; previous: { month: string; name: string } }) {
   const { root, balance } = props;
   const { month } = balance;
   const isActive = (p: Root['projects'][number]) => !p.archived && !isProjectDone(p);
@@ -20,6 +22,7 @@ export function ProjectDays(props: { root: Root; balance: MonthBalance; previous
   const others = root.projects.filter((p) => !shown.includes(p));
   const groups = byDomain(root, shown, (p) => p);
   const hadDays = root.projects.some((p) => timesheetDays(p, props.previous.month) > 0);
+  const hasCenters = !!root.costCenters?.length;
 
   return (
     <Panel
@@ -56,6 +59,7 @@ export function ProjectDays(props: { root: Root; balance: MonthBalance; previous
                       {p.name}
                     </span>
                     {!isActive(p) && <span class="text-12 text-body">{p.archived ? 'Archived' : 'Done'}</span>}
+                    {hasCenters && <ChargePicker root={root} project={p} month={month} current={props.current} />}
                   </span>
                   <DayStepper name={p.name} days={timesheetDays(p, month)} onChange={(d) => setTimesheetDays(p.id, month, d)} />
                 </li>

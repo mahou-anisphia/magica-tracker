@@ -36,8 +36,14 @@ import { isSafeUrl } from './url';
  * archived) and `workdays` in the settings
  * (when the timesheet starts, and which weekdays are worked). A v5 file is a
  * valid v6 file.
+ *
+ * 7 added optional fields only: `costCenters` on the root (what the finance
+ * timesheet charges days to, by code or name), `costCenterId` on projects
+ * (none: not charged to one) and on each timesheet month (the cost center
+ * those days were charged to, kept when the project's changes). A v6 file
+ * is a valid v7 file.
  */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export const ALLOCATION_PERIODS = ['week', 'fortnight'] as const;
 export type AllocationPeriod = (typeof ALLOCATION_PERIODS)[number];
@@ -140,13 +146,29 @@ export const DomainSchema = v.object({
 export const TimesheetMonthSchema = v.object({
   month: v.pipe(v.string(), v.check(isCalendarMonth)),
   days: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(31)),
+  /** The cost center these days are charged to; none, or one that no longer exists, means none. */
+  costCenterId: Optional,
 });
+
+/** What timesheet days are charged to, for finance: a code, a name, or both. */
+export const CostCenterSchema = v.pipe(
+  v.object({
+    id: Id,
+    code: Optional,
+    name: Optional,
+    createdAt: Stamp,
+    updatedAt: Stamp,
+  }),
+  v.check((c) => !!(c.code?.trim() || c.name?.trim()), 'A cost center needs a code or a name.'),
+);
 
 export const ProjectSchema = v.object({
   id: Id,
   name: Required,
   /** The domain it belongs to; none, or one that no longer exists, means ungrouped. */
   domainId: Optional,
+  /** The cost center its timesheet days are charged to from now on; none: not charged to one. */
+  costCenterId: Optional,
   description: Optional,
   archived: v.optional(v.boolean(), false),
   /** Set when the project is archived; absent while it isn't (and on projects archived before schema 6). */
@@ -234,11 +256,14 @@ export const RootSchema = v.object({
   backlog: v.optional(v.array(BacklogItemSchema), () => []),
   /** Absent until the first entry is added. */
   calendar: v.optional(v.array(CalendarEntrySchema)),
+  /** Absent until the first cost center is made. */
+  costCenters: v.optional(v.array(CostCenterSchema)),
 });
 
 export type Subtask = v.InferOutput<typeof SubtaskSchema>;
 export type Resource = v.InferOutput<typeof ResourceSchema>;
 export type Domain = v.InferOutput<typeof DomainSchema>;
+export type CostCenter = v.InferOutput<typeof CostCenterSchema>;
 export type Task = v.InferOutput<typeof TaskSchema>;
 export type Project = v.InferOutput<typeof ProjectSchema>;
 export type TimesheetMonth = v.InferOutput<typeof TimesheetMonthSchema>;

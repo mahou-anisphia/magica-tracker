@@ -1,10 +1,10 @@
 import { newId } from './id';
-import type { BacklogItem, CalendarEntry, Domain, Project, Root } from './schema';
+import type { BacklogItem, CalendarEntry, CostCenter, Domain, Project, Root } from './schema';
 import { isNewer } from './time';
 
 /**
- * Merge import (§6): add incoming domains, projects, backlog items and
- * calendar entries. On an id collision the copy with the newer `updatedAt`
+ * Merge import (§6): add incoming domains, cost centers, projects, backlog
+ * items and calendar entries. On an id collision the copy with the newer `updatedAt`
  * wins (a tie keeps the current one). Backlog items compare `updatedAt`,
  * falling back to `createdAt`. A project's timesheet comes with its copy.
  */
@@ -13,8 +13,16 @@ export function mergeRoots(current: Root, incoming: Root, makeId: () => string =
   const backlog = mergeById<BacklogItem>(current.backlog, incoming.backlog, (b) => b.updatedAt ?? b.createdAt);
   const domains = mergeById<Domain>(current.domains ?? [], incoming.domains ?? [], (d) => d.updatedAt);
   const calendar = mergeById<CalendarEntry>(current.calendar ?? [], incoming.calendar ?? [], (e) => e.updatedAt);
+  const costCenters = mergeById<CostCenter>(current.costCenters ?? [], incoming.costCenters ?? [], (c) => c.updatedAt);
   return dedupeIds(
-    { ...current, ...(domains.length ? { domains } : {}), projects, backlog, ...(calendar.length ? { calendar } : {}) },
+    {
+      ...current,
+      ...(domains.length ? { domains } : {}),
+      ...(costCenters.length ? { costCenters } : {}),
+      projects,
+      backlog,
+      ...(calendar.length ? { calendar } : {}),
+    },
     makeId,
   );
 }
@@ -51,11 +59,13 @@ export function dedupeIds(root: Root, makeId: () => string = newId): Root {
     seen.add(id);
     return { ...x, id };
   };
-  // Domains first: a project that shares a domain's id is the one renamed, so projects keep their domain.
+  // Domains and cost centers first: a project that shares one's id is the one renamed, so projects keep theirs.
   const domains = root.domains?.map(fresh);
+  const costCenters = root.costCenters?.map(fresh);
   return {
     ...root,
     ...(domains ? { domains } : {}),
+    ...(costCenters ? { costCenters } : {}),
     projects: root.projects.map((p) => {
       const project = fresh(p);
       return {

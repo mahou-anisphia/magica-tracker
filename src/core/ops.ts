@@ -1,4 +1,5 @@
 import { normalizeEntry, normalizeTask } from './completion';
+import { localDateStamp } from './time';
 import { isCalendarDate, isCalendarMonth } from './due';
 import {
   ALLOCATION_PERIODS,
@@ -10,6 +11,7 @@ import {
   type AllocationSettings,
   type BacklogItem,
   type CalendarEntry,
+  type CostCenter,
   type Domain,
   type EntryKind,
   type Priority,
@@ -681,11 +683,15 @@ export function moveEntryToProject(root: Root, id: string, projectId: string, no
 export function setTimesheetDays(root: Root, projectId: string, month: string, days: number, now: string): Root {
   if (!isCalendarMonth(month) || !Number.isInteger(days) || days < 0 || days > 31) return root;
   const project = root.projects.find((p) => p.id === projectId);
-  if (!project || (project.timesheet?.find((t) => t.month === month)?.days ?? 0) === days) return root;
+  const existing = project?.timesheet?.find((t) => t.month === month);
+  if (!project || (existing?.days ?? 0) === days) return root;
+  // New days are charged to the project's cost center; days already given keep theirs.
+  const charge = existing ? existing.costCenterId : root.costCenters?.some((c) => c.id === project.costCenterId) ? project.costCenterId : undefined;
   return mapProject(root, projectId, (p) => {
     const current = p.timesheet ?? [];
     const others = current.filter((t) => t.month !== month);
-    const timesheet: TimesheetMonth[] = days ? [...others, { month, days }].sort((a, b) => a.month.localeCompare(b.month)) : others;
+    const entry: TimesheetMonth = { month, days, ...(charge ? { costCenterId: charge } : {}) };
+    const timesheet: TimesheetMonth[] = days ? [...others, entry].sort((a, b) => a.month.localeCompare(b.month)) : others;
     const { timesheet: _, ...rest } = p;
     return timesheet.length ? { ...rest, timesheet, updatedAt: now } : { ...rest, updatedAt: now };
   });
@@ -695,6 +701,89 @@ export function setTimesheetDays(root: Root, projectId: string, month: string, d
 export function copyTimesheetMonth(root: Root, from: string, to: string, now: string): Root {
   if (!isCalendarMonth(from) || !isCalendarMonth(to) || from === to) return root;
   return root.projects.reduce((r, p) => setTimesheetDays(r, p.id, to, p.timesheet?.find((t) => t.month === from)?.days ?? 0, now), root);
+}
+
+// ─── Cost centers ────────────────────────────────────────────────────────────
+
+/** A cost center is known by a code, a name, or both; at least one. */
+export type CostCenterInput = { code?: string; name?: string };
+
+function buildCostCenter(base: Pick<CostCenter, 'id' | 'createdAt'>, input: CostCenterInput, now: string): CostCenter | null {
+  const code = clean(input.code);
+  const name = clean(input.name);
+  if (!code && !name) return null;
+  return { id: base.id, ...(code ? { code } : {}), ...(name ? { name } : {}), createdAt: base.createdAt, updatedAt: now };
+}
+
+/** A new cost center at the end of the list. Without a code or a name, nothing changes. */
+export function createCostCenter(root: Root, id: string, input: CostCenterInput, now: string): Root {
+  const costCenter = buildCostCenter({ id, createdAt: now }, input, now);
+  return costCenter ? { ...root, costCenters: [...(root.costCenters ?? []), costCenter] } : root;
+}
+
+export function updateCostCenter(root: Root, id: string, input: CostCenterInput, now: string): Root {
+  const current = root.costCenters?.find((c) => c.id === id);
+  const next = current && buildCostCenter(current, input, now);
+  if (!next) return root;
+  return { ...root, costCenters: root.costCenters!.map((c) => (c.id === id ? next : c)) };
+}
+
+/**
+ * Removes a cost center. Its projects are left without one, and days charged
+ * to it are charged to none (the UI says how many first).
+ */
+export function deleteCostCenter(root: Root, id: string, now: string): Root {
+  if (!root.costCenters?.some((c) => c.id === id)) return root;
+  return {
+    ...root,
+    costCenters: root.costCenters.filter((c) => c.id !== id),
+    projects: root.projects.map((p) => {
+      const charged = p.timesheet?.some((t) => t.costCenterId === id);
+      if (p.costCenterId !== id && !charged) return p;
+      const { costCenterId, ...rest } = p;
+      const timesheet = p.timesheet?.map(({ costCenterId: c, ...t }) => (c && c !== id ? { ...t, costCenterId: c } : t));
+      return { ...(costCenterId === id ? rest : p), ...(timesheet ? { timesheet } : {}), updatedAt: now };
+    }),
+  };
+}
+
+/**
+ * Charges a project to a cost center (undefined: none) from this month on:
+ * this month's days and any later ones move with it; earlier months keep the
+ * cost center they were charged to. An unknown cost center changes nothing.
+ */
+export function setProjectCostCenter(root: Root, projectId: string, costCenterId: string | undefined, now: string): Root {
+  if (costCenterId !== undefined && !root.costCenters?.some((c) => c.id === costCenterId)) return root;
+  const from = localDateStamp(new Date(now)).slice(0, 7);
+  return mapProject(root, projectId, (p) => {
+    if (p.costCenterId === costCenterId) return p;
+    const { costCenterId: _, ...rest } = p;
+    const timesheet = p.timesheet?.map(({ costCenterId: c, ...t }) => {
+      const charge = t.month >= from ? costCenterId : c;
+      return charge ? { ...t, costCenterId: charge } : t;
+    });
+    return { ...rest, ...(costCenterId ? { costCenterId } : {}), ...(timesheet ? { timesheet } : {}), updatedAt: now };
+  });
+}
+
+/**
+ * Re-charges one month's days to another cost center (undefined: none), as a
+ * correction: only that month moves, and the project keeps its own cost
+ * center. A month without days, or an unknown cost center, changes nothing.
+ */
+export function setTimesheetCharge(root: Root, projectId: string, month: string, costCenterId: string | undefined, now: string): Root {
+  if (costCenterId !== undefined && !root.costCenters?.some((c) => c.id === costCenterId)) return root;
+  const entry = root.projects.find((p) => p.id === projectId)?.timesheet?.find((t) => t.month === month);
+  if (!entry || entry.costCenterId === costCenterId) return root;
+  return mapProject(root, projectId, (p) => ({
+    ...p,
+    timesheet: p.timesheet!.map((t) => {
+      if (t.month !== month) return t;
+      const { costCenterId: _, ...rest } = t;
+      return costCenterId ? { ...rest, costCenterId } : rest;
+    }),
+    updatedAt: now,
+  }));
 }
 
 // ─── Owner and settings ──────────────────────────────────────────────────────

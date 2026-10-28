@@ -115,6 +115,13 @@ export function orbSections(): OrbSection[] {
           run: () => go('timelog', { key: 'timelog-projects', hint: 'Use the steppers' }),
         },
         {
+          id: 'timelog-costcenters',
+          label: 'Cost centers',
+          title: 'Cost centers',
+          text: 'What timesheet days are charged to, by code or name. Projects pick theirs in More details.',
+          run: () => go('timelog', { key: 'timelog-costcenters', hint: 'Add one here' }),
+        },
+        {
           id: 'timelog-earlier',
           label: 'Months that don’t add up',
           title: 'Earlier months',

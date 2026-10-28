@@ -18,7 +18,7 @@ import {
   updateEntry,
 } from '../src/core/ops';
 import { allocation, isOver, isPastLimit } from '../src/core/progress';
-import { workdaySettings, type CalendarEntry, type Project } from '../src/core/schema';
+import { SCHEMA_VERSION, workdaySettings, type CalendarEntry, type Project } from '../src/core/schema';
 import { parseRoot } from '../src/core/validate';
 import { addSample, hasSample, removeSample } from '../src/core/sample';
 import {
@@ -50,7 +50,7 @@ const OCTOBER = [
 describe('schema 6', () => {
   it('reads every v5 file as it is', () => {
     const v5 = { schemaVersion: 5, projects: [{ id: 'p', name: 'x' }], backlog: [] };
-    expect(migrate(v5)).toEqual({ ...v5, schemaVersion: 6 });
+    expect(migrate(v5)).toEqual({ ...v5, schemaVersion: SCHEMA_VERSION });
     expect(parseRoot(v5).ok).toBe(true);
   });
 

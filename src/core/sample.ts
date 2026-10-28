@@ -3,6 +3,7 @@ import {
   type AllocationSettings,
   type BacklogItem,
   type CalendarEntry,
+  type CostCenter,
   type Domain,
   type Priority,
   type Project,
@@ -33,29 +34,39 @@ export function hasSample(root: Root): boolean {
     root.backlog.some((b) => isSampleId(b.id)) ||
     !!root.domains?.some((d) => isSampleId(d.id)) ||
     !!root.calendar?.some((e) => isSampleId(e.id)) ||
+    !!root.costCenters?.some((c) => isSampleId(c.id)) ||
     root.projects.some((p) => isSampleId(p.id) || p.tasks.some((t) => isSampleId(t.id)))
   );
 }
 
 /**
- * Remove every sample domain, project, task, backlog item and calendar entry;
- * leave everything else as it is. Your own projects in a sample domain stay,
- * ungrouped.
+ * Remove every sample domain, cost center, project, task, backlog item and
+ * calendar entry; leave everything else as it is. Your own projects in a
+ * sample domain stay, ungrouped, and lose a sample cost center.
  */
 export function removeSample(root: Root): Root {
-  const { domains, calendar, ...rest } = root;
+  const { domains, calendar, costCenters, ...rest } = root;
   const own = domains?.filter((d) => !isSampleId(d.id));
   const ownEntries = calendar?.filter((e) => !isSampleId(e.id));
+  const ownCenters = costCenters?.filter((c) => !isSampleId(c.id));
+  const sampleCharge = (id: string | undefined) => !!id && isSampleId(id);
   return {
     ...rest,
     ...(own?.length ? { domains: own } : {}),
     ...(ownEntries?.length ? { calendar: ownEntries } : {}),
+    ...(ownCenters?.length ? { costCenters: ownCenters } : {}),
     projects: root.projects
       .filter((p) => !isSampleId(p.id))
       .map((p) => {
-        const { domainId, ...plain } = p;
-        const kept = domainId && isSampleId(domainId) ? plain : p;
-        return kept.tasks.some((t) => isSampleId(t.id)) ? { ...kept, tasks: kept.tasks.filter((t) => !isSampleId(t.id)) } : kept;
+        const { domainId, costCenterId, ...plain } = p;
+        let kept: Project = { ...plain, ...(domainId && !isSampleId(domainId) ? { domainId } : {}) };
+        if (costCenterId && !isSampleId(costCenterId)) kept = { ...kept, costCenterId };
+        if (p.timesheet?.some((t) => sampleCharge(t.costCenterId))) {
+          kept = { ...kept, timesheet: p.timesheet.map(({ costCenterId: c, ...t }) => (c && !sampleCharge(c) ? { ...t, costCenterId: c } : t)) };
+        }
+        const untouched = kept.domainId === p.domainId && kept.costCenterId === p.costCenterId && kept.timesheet === p.timesheet;
+        const base = untouched ? p : kept;
+        return base.tasks.some((t) => isSampleId(t.id)) ? { ...base, tasks: base.tasks.filter((t) => !isSampleId(t.id)) } : base;
       }),
     backlog: root.backlog.filter((b) => !isSampleId(b.id)),
   };
@@ -71,6 +82,7 @@ export function addSample(root: Root, now: Date): Root {
     projects: [...base.projects, ...sample.projects],
     backlog: [...base.backlog, ...sample.backlog],
     calendar: [...(base.calendar ?? []), ...sample.calendar],
+    costCenters: [...(base.costCenters ?? []), ...sample.costCenters],
   };
 }
 
@@ -191,7 +203,13 @@ function makers(now: Date, scope: string) {
   return { id, ago, inDays, sub, res, task, project, entry, weekdayBefore };
 }
 
-export function sampleData(now: Date): { domains: Domain[]; projects: Project[]; backlog: BacklogItem[]; calendar: CalendarEntry[] } {
+export function sampleData(now: Date): {
+  domains: Domain[];
+  projects: Project[];
+  backlog: BacklogItem[];
+  calendar: CalendarEntry[];
+  costCenters: CostCenter[];
+} {
   const { id, ago, inDays, sub, res, task, project, entry, weekdayBefore } = makers(now, '');
   const domain = (name: string): Domain => ({ id: id('domain'), name, createdAt: ago(40), updatedAt: ago(40) });
   const sky = domain('Sky and archive');
@@ -422,6 +440,22 @@ export function sampleData(now: Date): { domains: Domain[]; projects: Project[];
     entry('Herbalists’ fair', 9, { days: 2 }),
   ];
 
+  // Cost centers, apart from domains: one known only by its name, and the Familiar Registry charged to none.
+  const center = (code: string | undefined, name: string): CostCenter => ({
+    id: id('center'),
+    ...(code ? { code } : {}),
+    name,
+    createdAt: ago(40),
+    updatedAt: ago(40),
+  });
+  const research = center('CC-4120', 'Research');
+  const operations = center('CC-2210', 'Operations');
+  const grant = center(undefined, 'Lantern Festival grant');
+  const chargeTo = (c: CostCenter, ...ps: Project[]) => ps.forEach((p) => (p.costCenterId = c.id));
+  chargeTo(research, observatory, grimoire);
+  chargeTo(operations, workshop, ledger, garden);
+  chargeTo(grant, festival);
+
   // The timesheet: last month adds up exactly; this month is two days short.
   const off = new Set(calendar.filter((e) => e.kind !== 'event').flatMap(entryDays));
   const owed = (month: string) => weekdaysIn(month, off);
@@ -432,7 +466,7 @@ export function sampleData(now: Date): { domains: Domain[]; projects: Project[];
     const rest = days - given.reduce((n, [, d]) => n + d, 0);
     given.forEach(([p, d], i) => {
       const total = d + (i === 0 ? rest : 0);
-      if (total > 0) p.timesheet = [...(p.timesheet ?? []), { month, days: total }];
+      if (total > 0) p.timesheet = [...(p.timesheet ?? []), { month, days: total, ...(p.costCenterId ? { costCenterId: p.costCenterId } : {}) }];
     });
   };
   const thisMonth = monthOf(inDays(0));
@@ -447,6 +481,7 @@ export function sampleData(now: Date): { domains: Domain[]; projects: Project[];
     domains: [sky, craft, town],
     projects: [observatory, workshop, familiars, festival, grimoire, ledger, garden, wands],
     calendar,
+    costCenters: [research, operations, grant],
     backlog: [
       idea('Learn to read tea leaves', { notes: 'Start with the chipped blue cup.', daysAgo: 9 }),
       idea('Enchanted irrigation for the herb garden', { suggested: workshop, daysAgo: 5 }),

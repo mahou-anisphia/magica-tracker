@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { costCenterLabel, costCenterOf } from '../../core/costCenters';
 import { domainOf } from '../../core/domains';
 import { shortDay } from '../../core/format';
 import type { Root } from '../../core/schema';
@@ -41,7 +42,9 @@ function entries(root: Root, team: Team): Entry[] {
   for (const p of root.projects) {
     if (p.archived) continue;
     const domain = domainOf(root, p);
-    out.push({ group: 'Projects', label: p.name, hint: domain ? `Project · ${domain.name}` : 'Project', run: () => openProject(p.id) });
+    const center = costCenterOf(root, p);
+    const hint = ['Project', domain?.name, center && costCenterLabel(center)].filter(Boolean).join(' · ');
+    out.push({ group: 'Projects', label: p.name, hint, run: () => openProject(p.id) });
   }
   for (const p of root.projects) {
     if (p.archived) continue;

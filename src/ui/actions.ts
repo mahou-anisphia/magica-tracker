@@ -4,7 +4,8 @@ import { newId } from '../core/id';
 import { mergeRoots } from '../core/merge';
 import * as ops from '../core/ops';
 import { addSample, addSampleTeam, isSampleId, removeSample, removeSampleTeam } from '../core/sample';
-import type { CalendarEntry, Domain, Project, Status, Task } from '../core/schema';
+import { costCenterLabel } from '../core/costCenters';
+import type { CalendarEntry, CostCenter, Domain, Project, Status, Task } from '../core/schema';
 import { localDateStamp } from '../core/time';
 import * as team from '../core/team';
 import { parseRootText } from '../core/validate';
@@ -86,6 +87,53 @@ export function setWeekdays(weekdays: number[], before: number[]): void {
     return;
   }
   updateWithUndo('Working weekends? We don’t do that here.', (r, now) => ops.setWorkdays(r, { weekdays }, now));
+}
+
+// ─── Cost centers ────────────────────────────────────────────────────────────
+
+/** Adds a cost center (a code, a name, or both); false when it has neither. */
+export function addCostCenter(input: ops.CostCenterInput): boolean {
+  const before = getState().root;
+  update((r, now) => ops.createCostCenter(r, newId(), input, now));
+  return getState().root !== before;
+}
+
+export function saveCostCenter(id: string, input: ops.CostCenterInput): void {
+  update((r, now) => ops.updateCostCenter(r, id, input, now));
+}
+
+/** Charges a project's days to a cost center (undefined: none) from this month on. */
+export function setProjectCostCenter(projectId: string, costCenterId: string | undefined): void {
+  update((r, now) => ops.setProjectCostCenter(r, projectId, costCenterId, now));
+}
+
+/**
+ * Charges a project's days in `month` to a cost center, as picked on the Time
+ * log: from this month on that is the project's cost center (later months
+ * follow); for a month already over it re-charges that month alone.
+ */
+export function chargeProject(projectId: string, month: string, costCenterId: string | undefined): void {
+  const current = localDateStamp(new Date()).slice(0, 7);
+  if (month >= current) update((r, now) => ops.setProjectCostCenter(r, projectId, costCenterId, now));
+  else update((r, now) => ops.setTimesheetCharge(r, projectId, month, costCenterId, now));
+}
+
+/** Deletes a cost center; when projects or charged days use it, asks first. Undo for a few seconds. */
+export async function deleteCostCenter(c: CostCenter): Promise<void> {
+  const { projects } = getState().root;
+  const using = projects.filter((p) => p.costCenterId === c.id).length;
+  const charged = projects.reduce((n, p) => n + (p.timesheet ?? []).filter((t) => t.costCenterId === c.id).reduce((d, t) => d + t.days, 0), 0);
+  const label = costCenterLabel(c);
+  if (using || charged) {
+    const parts = [charged ? `${plural(charged, 'day')} charged to it will be charged to none` : '', using ? `${plural(using, 'project')} will have no cost center` : ''];
+    const ok = await confirmAction({
+      title: `Delete ${label}?`,
+      body: `${parts.filter(Boolean).join(', and ')}.`,
+      confirmLabel: 'Delete cost center',
+    });
+    if (!ok) return;
+  }
+  updateWithUndo(`Deleted ${label}`, (r, now) => ops.deleteCostCenter(r, c.id, now));
 }
 
 /** An event becomes a task in a project, and the project opens on it. */
