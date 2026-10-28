@@ -56,6 +56,7 @@ const KINDS: Record<string, Kind> = {
   domains: { noun: 'domain', nameField: 'name' },
   calendar: { noun: 'calendar entry', nameField: 'title' },
   timesheet: { noun: 'timesheet month', nameField: 'month' },
+  costCenters: { noun: 'cost center', nameField: 'code' },
 };
 
 const FIELD_NOUNS: Record<string, string> = {
@@ -131,6 +132,7 @@ function* labelledIds(root: Root): Generator<[id: string, label: string]> {
   for (const b of root.backlog) yield [b.id, `backlog item '${b.title}'`];
   for (const d of root.domains ?? []) yield [d.id, `domain '${d.name}'`];
   for (const e of root.calendar ?? []) yield [e.id, `${e.kind} '${e.title}'`];
+  for (const c of root.costCenters ?? []) yield [c.id, `cost center '${c.code ?? c.name}'`];
 }
 
 function findDuplicateId(root: Root): string | null {

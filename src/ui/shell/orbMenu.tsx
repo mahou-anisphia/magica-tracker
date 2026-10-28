@@ -64,6 +64,13 @@ export function orbSections(): OrbSection[] {
           run: () => go('settings', { key: 'settings-workdays' }),
         },
         {
+          id: 'settings-costcenters',
+          label: 'Cost centers',
+          title: 'Cost centers',
+          text: 'What timesheet days are charged to, by code or name. Projects pick theirs in More details.',
+          run: () => go('settings', { key: 'settings-costcenters', hint: 'Add one here' }),
+        },
+        {
           id: 'settings-profile',
           label: 'Your name',
           title: 'Naming yourself',
