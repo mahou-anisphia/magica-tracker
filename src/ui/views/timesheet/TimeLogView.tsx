@@ -111,8 +111,7 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
             { label: b.diff > 0 ? 'Over' : 'To go', value: Math.abs(b.diff), tone: 'gold' },
           ]}
         />
-        <div class="grid grid-cols-1 gap-8 border-t border-line bg-page-40 px-26 pt-16 pb-18 max-md:px-18">
-          <MonthBar balance={b} charges={charges} open={open} picked={picked} onPick={canOpen ? onPick : undefined} />
+        <div class="grid grid-cols-1 gap-10 border-t border-line bg-page-40 px-26 pt-14 pb-18 max-md:px-18">
           <div class="flex flex-wrap justify-between gap-x-16 gap-y-4 text-13 text-body">
             {canOpen ? (
               <button
@@ -133,6 +132,8 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
             )}
             {b.lastDay && <span>{calendarDay(b.lastDay)} is the month’s last working day</span>}
           </div>
+          {/* The line heads the bar, so it never sits against the run labels under the blocks, and stays put as it opens. */}
+          <MonthBar balance={b} charges={charges} open={open} picked={picked} onPick={canOpen ? onPick : undefined} />
           {open && <MonthBreakdown id="month-breakdown" balance={b} charges={charges} now={now} picked={picked} onPick={onPick} />}
         </div>
       </div>
