@@ -177,7 +177,8 @@ export function Orb() {
               pointer.current = 'keyboard';
             }}
           >
-            <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:justify-end max-sm:gap-4">
+            {/* Phones: a row that wraps from the top, so every circle stays on screen and the close orb keeps its corner. */}
+            <div class="flex flex-col items-center gap-12 max-sm:flex-row max-sm:flex-wrap max-sm:justify-end max-sm:gap-4">
               {column.map((c, i) => (
                 <OrbCircle
                   key={c.id}
