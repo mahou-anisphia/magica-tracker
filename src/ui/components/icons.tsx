@@ -193,6 +193,16 @@ export function LedgerIcon(props: { size?: number }) {
   return <Line size={props.size} d="M3.5 2.5h9v11h-9zM6 5.5h4M6 8h4M6 10.5h2.5" />;
 }
 
+/** Copy: one sheet over another. */
+export function CopyIcon(props: { size?: number }) {
+  return <Line size={props.size} d="M5.5 5.5h8v8h-8zM10.5 5.5v-3h-8v8h3" />;
+}
+
+/** The weekly highlight: a speech bubble with a few lines in it. */
+export function QuoteIcon(props: { size?: number }) {
+  return <Line size={props.size} d="M2.5 3h11v7.5H8L5 13v-2.5H2.5zM5 5.75h6M5 8h3.5" />;
+}
+
 /** The brand mark: a small glowing orb. */
 export function Orb() {
   return <span class="orb" aria-hidden="true" />;

@@ -5,11 +5,12 @@ import { mergeRoots } from '../core/merge';
 import * as ops from '../core/ops';
 import { addSample, addSampleTeam, isSampleId, removeSample, removeSampleTeam } from '../core/sample';
 import { costCenterLabel } from '../core/costCenters';
-import type { CalendarEntry, CostCenter, Domain, Project, Status, Task } from '../core/schema';
+import type { CalendarEntry, CostCenter, Domain, HighlightPreset, Project, Status, Task } from '../core/schema';
 import { localDateStamp } from '../core/time';
 import * as team from '../core/team';
 import { parseRootText } from '../core/validate';
 import { writeLastExport } from '../storage/local';
+import { copyText } from './clipboard';
 import { downloadText } from './download';
 import { commit, confirmAction, getState, go, set, setMode, setTeam, toast, update, updateWithUndo, type TeamImportRow } from './store';
 
@@ -153,6 +154,25 @@ export function focusShortcut(name: string): boolean {
   return !!el;
 }
 
+// ─── Weekly highlight ────────────────────────────────────────────────────────
+
+/** Copies the highlight to paste into Copilot. It stays on this device: only the clipboard sees it. */
+export async function copyHighlight(text: string): Promise<void> {
+  toast((await copyText(text)) ? 'Copied. Paste it into Copilot.' : 'Couldn’t copy. Select the preview and copy it instead.');
+}
+
+/** Saves a preset (a new one without `id`); returns its id, or null when it needs a name and a body. */
+export function savePreset(id: string | null, input: ops.PresetInput): string | null {
+  const before = getState().root;
+  const presetId = id ?? newId();
+  update((r, now) => (id ? ops.updatePreset(r, id, input, now) : ops.createPreset(r, presetId, input, now)));
+  return getState().root !== before ? presetId : null;
+}
+
+export function deletePreset(preset: HighlightPreset): void {
+  updateWithUndo(`Deleted “${preset.name}”`, (r) => ops.deletePreset(r, preset.id));
+}
+
 // ─── Projects ────────────────────────────────────────────────────────────────
 
 /** The name a domain starts with, until you give it one. */
@@ -247,6 +267,19 @@ export async function toggleTask(projectId: string, task: Task, done: boolean): 
     if (!ok) return;
   }
   update((r, now) => ops.setTaskDone(r, projectId, task.id, done, now));
+  // The weekly highlight leads with outcomes, and right after finishing is when you know it.
+  if (done && !task.outcome) toast(`Done: “${task.title}”`, { label: 'Add an outcome', run: () => openOutcome(projectId, task.id) }, 6000);
+}
+
+/** Opens a task in Overview with its outcome field focused. */
+export function openOutcome(projectId: string, taskId: string): void {
+  set({ toast: null });
+  openProject(projectId, taskId);
+  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-outcome="${CSS.escape(taskId)}"] button`)?.click()));
+}
+
+export function setTaskOutcome(projectId: string, taskId: string, outcome: string): void {
+  update((r, now) => ops.setTaskOutcome(r, projectId, taskId, outcome, now));
 }
 
 /**

@@ -5,7 +5,7 @@ import { newId } from '../../../core/id';
 import * as ops from '../../../core/ops';
 import { PRIORITIES, type Priority, type Project, type Task } from '../../../core/schema';
 import { daysSince } from '../../../core/time';
-import { deleteTask, demoteTask, toggleTask } from '../../actions';
+import { deleteTask, demoteTask, setTaskOutcome, toggleTask } from '../../actions';
 import { PencilIcon, TrashIcon, TrayIcon } from '../../components/icons';
 import { PRIORITY_LABEL, PriorityChip } from '../../components/PriorityChip';
 import { StatusChip } from '../../components/StatusChip';
@@ -136,6 +136,21 @@ export function TaskRow({ project, task, expanded, now }: Props) {
             multiline
             onSave={(notes) => update((r, n) => ops.setTaskNotes(r, project.id, task.id, notes, n))}
           />
+
+          {/* What came of it: asked for once it's done, and what the weekly highlight leads with. */}
+          {(task.done || task.outcome) && (
+            <div data-outcome={task.id} class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-10 max-lg:grid-cols-1 max-lg:gap-4">
+              <span class="text-13 font-medium text-body">Outcome</span>
+              <EditableText
+                box="m-0 min-h-36 rounded-10 border border-line bg-card px-12 py-7"
+                class="text-14 text-ink"
+                value={task.outcome ?? ''}
+                label="Outcome"
+                placeholder="What came of it, in a line"
+                onSave={(outcome) => setTaskOutcome(project.id, task.id, outcome)}
+              />
+            </div>
+          )}
 
           {task.subtasks.length > 0 && (
             <ul class="grid grid-cols-1 gap-0" aria-label="Sub-tasks">

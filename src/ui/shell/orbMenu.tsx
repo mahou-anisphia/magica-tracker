@@ -1,5 +1,5 @@
 import type { JSX } from 'preact';
-import { BoardIcon, ChartIcon, GearIcon, LedgerIcon, TeamIcon, TelescopeIcon } from '../components/icons';
+import { BoardIcon, ChartIcon, GearIcon, LedgerIcon, QuoteIcon, TeamIcon, TelescopeIcon } from '../components/icons';
 import { go } from '../store';
 
 /** Something the orb can do, with the one-line explanation it shows beside it. */
@@ -23,11 +23,11 @@ export type OrbSection = {
 
 /**
  * The orb's column, top to bottom. Search sits nearest the orb, then Overview,
- * then Settings, your Allocation and the Time log; the Board heads the column. 'home' and 'search' are Overview
+ * then Settings, your Allocation, the Time log and the weekly Highlight; the Board heads the column. 'home' and 'search' are Overview
  * and Search; the rest are section ids. The nearest is the one open when the
  * orb opens.
  */
-export const ORB_COLUMN = ['board', 'team', 'observatory', 'timelog', 'allocation', 'settings', 'home', 'search'] as const;
+export const ORB_COLUMN = ['board', 'team', 'observatory', 'highlight', 'timelog', 'allocation', 'settings', 'home', 'search'] as const;
 
 /**
  * The orb's sections. ORB_COLUMN decides where each sits in the column.
@@ -127,6 +127,35 @@ export function orbSections(): OrbSection[] {
           title: 'Earlier months',
           text: 'Every month since tracking started, and whether it balances.',
           run: () => go('timelog', { key: 'timelog-earlier' }),
+        },
+      ],
+    },
+    {
+      id: 'highlight',
+      label: 'Highlight',
+      icon: () => <QuoteIcon size={22} />,
+      open: () => go('highlight'),
+      actions: [
+        {
+          id: 'highlight-copy',
+          label: 'Last week’s highlight',
+          title: 'Writing the weekly highlight',
+          text: 'Last week’s tasks under a prompt, ready to paste into Copilot. Nothing leaves this browser.',
+          run: () => go('highlight', { key: 'highlight-copy', hint: 'Start here' }),
+        },
+        {
+          id: 'highlight-outcomes',
+          label: 'Add outcomes',
+          title: 'What came of the work',
+          text: 'A line per finished task on what it achieved, so the highlight leads with results.',
+          run: () => go('highlight', { key: 'highlight-tasks', hint: 'Fill these in' }),
+        },
+        {
+          id: 'highlight-presets',
+          label: 'Prompt presets',
+          title: 'Prompt presets',
+          text: 'Write your own prompts, and share them with teammates who import your file.',
+          run: () => go('highlight', { key: 'highlight-presets' }),
         },
       ],
     },

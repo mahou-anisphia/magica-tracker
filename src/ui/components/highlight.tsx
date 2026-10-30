@@ -17,7 +17,7 @@ export function useHighlight(key: string): { on: boolean; ring: string; hint?: s
 export function HintTag(props: { text?: string }) {
   if (!props.text) return null;
   return (
-    <span class="pointer-events-none absolute -top-12 right-16 z-10 rounded-full bg-ink px-10 py-2 text-12 font-semibold text-page">
+    <span class="pointer-events-none absolute -top-12 right-16 z-10 rounded-full whitespace-nowrap bg-ink px-10 py-2 text-12 font-semibold text-page">
       {props.text}
     </span>
   );

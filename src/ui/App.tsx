@@ -13,6 +13,7 @@ import { getState, set, setMode, useStore } from './store';
 import { AllocationView } from './views/allocation/AllocationView';
 import { OverviewView } from './views/overview/OverviewView';
 import { BoardView } from './views/board/BoardView';
+import { HighlightView } from './views/highlight/HighlightView';
 import { MemberView } from './views/member/MemberView';
 import { ObservatoryView } from './views/observatory/ObservatoryView';
 import { SettingsView } from './views/settings/SettingsView';
@@ -118,6 +119,8 @@ export function App() {
           <AllocationView root={s.root} now={now} />
         ) : mode === 'timelog' ? (
           <TimeLogView key={s.timelogMonth} root={s.root} now={now} month={s.timelogMonth} />
+        ) : mode === 'highlight' ? (
+          <HighlightView root={s.root} team={s.team} now={now} />
         ) : mode === 'settings' ? (
           <SettingsView root={s.root} now={now} theme={s.theme} storage={s.storage} />
         ) : mode === 'team' ? (

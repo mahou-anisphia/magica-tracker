@@ -54,6 +54,8 @@ src/ui/
                      is its pointer drag (mouse, long-press touch), cards step aside by transform
     allocation/      Allocation: your load by week or fortnight over time (an orb screen)
     timesheet/       the Time log: each month's working days given to projects (an orb screen)
+    highlight/       the Weekly highlight: a week's tasks under a prompt to paste into Copilot,
+                     and its presets (an orb screen); the text itself is built in core/highlight.ts
 ```
 
 ### Decisions
@@ -79,7 +81,7 @@ src/ui/
    view's folder. If it needs to, the thing belongs in `components/`.
 6. **Everyday views vs. orb screens.** Overview and Timeline are the top bar's
    switch and are remembered (`setMode`). Settings, Team, Observatory and View
-   as, the Board, Allocation and the Time log, are reached with `go(mode, highlight?)` from the orb or
+   as, the Board, Allocation, the Time log and the Weekly highlight, are reached with `go(mode, highlight?)` from the orb or
    the palette, and start with `ViewHeader` (the "Your tracker" back link, a
    title, a line) or the same pieces (the Board puts its date strip there).
    They have no top bar, and the view-switching keys (`t`, `/`) do nothing

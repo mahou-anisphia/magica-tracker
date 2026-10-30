@@ -5,6 +5,7 @@ import {
   type CalendarEntry,
   type CostCenter,
   type Domain,
+  type HighlightPreset,
   type Priority,
   type Project,
   type Resource,
@@ -123,7 +124,7 @@ function makers(now: Date, scope: string) {
       subtasks?: Subtask[];
       resources?: Resource[];
       /** The v3 fields, as given. */
-      extra?: Partial<Pick<Task, 'definitionOfDone' | 'relatedPeople' | 'waiting' | 'escalation' | 'startsOn'>>;
+      extra?: Partial<Pick<Task, 'definitionOfDone' | 'relatedPeople' | 'waiting' | 'escalation' | 'startsOn' | 'outcome'>>;
       /** Working on it with no sub-task done yet. */
       working?: boolean;
     } = {},
@@ -256,7 +257,7 @@ export function sampleData(now: Date): {
       }),
       task('Oil the dome hinges', { touched: 9 }),
       task('Sweep stardust from the dome', { doneDaysAgo: 4 }),
-      task('Fit the new eyepiece', { doneDaysAgo: 11 }),
+      task('Fit the new eyepiece', { doneDaysAgo: 11, extra: { outcome: 'Comets two magnitudes fainter now show from the dome' } }),
       task('Map the winter constellations', { doneDaysAgo: 17, due: -16, effort: 40 }),
     ],
     {
@@ -395,7 +396,7 @@ export function sampleData(now: Date): {
         extra: { escalation: { since: ago(1), by: 'Guild treasurer', why: 'Late dues go straight to the council.' } },
       }),
       task('Prepare the solstice offering', { touched: 2, due: 40, effort: 20 }),
-      task('Close the autumn books', { doneDaysAgo: 5 }),
+      task('Close the autumn books', { doneDaysAgo: 5, extra: { outcome: 'Books balanced to the copper; ready for the winter audit' } }),
       task('Audit the summer accounts', { doneDaysAgo: 45, due: -44, effort: 60 }),
     ],
     { description: 'Coins, debts and favours owed.' },
@@ -503,7 +504,7 @@ function teammateRoot(
   owner: { id: string; name: string },
   allocation: AllocationSettings,
   projects: Project[],
-  extra: { calendar?: CalendarEntry[]; trackingFrom?: string } = {},
+  extra: { calendar?: CalendarEntry[]; trackingFrom?: string; presets?: HighlightPreset[] } = {},
 ): Root {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -513,6 +514,7 @@ function teammateRoot(
     projects,
     backlog: [],
     ...(extra.calendar ? { calendar: extra.calendar } : {}),
+    ...(extra.presets ? { highlightPresets: extra.presets } : {}),
   };
 }
 
@@ -547,7 +549,7 @@ export function sampleTeam(now: Date): Member[] {
   return [
     member('alice', 'Alice', 'Optics', {
       daysAgo: 1,
-      root: ({ task, project, sub, ago }) =>
+      root: ({ id, task, project, sub, ago }) =>
         teammateRoot(now, { id: `${SAMPLE_PREFIX}owner-alice`, name: 'Alice' }, { period: 'week', maxLoad: 120, unit: 'percent' }, [
           project(
             'Moonwell lenses',
@@ -578,7 +580,13 @@ export function sampleTeam(now: Date): Member[] {
             { description: 'The new lens for the north tower.', due: 12 },
           ),
           project('Lens library', [task('Catalogue the old lenses', { touched: 6, due: 16 }), task('Clean the archive drawers', { doneDaysAgo: 9 })]),
-        ]),
+        ], {
+          // One shared, so the weekly highlight has a teammate's preset to show; one kept to herself.
+          presets: [
+            { id: id('preset'), name: 'For the council', body: 'Lead with what the council can now decide or stop worrying about. Name the project once per item.', format: 'bullets', shared: true, createdAt: ago(12), updatedAt: ago(12) },
+            { id: id('preset'), name: 'Rough notes', body: 'Just list what I finished.', format: 'bullets', shared: false, createdAt: ago(12), updatedAt: ago(12) },
+          ],
+        }),
     }),
     member('bram', 'Bram', 'Potions', {
       daysAgo: 10,
