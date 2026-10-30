@@ -61,6 +61,8 @@ export const MIGRATIONS: Record<number, Migration> = {
   5: (raw) => raw,
   /** v6 → v7. Only new optional fields (cost centers, and who a project and its months charge), so a v6 file is already a valid v7 shape. */
   6: (raw) => raw,
+  /** v7 → v8. Only new optional fields (a task's outcome, highlight presets), so a v7 file is already a valid v8 shape. */
+  7: (raw) => raw,
 };
 
 export class MigrationError extends Error {}

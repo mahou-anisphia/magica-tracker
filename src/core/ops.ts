@@ -6,6 +6,7 @@ import {
   ALLOCATION_UNITS,
   allocationSettings,
   ENTRY_KINDS,
+  HIGHLIGHT_FORMATS,
   PRIORITIES,
   workdaySettings,
   type AllocationSettings,
@@ -14,6 +15,8 @@ import {
   type CostCenter,
   type Domain,
   type EntryKind,
+  type HighlightFormat,
+  type HighlightPreset,
   type Priority,
   type Project,
   type Resource,
@@ -192,6 +195,11 @@ export type TaskText = 'definitionOfDone' | 'relatedPeople';
 
 export function setTaskText(root: Root, projectId: string, taskId: string, key: TaskText, text: string, now: string): Root {
   return mapTask(root, projectId, taskId, now, (task) => withOptional(task, key, text));
+}
+
+/** What came of a task, in a line; empty removes it. Line breaks become spaces, so it stays one line. */
+export function setTaskOutcome(root: Root, projectId: string, taskId: string, outcome: string, now: string): Root {
+  return mapTask(root, projectId, taskId, now, (task) => withOptional(task, 'outcome', outcome.replace(/\s*\n\s*/g, ' ')));
 }
 
 /**
@@ -784,6 +792,40 @@ export function setTimesheetCharge(root: Root, projectId: string, month: string,
     }),
     updatedAt: now,
   }));
+}
+
+// ─── Highlight presets ───────────────────────────────────────────────────────
+
+/** A highlight preset needs a name and a body; the format defaults to bullet points. */
+export type PresetInput = { name: string; body: string; format?: HighlightFormat; shared?: boolean };
+
+function buildPreset(base: Pick<HighlightPreset, 'id' | 'createdAt'>, input: PresetInput, now: string): HighlightPreset | null {
+  const name = clean(input.name);
+  const body = input.body.trim();
+  if (!name || !body) return null;
+  const format = input.format && HIGHLIGHT_FORMATS.includes(input.format) ? input.format : 'bullets';
+  return { id: base.id, name, body, format, shared: !!input.shared, createdAt: base.createdAt, updatedAt: now };
+}
+
+/** A new preset at the end of your list. Without a name or a body, nothing changes. */
+export function createPreset(root: Root, id: string, input: PresetInput, now: string): Root {
+  const preset = buildPreset({ id, createdAt: now }, input, now);
+  return preset ? { ...root, highlightPresets: [...(root.highlightPresets ?? []), preset] } : root;
+}
+
+export function updatePreset(root: Root, id: string, input: PresetInput, now: string): Root {
+  const current = root.highlightPresets?.find((h) => h.id === id);
+  const next = current && buildPreset(current, input, now);
+  if (!next) return root;
+  return { ...root, highlightPresets: root.highlightPresets!.map((h) => (h.id === id ? next : h)) };
+}
+
+export function deletePreset(root: Root, id: string): Root {
+  if (!root.highlightPresets?.some((h) => h.id === id)) return root;
+  const highlightPresets = root.highlightPresets.filter((h) => h.id !== id);
+  if (highlightPresets.length) return { ...root, highlightPresets };
+  const { highlightPresets: _, ...rest } = root;
+  return rest;
 }
 
 // ─── Owner and settings ──────────────────────────────────────────────────────
