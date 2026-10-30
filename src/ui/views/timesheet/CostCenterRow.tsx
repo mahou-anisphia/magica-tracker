@@ -4,6 +4,7 @@ import { plural } from '../../../core/format';
 import type { CostCenter, Project } from '../../../core/schema';
 import { deleteCostCenter, setProjectCostCenter } from '../../actions';
 import { ChevronIcon } from '../../components/icons';
+import { Select } from '../../components/Select';
 import { CostCenterForm } from './CostCenterForm';
 
 /** A project under a cost center: its days charged there this month, or none yet (null). */
@@ -59,22 +60,15 @@ export function CostCenterRow(props: { costCenter: CostCenter | null; days: numb
             </ul>
           )}
           {c && props.others.length > 0 && (
-            <select
-              class="min-h-32 cursor-pointer rounded-8 border border-dashed border-line-strong bg-transparent px-8 text-13 text-body hover:border-accent hover:text-primary-ink max-lg:min-h-44 max-lg:text-16"
-              aria-label={`Charge another project to ${costCenterLabel(c)}`}
+            <Select
+              variant="dashed"
+              size="small"
+              label={`Charge another project to ${costCenterLabel(c)}`}
+              placeholder="+ Add a project"
               value=""
-              onChange={(e) => {
-                const projectId = e.currentTarget.value;
-                if (projectId) setProjectCostCenter(projectId, c.id);
-              }}
-            >
-              <option value="">+ Add a project</option>
-              {props.others.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              options={props.others.map((p) => ({ value: p.id, label: p.name }))}
+              onChange={(projectId) => setProjectCostCenter(projectId, c.id)}
+            />
           )}
           {c && (
             <div class="flex gap-6">

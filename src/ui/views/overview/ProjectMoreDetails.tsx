@@ -7,6 +7,7 @@ import { localDateStamp } from '../../../core/time';
 import { isTracking, monthOf, timesheetDays } from '../../../core/workdays';
 import { openTimeLog, setProjectCostCenter, setTimesheetDays } from '../../actions';
 import { DayStepper } from '../../components/DayStepper';
+import { Select } from '../../components/Select';
 import { go, update, useStore } from '../../store';
 import { DetailField } from './DetailField';
 import { DetailTile } from './DetailTile';
@@ -112,21 +113,18 @@ export function ProjectMoreDetails(props: { project: Project; now: Date }) {
             </>
           ) : open === 'center' ? (
             <>
-              <label class="flex flex-wrap items-center justify-between gap-12 text-14 font-medium text-ink">
-                Charged to
-                <select
-                  class="min-h-34 min-w-0 cursor-pointer rounded-8 border border-line bg-card px-10 text-14 font-normal text-ink hover:border-accent max-lg:min-h-44 max-lg:text-16"
+              <div class="flex flex-wrap items-center justify-between gap-12">
+                <span class="text-14 font-medium text-ink" aria-hidden="true">
+                  Charged to
+                </span>
+                <Select
+                  label="Charged to"
+                  class="max-w-full"
                   value={center?.id ?? ''}
-                  onChange={(e) => setProjectCostCenter(p.id, e.currentTarget.value || undefined)}
-                >
-                  <option value="">No cost center</option>
-                  {centers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {costCenterLabel(c)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  options={[{ value: '', label: 'No cost center' }, ...centers.map((c) => ({ value: c.id, label: costCenterLabel(c) }))]}
+                  onChange={(id) => setProjectCostCenter(p.id, id || undefined)}
+                />
+              </div>
               <p class="text-12 text-body">A change charges this month and later to the new one; earlier months keep the cost center they were charged to.</p>
               <button
                 type="button"

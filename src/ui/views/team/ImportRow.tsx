@@ -4,6 +4,7 @@ import { matchMember, suggestedName, type Team } from '../../../core/team';
 import { counts } from '../../../core/validate';
 import { assignTeamFile } from '../../actions';
 import type { TeamImportRow } from '../../store';
+import { Select } from '../../components/Select';
 import { importOutcome } from './importOutcome';
 
 const TONE = { good: 'pill-high', plain: 'pill-low', warn: 'pill-watch' } as const;
@@ -28,24 +29,21 @@ export function ImportRow(props: { row: TeamImportRow; team: Team; mine: Root })
         </span>
       </span>
       {read.ok ? (
-        <label class="grid min-w-0 grid-cols-1 gap-2 text-12 text-body">
-          <span class="sr-only">Whose file is “{fileName}”?</span>
-          <select
-            class="min-h-34 w-full rounded-10 border border-line bg-card px-8 text-14 text-ink focus:border-accent focus:outline-none max-lg:min-h-44 max-lg:text-16"
+        <span class="grid min-w-0 grid-cols-1 gap-2 text-12 text-body">
+          <Select
+            label={`Whose file is “${fileName}”?`}
+            class="w-full"
+            placeholder="Choose…"
             value={row.assign}
-            onChange={(e) => assignTeamFile(row.key, e.currentTarget.value)}
-          >
-            <option value="">Choose…</option>
-            {team.members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-            <option value="new">Add “{suggestedName(read.file)}” to the team</option>
-            <option value="skip">Skip this file</option>
-          </select>
+            options={[
+              ...team.members.map((m) => ({ value: m.id, label: m.name })),
+              { value: 'new', label: `Add “${suggestedName(read.file)}” to the team` },
+              { value: 'skip', label: 'Skip this file' },
+            ]}
+            onChange={(v) => assignTeamFile(row.key, v)}
+          />
           {match && match.member.id === row.assign && <span>Matched by {match.by === 'profile' ? 'their profile' : 'the name on it'}</span>}
-        </label>
+        </span>
       ) : (
         <span class="text-14 text-faint max-md:hidden">—</span>
       )}

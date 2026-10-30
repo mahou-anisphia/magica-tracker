@@ -30,7 +30,8 @@ src/ui/
     icons.tsx  Modal.tsx  PriorityChip.tsx  AllocationBar.tsx  Avatar.tsx
     Panel.tsx  ViewHeader.tsx  BackLink.tsx  highlight.tsx
     MonthCalendar.tsx  CalendarItem.tsx  dueItem.ts   (your Timeline and View as)
-    DueDate.tsx  DatePicker.tsx  placePopover.ts  EffortInput.tsx
+    Select.tsx  (the dropdown: every choice from a list goes through it, never a native <select>)
+    DueDate.tsx  DatePicker.tsx  placePopover.ts  EffortInput.tsx  DayStepper.tsx
                      (dates and allocation: Overview, the Timeline's entry form, Settings)
     Segmented.tsx  StatusChip.tsx  GlanceNumbers.tsx  LabelledBlock.tsx
     GlanceBoard.tsx   (At a glance with its lists: the Overview and View as share it)
@@ -95,6 +96,13 @@ src/ui/
    Team changes go through `setTeam()`, which saves at once; nothing in a
    member's snapshot is ever edited. Views that show someone else's data
    take it as props and have no actions that write.
+9. **Dropdowns are `Select`.** A native `<select>` opens a list the system
+   draws, which ignores the theme, so there are none: `components/Select.tsx`
+   is a button and a themed listbox in a popover (keyboard included). Pick a
+   `variant`: `field` (bordered, like an input), `quiet` (text and a chevron,
+   under a title) or `dashed` (an "add" row; with `placeholder` and a `value`
+   that matches no option it is an action menu). Name it with `label`; don't
+   wrap it in a `<label>`, whose click would reach the open list too.
 
 ## Styling: Tailwind CSS v4
 
@@ -126,6 +134,7 @@ and nothing else.
    | `primary-tint` | pale fill: selected, high priority, pressed |
    | `accent` | focus ring, focused and hovered borders |
    | `watch`, `watch-mark`, `watch-tint`, `watch-ink` | worth watching (the theme's highlight): fill, small marks, pill/banner fill, text on that fill |
+   | `charge-1`…`charge-3`, `off-mark` | the Time log's month bar opened: a shade per cost center (they repeat), days off (with `bg-off-mark` stripes) |
    | `shadow`, `scrim` | shadow colour; behind dialogs |
 
    `primary` and `primary-ink` differ on purpose: pale primaries (Euphie,

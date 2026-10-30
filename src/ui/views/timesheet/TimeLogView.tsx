@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { calendarDay, monthName } from '../../../core/format';
+import { chargesIn } from '../../../core/costCenters';
 import { workdaySettings, type Root } from '../../../core/schema';
 import { localDateStamp } from '../../../core/time';
 import { balanceLabel, monthBalance, monthOf, shiftMonth, timesheetFlags } from '../../../core/workdays';
@@ -12,6 +13,7 @@ import { CostCenters } from './CostCenters';
 import { DaysOff } from './DaysOff';
 import { EarlierMonths } from './EarlierMonths';
 import { MonthBar } from './MonthBar';
+import { MonthBreakdown } from './MonthBreakdown';
 import { ProjectDays } from './ProjectDays';
 
 /**
@@ -28,6 +30,9 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
   const today = localDateStamp(now);
   const current = monthOf(today);
   const [month, setMonth] = useState(props.month ?? current);
+  const [opened, setOpened] = useState(false);
+  /** The cost center (or days off) picked in the opened bar, for the month it was picked in. */
+  const [pick, setPick] = useState<{ month: string; key: string } | null>(null);
   const { from } = workdaySettings(root);
 
   if (!from) {
@@ -53,6 +58,24 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
   const b = monthBalance(root, month);
   const flagged = timesheetFlags(root, now).some((f) => f.month === month);
   const status = balanceLabel(b.diff, month, now);
+  // Opens to where the days are charged, once there are cost centers and days to show.
+  const charges = chargesIn(root, month);
+  const canOpen = !!root.costCenters?.length && b.filled > 0;
+  const open = opened && canOpen;
+  const picked = open && pick?.month === month ? pick.key : null;
+  // A run of blocks or a card picks its cost center (opening the bar first); picking it again lets go.
+  const onPick = (key: string) => {
+    setOpened(true);
+    setPick(picked === key ? null : { month, key });
+  };
+  const summary = (
+    <span>
+      <strong class="font-medium text-ink tabular-nums">
+        {b.filled} of {b.target}
+      </strong>{' '}
+      · projects {b.given} + days off {b.leave + b.holiday}
+    </span>
+  );
   const previous = shiftMonth(month, -1);
   const earlier: string[] = [];
   for (let m = shiftMonth(current, -1); m >= monthOf(from); m = shiftMonth(m, -1)) earlier.push(m);
@@ -88,17 +111,30 @@ export function TimeLogView(props: { root: Root; now: Date; month: string | null
             { label: b.diff > 0 ? 'Over' : 'To go', value: Math.abs(b.diff), tone: 'gold' },
           ]}
         />
-        <div class="grid grid-cols-1 gap-8 border-t border-line bg-page-40 px-26 pt-16 pb-18 max-md:px-18">
-          <MonthBar balance={b} />
+        <div class="grid grid-cols-1 gap-10 border-t border-line bg-page-40 px-26 pt-14 pb-18 max-md:px-18">
           <div class="flex flex-wrap justify-between gap-x-16 gap-y-4 text-13 text-body">
-            <span>
-              <strong class="font-medium text-ink tabular-nums">
-                {b.filled} of {b.target}
-              </strong>{' '}
-              · projects {b.given} + days off {b.leave + b.holiday}
-            </span>
+            {canOpen ? (
+              <button
+                type="button"
+                class="group -mx-8 -my-4 inline-flex cursor-pointer items-center gap-6 rounded-8 px-8 py-4 text-left hover:bg-page-70 hover:text-primary-ink"
+                aria-expanded={open}
+                aria-controls="month-breakdown"
+                onClick={() => setOpened(!opened)}
+              >
+                {summary}
+                <span class="inline-flex transition-transform group-aria-expanded:rotate-180" aria-hidden="true">
+                  <ChevronIcon dir="down" />
+                </span>
+                <span class="sr-only">{open ? ', hide where they’re charged' : ', show where they’re charged'}</span>
+              </button>
+            ) : (
+              <span>{summary}</span>
+            )}
             {b.lastDay && <span>{calendarDay(b.lastDay)} is the month’s last working day</span>}
           </div>
+          {/* The line heads the bar, so it never sits against the run labels under the blocks, and stays put as it opens. */}
+          <MonthBar balance={b} charges={charges} open={open} picked={picked} onPick={canOpen ? onPick : undefined} />
+          {open && <MonthBreakdown id="month-breakdown" balance={b} charges={charges} now={now} picked={picked} onPick={onPick} />}
         </div>
       </div>
 

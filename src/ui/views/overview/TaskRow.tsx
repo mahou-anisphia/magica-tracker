@@ -16,6 +16,7 @@ import { controlledCheck } from './controlledCheck';
 import { DueDate } from '../../components/DueDate';
 import { EditableText } from './EditableText';
 import { EffortInput } from '../../components/EffortInput';
+import { Select } from '../../components/Select';
 import { InlineInput } from './InlineInput';
 import { Resources } from './Resources';
 import { SubtaskRow } from './SubtaskRow';
@@ -155,24 +156,15 @@ export function TaskRow({ project, task, expanded, now }: Props) {
           <Resources target={{ projectId: project.id, taskId: task.id }} resources={task.resources} />
 
           <div class="flex flex-wrap items-center gap-x-20 gap-y-8">
-            <label class="inline-flex items-center gap-8 text-13 font-medium text-body">
-              Priority
-              <select
-                class="min-h-30 rounded-8 border border-line bg-card px-10 py-2 text-14 text-ink max-lg:min-h-44 max-lg:text-16"
+            <span class="inline-flex items-center gap-8 text-13 font-medium text-body">
+              <span aria-hidden="true">Priority</span>
+              <Select
+                label="Priority"
                 value={task.priority ?? ''}
-                onChange={(e) => {
-                  const v = e.currentTarget.value as Priority | '';
-                  update((r, n) => ops.setTaskPriority(r, project.id, task.id, v || undefined, n));
-                }}
-              >
-                <option value="">None</option>
-                {PRIORITIES.slice().reverse().map((p) => (
-                  <option key={p} value={p}>
-                    {PRIORITY_LABEL[p]}
-                  </option>
-                ))}
-              </select>
-            </label>
+                options={[{ value: '', label: 'None' }, ...PRIORITIES.slice().reverse().map((p) => ({ value: p, label: PRIORITY_LABEL[p] }))]}
+                onChange={(v) => update((r, n) => ops.setTaskPriority(r, project.id, task.id, (v as Priority) || undefined, n))}
+              />
+            </span>
             <EffortInput
               value={task.effort}
               onChange={(effort) => update((r, n) => ops.setTaskEffort(r, project.id, task.id, effort, n))}
