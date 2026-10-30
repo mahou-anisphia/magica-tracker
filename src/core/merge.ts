@@ -1,10 +1,10 @@
 import { newId } from './id';
-import type { BacklogItem, CalendarEntry, CostCenter, Domain, Project, Root } from './schema';
+import type { BacklogItem, CalendarEntry, CostCenter, Domain, HighlightPreset, Project, Root } from './schema';
 import { isNewer } from './time';
 
 /**
  * Merge import (§6): add incoming domains, cost centers, projects, backlog
- * items and calendar entries. On an id collision the copy with the newer `updatedAt`
+ * items, calendar entries and highlight presets. On an id collision the copy with the newer `updatedAt`
  * wins (a tie keeps the current one). Backlog items compare `updatedAt`,
  * falling back to `createdAt`. A project's timesheet comes with its copy.
  */
@@ -14,6 +14,7 @@ export function mergeRoots(current: Root, incoming: Root, makeId: () => string =
   const domains = mergeById<Domain>(current.domains ?? [], incoming.domains ?? [], (d) => d.updatedAt);
   const calendar = mergeById<CalendarEntry>(current.calendar ?? [], incoming.calendar ?? [], (e) => e.updatedAt);
   const costCenters = mergeById<CostCenter>(current.costCenters ?? [], incoming.costCenters ?? [], (c) => c.updatedAt);
+  const highlightPresets = mergeById<HighlightPreset>(current.highlightPresets ?? [], incoming.highlightPresets ?? [], (h) => h.updatedAt);
   return dedupeIds(
     {
       ...current,
@@ -22,6 +23,7 @@ export function mergeRoots(current: Root, incoming: Root, makeId: () => string =
       projects,
       backlog,
       ...(calendar.length ? { calendar } : {}),
+      ...(highlightPresets.length ? { highlightPresets } : {}),
     },
     makeId,
   );
@@ -79,5 +81,6 @@ export function dedupeIds(root: Root, makeId: () => string = newId): Root {
     }),
     backlog: root.backlog.map(fresh),
     ...(root.calendar ? { calendar: root.calendar.map(fresh) } : {}),
+    ...(root.highlightPresets ? { highlightPresets: root.highlightPresets.map(fresh) } : {}),
   };
 }

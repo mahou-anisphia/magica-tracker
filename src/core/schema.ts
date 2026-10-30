@@ -42,8 +42,12 @@ import { isSafeUrl } from './url';
  * (none: not charged to one) and on each timesheet month (the cost center
  * those days were charged to, kept when the project's changes). A v6 file
  * is a valid v7 file.
+ *
+ * 8 added optional fields only: `outcome` on tasks (what came of it, one
+ * line) and `highlightPresets` on the root (your own prompts for the weekly
+ * highlight, some shared with the team). A v7 file is a valid v8 file.
  */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export const ALLOCATION_PERIODS = ['week', 'fortnight'] as const;
 export type AllocationPeriod = (typeof ALLOCATION_PERIODS)[number];
@@ -65,6 +69,10 @@ export type EntryKind = (typeof ENTRY_KINDS)[number];
 
 /** Weekdays as in ISO 8601: 1 is Monday, 7 is Sunday. */
 export const DEFAULT_WEEKDAYS = [1, 2, 3, 4, 5];
+
+/** How a weekly highlight is asked for: a few bullet points, or one sentence. */
+export const HIGHLIGHT_FORMATS = ['bullets', 'sentence'] as const;
+export type HighlightFormat = (typeof HIGHLIGHT_FORMATS)[number];
 
 const Id = v.optional(v.pipe(v.string(), v.nonEmpty()), newId);
 const Timestamp = v.pipe(
@@ -128,6 +136,8 @@ export const TaskSchema = v.object({
   priority: PriorityField,
   effort: Effort,
   notes: Optional,
+  /** What came of it, in a line, for the weekly highlight. Usually set once it's done. */
+  outcome: Optional,
   createdAt: Stamp,
   updatedAt: Stamp,
   subtasks: v.optional(v.array(SubtaskSchema), () => []),
@@ -219,6 +229,21 @@ export const BacklogItemSchema = v.object({
   updatedAt: v.optional(Timestamp),
 });
 
+/**
+ * A prompt for the weekly highlight, written by the file's owner. The base
+ * rules are added to every one when it's used. A shared preset shows in the
+ * picker of anyone who has this file in their team.
+ */
+export const HighlightPresetSchema = v.object({
+  id: Id,
+  name: Required,
+  body: Required,
+  format: v.optional(v.picklist(HIGHLIGHT_FORMATS), 'bullets'),
+  shared: v.optional(v.boolean(), false),
+  createdAt: Stamp,
+  updatedAt: Stamp,
+});
+
 /** Who this file belongs to, so a team leader can match it to a member. */
 const Owner = v.optional(v.object({ id: v.pipe(v.string(), v.nonEmpty()), name: Required }));
 
@@ -258,6 +283,8 @@ export const RootSchema = v.object({
   calendar: v.optional(v.array(CalendarEntrySchema)),
   /** Absent until the first cost center is made. */
   costCenters: v.optional(v.array(CostCenterSchema)),
+  /** Absent until the first preset is saved. */
+  highlightPresets: v.optional(v.array(HighlightPresetSchema)),
 });
 
 export type Subtask = v.InferOutput<typeof SubtaskSchema>;
@@ -269,6 +296,7 @@ export type Project = v.InferOutput<typeof ProjectSchema>;
 export type TimesheetMonth = v.InferOutput<typeof TimesheetMonthSchema>;
 export type CalendarEntry = v.InferOutput<typeof CalendarEntrySchema>;
 export type BacklogItem = v.InferOutput<typeof BacklogItemSchema>;
+export type HighlightPreset = v.InferOutput<typeof HighlightPresetSchema>;
 export type Root = v.InferOutput<typeof RootSchema>;
 export type Owner = NonNullable<Root['owner']>;
 export type AllocationSettings = { period: AllocationPeriod; maxLoad: number; unit: AllocationUnit };
