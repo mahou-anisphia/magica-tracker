@@ -5,8 +5,8 @@ import {
   DEFAULT_MAX_ITEMS,
   DEFAULT_PRESET,
   highlightItems,
-  lastWeek,
   presetChoices,
+  thisWeek,
   type DateRange,
 } from '../../../core/highlight';
 import type { Root } from '../../../core/schema';
@@ -21,14 +21,14 @@ import { RangeStrip } from './RangeStrip';
 
 /**
  * The weekly highlight: a prompt and a range's tasks as one text to paste into
- * the company's Copilot. It opens on last Monday to Sunday with the Standard
+ * the company's Copilot. It opens on this week so far (Monday to today) with the Standard
  * preset, so Copy is ready straight away. The prompt's body can be changed for
  * one export without touching its preset; presets are kept in the panel under
  * the preview, with your teammates' shared ones beside yours.
  */
 export function HighlightView(props: { root: Root; team: Team; now: Date }) {
   const { root, team, now } = props;
-  const [range, setRange] = useState<DateRange>(() => lastWeek(now));
+  const [range, setRange] = useState<DateRange>(() => thisWeek(now));
   const choices = presetChoices(root, team);
   const [presetKey, setPresetKey] = useState(DEFAULT_PRESET);
   // A deleted preset (or a teammate's file that dropped it) falls back to Standard.

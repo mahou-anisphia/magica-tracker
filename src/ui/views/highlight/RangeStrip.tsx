@@ -1,4 +1,4 @@
-import { lastWeek, rangeLabel, shiftRange, type DateRange } from '../../../core/highlight';
+import { rangeLabel, thisWeek, weekOf, type DateRange } from '../../../core/highlight';
 import { localDateStamp } from '../../../core/time';
 import { copyHighlight } from '../../actions';
 import { HintTag, useHighlight } from '../../components/highlight';
@@ -11,9 +11,9 @@ import { RangeDate } from './RangeDate';
  */
 export function RangeStrip(props: { range: DateRange; now: Date; text: string; onChange: (range: DateRange) => void }) {
   const { range, now } = props;
-  const last = lastWeek(now);
-  const isLast = range.from === last.from && range.to === last.to;
-  const next = shiftRange(range, 1);
+  const current = thisWeek(now);
+  const isCurrent = range.from === current.from && range.to === current.to;
+  const next = weekOf(range.from, 1, now);
   const copy = useHighlight('highlight-copy');
   // Two days in either order make a range.
   const setDay = (day: string, end: 'from' | 'to') => {
@@ -24,7 +24,7 @@ export function RangeStrip(props: { range: DateRange; now: Date; text: string; o
   return (
     <div class="mb-24 flex flex-wrap items-center gap-x-16 gap-y-10">
       <div class="flex items-center gap-4">
-        <button type="button" class="icon-btn min-h-(--tap) min-w-(--tap)" aria-label="A week earlier" onClick={() => props.onChange(shiftRange(range, -1))}>
+        <button type="button" class="icon-btn min-h-(--tap) min-w-(--tap)" aria-label="A week earlier" onClick={() => props.onChange(weekOf(range.from, -1, now))}>
           <ChevronIcon dir="left" />
         </button>
         <h2 class="min-w-200 text-center text-22 tracking-[-0.01em] max-md:min-w-0" aria-live="polite">
@@ -39,8 +39,8 @@ export function RangeStrip(props: { range: DateRange; now: Date; text: string; o
         >
           <ChevronIcon dir="right" />
         </button>
-        <button type="button" class="btn btn-quiet btn-small" disabled={isLast} onClick={() => props.onChange(last)}>
-          Last week
+        <button type="button" class="btn btn-quiet btn-small" disabled={isCurrent} onClick={() => props.onChange(current)}>
+          This week
         </button>
       </div>
       <div class="flex items-center gap-6 text-13 text-body">

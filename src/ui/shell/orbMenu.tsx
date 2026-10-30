@@ -138,9 +138,9 @@ export function orbSections(): OrbSection[] {
       actions: [
         {
           id: 'highlight-copy',
-          label: 'Last week’s highlight',
+          label: 'This week’s highlight',
           title: 'Writing the weekly highlight',
-          text: 'Last week’s tasks under a prompt, ready to paste into Copilot. Nothing leaves this browser.',
+          text: 'This week’s tasks so far under a prompt, ready to paste into Copilot. Nothing leaves this browser.',
           run: () => go('highlight', { key: 'highlight-copy', hint: 'Start here' }),
         },
         {

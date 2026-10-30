@@ -26,16 +26,19 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /** 0 for Monday … 6 for Sunday (day 0, 1 January 1970, was a Thursday). */
 const weekday = (stamp: string) => (dayNumber(stamp) + 3) % 7;
 
-/** Last Monday to Sunday: the week before the one `now` falls in. */
-export function lastWeek(now: Date): DateRange {
-  const today = localDateStamp(now);
-  const monday = dayNumber(today) - weekday(today) - 7;
-  return { from: stampOf(monday), to: stampOf(monday + 6) };
+/**
+ * A Monday-to-Sunday week, `weeks` from the one `day` falls in. The week
+ * today falls in ends today: it's the week so far.
+ */
+export function weekOf(day: string, weeks: number, now: Date): DateRange {
+  const monday = dayNumber(day) - weekday(day) + weeks * 7;
+  const today = dayNumber(localDateStamp(now));
+  return { from: stampOf(monday), to: stampOf(Math.min(monday + 6, today)) };
 }
 
-/** The same range moved by whole weeks. */
-export function shiftRange(range: DateRange, weeks: number): DateRange {
-  return { from: stampOf(dayNumber(range.from) + weeks * 7), to: stampOf(dayNumber(range.to) + weeks * 7) };
+/** This Monday to today: the week so far, where the highlight starts. */
+export function thisWeek(now: Date): DateRange {
+  return weekOf(localDateStamp(now), 0, now);
 }
 
 const parts = (stamp: string) => {

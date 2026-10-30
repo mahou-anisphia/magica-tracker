@@ -6,10 +6,10 @@ import {
   fillVariables,
   highlightItems,
   itemLine,
-  lastWeek,
   presetChoices,
   rangeLabel,
-  shiftRange,
+  thisWeek,
+  weekOf,
 } from '../src/core/highlight';
 import { mergeRoots } from '../src/core/merge';
 import { migrate } from '../src/core/migrate';
@@ -99,11 +99,16 @@ describe('presets', () => {
 });
 
 describe('the weekly highlight', () => {
-  it('defaults to last Monday to Sunday, and steps by weeks', () => {
-    expect(lastWeek(new Date(2026, 9, 30, 9))).toEqual(WEEK); // a Friday
-    expect(lastWeek(new Date(2026, 9, 26, 9))).toEqual(WEEK); // a Monday
-    expect(lastWeek(new Date(2026, 9, 25, 23))).toEqual({ from: '2026-10-12', to: '2026-10-18' }); // a Sunday
-    expect(shiftRange(WEEK, 1)).toEqual({ from: '2026-10-26', to: '2026-11-01' });
+  it('defaults to this week so far, and steps by whole weeks', () => {
+    const friday = new Date(2026, 9, 30, 9);
+    expect(thisWeek(friday)).toEqual({ from: '2026-10-26', to: '2026-10-30' });
+    expect(thisWeek(new Date(2026, 9, 26, 9))).toEqual({ from: '2026-10-26', to: '2026-10-26' }); // a Monday
+    expect(thisWeek(new Date(2026, 9, 25, 23))).toEqual(WEEK); // a Sunday: the whole week
+    // Back from the week so far is the whole week before; forward again stops at today.
+    expect(weekOf('2026-10-26', -1, friday)).toEqual(WEEK);
+    expect(weekOf(WEEK.from, 1, friday)).toEqual({ from: '2026-10-26', to: '2026-10-30' });
+    // Any two days step from the week the first one falls in.
+    expect(weekOf('2026-10-22', -1, friday)).toEqual({ from: '2026-10-12', to: '2026-10-18' });
   });
 
   it('names ranges and days in English', () => {
