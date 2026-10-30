@@ -115,8 +115,9 @@ describe('the weekly highlight', () => {
   });
 
   it('fills the variables it knows, and asks for a shape the preset’s format agrees with', () => {
-    expect(fillVariables('{{max_items}} of {{ char_limit }}, {{other}}', { max_items: 3, char_limit: 500 })).toBe('3 of 500, {{other}}');
-    expect(baseBlock('bullets')).toContain('Return {{max_items}} bullet points, under {{char_limit}} characters in total.');
+    expect(fillVariables('{{max_items}} of {{ word_limit }}, {{other}}', { max_items: 3, word_limit: 500 })).toBe('3 of 500, {{other}}');
+    expect(baseBlock('bullets')).toContain('Return at most {{max_items}} bullet points and at most {{word_limit}} words in total.');
+    expect(baseBlock('sentence')).toContain('Return a single sentence of at most {{word_limit}} words.');
     expect(baseBlock('sentence')).not.toContain('bullet');
   });
 
@@ -157,13 +158,13 @@ describe('the weekly highlight', () => {
 
   it('builds the prompt, then the tasks', () => {
     const items = highlightItems(sample(), WEEK, false).slice(0, 1);
-    const text = buildPrompt({ body: 'Pick {{max_items}}.', format: 'bullets', range: WEEK, maxItems: 2, charLimit: 300, items });
+    const text = buildPrompt({ body: 'Pick {{max_items}}.', format: 'bullets', range: WEEK, maxItems: 2, wordLimit: 300, items });
     expect(text).toBe(
       [
         '[PROMPT]',
         'Pick 2.',
         '',
-        'Write a weekly highlight for 19–25 Oct 2026 from the tasks below. Return 2 bullet points, under 300 characters in total. Start each bullet with what was achieved, not the activity. Use plain past tense and no filler like "worked on" or "helped with". Combine small related tasks into one bullet. Do not invent details that aren\'t in the task data.',
+        'Write a weekly highlight for 19–25 Oct 2026 from the tasks below. Return at most 2 bullet points and at most 300 words in total. Start each bullet with what was achieved, not the activity. Use plain past tense and no filler like "worked on" or "helped with". Combine small related tasks into one bullet. Do not invent details that aren\'t in the task data.',
         '',
         '[TASKS — 19–25 Oct 2026]',
         '- Done | Audit list | Project: Wards (Security) | Done Tue 20 Oct',

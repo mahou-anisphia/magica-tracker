@@ -9,7 +9,7 @@ import { localDateStamp } from './time';
  * The weekly highlight: a prompt and a range's tasks as one block of text, to
  * paste into the company's assistant. Nothing is sent anywhere; the text is
  * only built here and copied. The prompt is a preset's body followed by the
- * base block, with {{week_range}}, {{max_items}} and {{char_limit}} filled in.
+ * base block, with {{week_range}}, {{max_items}} and {{word_limit}} filled in.
  * The prompt's words are English whatever the browser's locale, like the
  * form they end up in.
  */
@@ -18,7 +18,7 @@ import { localDateStamp } from './time';
 export type DateRange = { from: string; to: string };
 
 export const DEFAULT_MAX_ITEMS = 3;
-export const DEFAULT_CHAR_LIMIT = 500;
+export const DEFAULT_WORD_LIMIT = 500;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -129,9 +129,10 @@ export function presetChoices(root: Root, team: Team): PresetChoice[] {
   return out;
 }
 
+/** Both numbers are caps, not targets: fewer bullet points or words is fine. */
 const FORMAT_LINE: Record<HighlightFormat, string> = {
-  bullets: 'Return {{max_items}} bullet points, under {{char_limit}} characters in total.',
-  sentence: 'Return a single sentence, under {{char_limit}} characters.',
+  bullets: 'Return at most {{max_items}} bullet points and at most {{word_limit}} words in total.',
+  sentence: 'Return a single sentence of at most {{word_limit}} words.',
 };
 
 /**
@@ -228,14 +229,14 @@ export type PromptInput = {
   format: HighlightFormat;
   range: DateRange;
   maxItems: number;
-  charLimit: number;
+  wordLimit: number;
   items: HighlightItem[];
 };
 
 /** The text to paste: the prompt (preset body, then the base block), then the tasks. */
 export function buildPrompt(input: PromptInput): string {
   const range = rangeLabel(input.range);
-  const vars = { week_range: range, max_items: input.maxItems, char_limit: input.charLimit };
+  const vars = { week_range: range, max_items: input.maxItems, word_limit: input.wordLimit };
   const prompt = [input.body.trim(), baseBlock(input.format)].filter(Boolean).map((t) => fillVariables(t, vars));
   return ['[PROMPT]', prompt.join('\n\n'), '', `[TASKS — ${range}]`, ...input.items.map(itemLine)].join('\n');
 }

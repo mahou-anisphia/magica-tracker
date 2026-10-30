@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import {
   buildPrompt,
-  DEFAULT_CHAR_LIMIT,
+  DEFAULT_WORD_LIMIT,
   DEFAULT_MAX_ITEMS,
   DEFAULT_PRESET,
   highlightItems,
@@ -36,12 +36,12 @@ export function HighlightView(props: { root: Root; team: Team; now: Date }) {
   /** The body edited for this export only; null while it's the preset's own. */
   const [body, setBody] = useState<string | null>(null);
   const [maxItems, setMaxItems] = useState(DEFAULT_MAX_ITEMS);
-  const [charLimit, setCharLimit] = useState(DEFAULT_CHAR_LIMIT);
+  const [wordLimit, setWordLimit] = useState(DEFAULT_WORD_LIMIT);
   const [inProgress, setInProgress] = useState(false);
   const [draft, setDraft] = useState<PresetDraft | null>(null);
 
   const items = highlightItems(root, range, inProgress);
-  const text = buildPrompt({ body: body ?? preset.body, format: preset.format, range, maxItems, charLimit, items });
+  const text = buildPrompt({ body: body ?? preset.body, format: preset.format, range, maxItems, wordLimit, items });
   // A preset saved a moment ago isn't in `choices` until the next render, so the key is taken as given.
   const pick = (key: string) => {
     setPresetKey(key);
@@ -62,12 +62,12 @@ export function HighlightView(props: { root: Root; team: Team; now: Date }) {
             preset={preset}
             body={body}
             maxItems={maxItems}
-            charLimit={charLimit}
+            wordLimit={wordLimit}
             inProgress={inProgress}
             onPick={pick}
             onBody={(b) => setBody(b === preset.body ? null : b)}
             onMaxItems={setMaxItems}
-            onCharLimit={setCharLimit}
+            onWordLimit={setWordLimit}
             onInProgress={setInProgress}
             onSaveAs={() => setDraft({ id: null, name: '', body: body ?? preset.body, format: preset.format, shared: false })}
           />

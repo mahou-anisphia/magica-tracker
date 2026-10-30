@@ -17,12 +17,12 @@ export function PromptPanel(props: {
   preset: PresetChoice;
   body: string | null;
   maxItems: number;
-  charLimit: number;
+  wordLimit: number;
   inProgress: boolean;
   onPick: (key: string) => void;
   onBody: (body: string) => void;
   onMaxItems: (n: number) => void;
-  onCharLimit: (n: number) => void;
+  onWordLimit: (n: number) => void;
   onInProgress: (on: boolean) => void;
   onSaveAs: () => void;
 }) {
@@ -66,11 +66,11 @@ export function PromptPanel(props: {
       </div>
       <div class="flex flex-wrap items-center gap-x-20 gap-y-10">
         {preset.format === 'bullets' ? (
-          <NumberField label="Bullet points" value={props.maxItems} min={1} max={10} onChange={props.onMaxItems} />
+          <NumberField label="Bullet points at most" value={props.maxItems} min={1} max={10} onChange={props.onMaxItems} />
         ) : (
           <span class="text-13 font-medium text-body">One sentence</span>
         )}
-        <NumberField label="Characters at most" value={props.charLimit} min={50} max={5000} step={50} onChange={props.onCharLimit} />
+        <NumberField label="Words at most" value={props.wordLimit} min={10} max={2000} step={10} onChange={props.onWordLimit} />
       </div>
       <label class="flex cursor-pointer items-center gap-8 text-14 text-ink">
         <input type="checkbox" checked={props.inProgress} onChange={(e) => props.onInProgress(e.currentTarget.checked)} />

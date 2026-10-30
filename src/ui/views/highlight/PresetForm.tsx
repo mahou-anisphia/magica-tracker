@@ -43,7 +43,7 @@ export function PresetForm(props: { draft: PresetDraft; onDone: (savedId: string
       <textarea
         class={BODY_FIELD}
         aria-label="Prompt"
-        placeholder="What to pick and how to frame it. {{max_items}}, {{char_limit}} and {{week_range}} are filled in."
+        placeholder="What to pick and how to frame it. {{max_items}}, {{word_limit}} and {{week_range}} are filled in."
         rows={4}
         value={body}
         onInput={(e) => setBody(e.currentTarget.value)}
